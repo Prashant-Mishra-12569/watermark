@@ -3,15 +3,18 @@
 // Public inputs, in this fixed order:
 //   0 ca_root, 1 rules_root, 2 app_id, 3 un, 4 nullifier, 5 valid_until_month
 //
-// Implemented so far (spike): constraints 2, 3, 4 and 6 for the RuPay size profile
+// All 8 constraints of spec section I, for the RuPay size profile
 // (CA 1984-bit -> bank 1408-bit -> card 768-bit, all e = 3, 183 bytes of static data).
-// Still to add: 1 CA key under ca_root, 5 filter under rules_root, 7 nullifier.
 // Nothing about the card (PAN, BIN, expiry, keys, certificates) is ever output.
 mod sha1;
 mod emv;
+mod zk;
 
-use emv::{bcd_month, check_issuer_prefix, recover_e3, sub_bytes};
+use emv::{bcd_month, check_issuer_prefix, pan_prefix, recover_e3, sub_bytes};
 use sha1::sha1;
+
+global CA_TREE_DEPTH: u32 = 6;
+global RULES_TREE_DEPTH: u32 = 12;
 
 // RuPay size profile (all three of our real cards).
 global CA_BYTES: u32 = 248;
@@ -35,9 +38,18 @@ fn main(
     static_data: [u8; STATIC_BYTES],
     icc_redc: [u128; 7],
     sdad: [u8; ICC_BYTES],
+    // Private: which allowed CA key and which filter leaf this card uses
+    network_id: Field,
+    ca_index: Field,
+    ca_siblings: [Field; CA_TREE_DEPTH],
+    prefix_length: u32,
+    rule_index: Field,
+    rule_siblings: [Field; RULES_TREE_DEPTH],
 ) {
-    // TODO(1, 5, 7): Merkle membership under ca_root and rules_root, and the nullifier.
-    let _ = (ca_root, rules_root, app_id, nullifier);
+    // Constraint 1 · the network CA key is in the allowed set. Its leaf carries the network ID,
+    // so the filter below is bound to the network that actually signed the card.
+    let ca_leaf = zk::ca_leaf::<CA_BYTES, 9>(network_id, n_ca);
+    assert(zk::merkle_root(ca_leaf, ca_index, ca_siblings) == ca_root, "CA key is not allowed");
 
     // Step 1 · bank certificate, opened with the network key
     let m: [u8; CA_BYTES] = recover_e3::<17, 1984>(n_ca, ca_redc, issuer_cert);
@@ -106,6 +118,20 @@ fn main(
         h3[ICC_BYTES - 22 + i] = un_bytes[i];
     }
     assert(sha1(h3) == sub_bytes::<ICC_BYTES, 20>(s, ICC_BYTES - 21), "sdad: hash (stale or replayed)");
+
+    // Constraint 5 · the PAN prefix (from the signed card certificate, never an unsigned tag) passes the filter
+    assert((prefix_length == 6) | (prefix_length == 8), "prefix length must be 6 or 8");
+    let rule_leaf = zk::rule_leaf(network_id, prefix_length, pan_prefix(pan, prefix_length));
+    assert(zk::merkle_root(rule_leaf, rule_index, rule_siblings) == rules_root, "card is not allowed by this app's filter");
+
+    // Constraint 7 · nullifier = Poseidon2(pack(n_C) || appId): from the card KEY, never the card number
+    let packed: [Field; 5] = zk::pack(n_icc);
+    let mut nullifier_input: [Field; 6] = [0; 6];
+    for i in 0..5 {
+        nullifier_input[i] = packed[i];
+    }
+    nullifier_input[5] = app_id;
+    assert(zk::hash(nullifier_input) == nullifier, "nullifier mismatch");
 
     // Constraint 6 · both certificates are valid through valid_until_month
     valid_until_month.assert_max_bit_size::<32>();

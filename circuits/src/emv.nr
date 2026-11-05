@@ -51,6 +51,21 @@ fn nibble<let N: u32>(a: [u8; N], i: u32) -> u8 {
     }
 }
 
+/// The first 6 or 8 PAN digits as a decimal number (the BIN / IIN used by the filter).
+pub fn pan_prefix(pan: [u8; 10], prefix_length: u32) -> Field {
+    let mut p6: Field = 0;
+    let mut p8: Field = 0;
+    for i in 0..8 {
+        let d = nibble(pan, i);
+        assert(d < 10, "PAN digit");
+        if i < 6 {
+            p6 = p6 * 10 + d as Field;
+        }
+        p8 = p8 * 10 + d as Field;
+    }
+    if prefix_length == 6 { p6 } else { p8 }
+}
+
 /// The issuer ID (3 to 8 digits, padded with F) must be a prefix of the PAN.
 pub fn check_issuer_prefix(issuer_id: [u8; 4], pan: [u8; 10]) {
     let mut ended = false;
@@ -71,6 +86,13 @@ pub fn check_issuer_prefix(issuer_id: [u8; 4], pan: [u8; 10]) {
 fn test_bcd_month() {
     assert(bcd_month(0x11, 0x26) == 322); // Nov 2026
     assert(bcd_month(0x01, 0x27) == 324); // Jan 2027
+}
+
+#[test]
+fn test_pan_prefix() {
+    let pan = [0x99, 0x00, 0x01, 0x00, 0x00, 0x12, 0x34, 0x55, 0xFF, 0xFF];
+    assert(pan_prefix(pan, 6) == 990001);
+    assert(pan_prefix(pan, 8) == 99000100);
 }
 
 #[test]
