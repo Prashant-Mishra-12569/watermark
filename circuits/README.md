@@ -11,34 +11,42 @@
 
 On Windows these run inside WSL2 Ubuntu. On macOS they run natively.
 
-## What the circuit proves so far
-For the RuPay size profile (CA 1984-bit → bank 1408-bit → card 768-bit, all e = 3, 183 bytes of static data), which
-matches all three of our real cards:
+## What the circuit proves
+All 8 constraints of spec section I, for the RuPay size profile (CA 1984-bit → bank 1408-bit → card 768-bit, all
+e = 3, 183 bytes of static data). This profile matches all three of our real cards.
 
-- **Step 1:** the bank certificate opens with the network key (header `6A 02`, trailer `BC`, algorithm bytes, key length, padding, SHA-1).
-- **Step 2:** the card certificate opens with the bank key (`6A 04 … BC`, SHA-1 over the certificate + exponent + static data).
-- **Issuer check:** the bank certificate's issuer ID is a prefix of the PAN.
-- **Step 3:** the card signature opens with the card key (`6A 05|95 … BC`).
-- **Freshness:** the signature's SHA-1 covers this session's `un` (a public input), so replays fail.
-- **Validity:** both certificates are valid through `valid_until_month` (a public input).
+1. **CA key allowed:** `Poseidon2(networkId, hash(pack(n_CA)))` is a leaf under `ca_root` (depth 6). The network ID
+   comes from that leaf, so the filter below is bound to the network that really signed the card.
+2. **EMV chain (spec H):**
+   - The bank certificate opens with the CA key (`6A 02 … BC`, algorithms, key length, padding, SHA-1).
+   - The card certificate opens with the bank key (`6A 04 … BC`, SHA-1 over the certificate + exponent + static data).
+   - The card signature opens with the card key (`6A 05|95 … BC`).
+3. **Issuer check:** the bank certificate's issuer ID is a prefix of the PAN.
+4. **Freshness:** the signature's SHA-1 covers this session's `un`, so replays fail.
+5. **Filter:** `Poseidon2(networkId, prefixLength, prefix)` is a leaf under `rules_root` (depth 12). The prefix is the
+   first 6 or 8 PAN digits, taken from the **signed** card certificate.
+6. **Validity:** both certificates are valid through `valid_until_month`.
+7. **Nullifier:** `Poseidon2(pack(n_C) ‖ appId)`, from the card **key** and never the card number.
+8. Nothing about the card is output. The only public values are the six F4 inputs.
 
-**Still to add:**
-- CA key membership under `ca_root` (constraint 1)
-- the filter leaf under `rules_root` (constraint 5)
-- the nullifier (constraint 7)
+`pack(x)` = `[len, 31-byte big-endian chunks]` (interfaces F4). Poseidon2 comes from `noir-lang/poseidon` v0.4.0.
 
 ## Measured (synthetic test card, Windows laptop, WSL2, 8 threads, 2026-11-06)
 | Metric | Value |
 |---|---|
-| ACIR opcodes / circuit size | 84,302 / **203,123 gates** (UltraHonk) |
-| `nargo execute` (witness) | 3.5 s |
-| `bb prove -t evm` (ZK, keccak) + vk + verify | **4.4 s**, 352 MB peak |
-| Proof size | 9,536 bytes |
-| Solidity verifier (`bb write_solidity_verifier -t evm`) | HonkVerifier runtime **18,451 bytes** (< 24,576 limit) + ZKTranscriptLib 6,089 bytes |
+| ACIR opcodes / circuit size | 84,476 / **206,473 gates** (UltraHonk) |
+| `bb prove -t evm` (ZK, keccak) + vk + verify | **3.0 s**, 326 MB peak |
+| Proof size / public inputs | 9,536 bytes / 6 × 32 bytes |
+| Solidity verifier (`bb write_solidity_verifier -t evm`) | HonkVerifier runtime **18,451 bytes** (< 24,576 limit) + ZKTranscriptLib 6,089 bytes (spike build) |
 
-**Negative checks:**
-- The same signature with another UN fails with `sdad: hash (stale or replayed)`.
-- A `valid_until_month` past the card's expiry fails with `card certificate expires too soon`.
+**Negative checks (all refused):**
+| Case | Error |
+|---|---|
+| Same signature, other UN | `sdad: hash (stale or replayed)` |
+| Valid past the card's expiry | `card certificate expires too soon` |
+| Same card, another app's nullifier | `nullifier mismatch` |
+| PAN prefix not in the filter | `card is not allowed by this app's filter` |
+| Network ID that doesn't match the CA leaf | `CA key is not allowed` |
 
 ## Run
 ```sh
