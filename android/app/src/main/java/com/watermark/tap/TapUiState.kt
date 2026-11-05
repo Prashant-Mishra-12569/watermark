@@ -24,6 +24,9 @@ sealed interface TapUiState {
     data object Reading : TapUiState
     data object CheckingLocally : TapUiState
 
+    /** The card passed the full certificate chain and signed this session's challenge, checked on the phone. */
+    data object VerifiedOnPhone : TapUiState
+
     /** Stopped on the phone: nothing was sent. */
     data class Refused(val reason: RefusalReason) : TapUiState
 
@@ -41,4 +44,5 @@ enum class RefusalReason(val message: String) {
     WRONG_SIGNER("This link wasn't issued by Watermark. Nothing was sent."),
     NFC_LOST("The card moved away. Hold it still and try again."),
     NFC_OFF("Turn on NFC to tap your card."),
+    NO_SESSION("Scan the QR code on the website first. Nothing was read from the card."),
 }
