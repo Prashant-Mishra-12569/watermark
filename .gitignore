@@ -1,0 +1,61 @@
+# Local only, never commit
+CLAUDE.local.md
+.claude/
+/watermark project.zip
+/watermark pdf.pdf
+*.zip
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+!prover/keys/prover_pub.pem
+*.key
+*.keystore
+*.jks
+keystore.properties
+
+# Card data must never enter the repo
+card-logs/
+witness/
+*.gz
+circuits/Prover.toml
+circuits/**/Prover.toml
+
+# Node
+node_modules/
+.pnpm-store/
+dist/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# Foundry
+contracts/out/
+contracts/cache/
+contracts/broadcast/**/dry-run/
+
+# Noir
+circuits/target/
+
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/captures/
+*.apk
+*.aab
+
+# Alt mempool workshop state
+.workshop-state.json
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
