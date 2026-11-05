@@ -1,0 +1,11 @@
+[package]
+name = "watermark"
+type = "bin"
+authors = ["Prashant Mishra"]
+# Pin the nargo version here and in the README once chosen (spec I: pin one bb version, ZK mode)
+
+[dependencies]
+# Planned (pin exact tags after the spike):
+# bignum = { tag = "...", git = "https://github.com/noir-lang/noir-bignum" }
+# rsa    = { tag = "...", git = "https://github.com/noir-lang/noir_rsa" }
+# poseidon = { tag = "...", git = "https://github.com/noir-lang/poseidon" }

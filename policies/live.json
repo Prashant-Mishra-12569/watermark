@@ -1,0 +1,9 @@
+{
+  "label": "SBI RuPay debit",
+  "environment": "live",
+  "appId": "",
+  "leaves": [],
+  "rulesRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "quotaPerDay": 20,
+  "stampMonths": 3
+}
