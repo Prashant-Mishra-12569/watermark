@@ -37,6 +37,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @watermark/sdk typecheck
       - run: pnpm --filter @watermark/sdk test
+      - run: pnpm --filter @watermark/relayer typecheck
+      - run: pnpm --filter @watermark/relayer test
 
   contracts:
     runs-on: ubuntu-latest
