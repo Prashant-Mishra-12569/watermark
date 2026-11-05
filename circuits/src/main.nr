@@ -3,15 +3,22 @@
 // Public inputs, in this fixed order:
 //   0 ca_root, 1 rules_root, 2 app_id, 3 un, 4 nullifier, 5 valid_until_month
 //
-// Constraints to implement, in order:
-//   1. CA key: Poseidon2(network_id, hash(n_CA)) is a leaf under ca_root (depth 6)
-//   2. EMV chain, spec H steps 1-4: three RSA e=3 recoveries, header/trailer bytes, SHA-1 checks
-//   3. issuerId digits are a prefix of the PAN
-//   4. freshness: termData[0..4] == un
-//   5. filter: Poseidon2(network_id, prefix_length, prefix) is a leaf under rules_root (depth 12)
-//   6. validity: card and bank certificate expiry months >= valid_until_month
-//   7. nullifier == Poseidon2(pack(n_C) ++ app_id)
-//   8. output nothing else: no PAN, BIN, expiry, network, certificates or keys
+// Implemented so far (spike): constraints 2, 3, 4 and 6 for the RuPay size profile
+// (CA 1984-bit -> bank 1408-bit -> card 768-bit, all e = 3, 183 bytes of static data).
+// Still to add: 1 CA key under ca_root, 5 filter under rules_root, 7 nullifier.
+// Nothing about the card (PAN, BIN, expiry, keys, certificates) is ever output.
+mod sha1;
+mod emv;
+
+use emv::{bcd_month, check_issuer_prefix, recover_e3, sub_bytes};
+use sha1::sha1;
+
+// RuPay size profile (all three of our real cards).
+global CA_BYTES: u32 = 248;
+global ISSUER_BYTES: u32 = 176;
+global ICC_BYTES: u32 = 96;
+global STATIC_BYTES: u32 = 183;
+
 fn main(
     ca_root: pub Field,
     rules_root: pub Field,
@@ -19,7 +26,90 @@ fn main(
     un: pub Field,
     nullifier: pub Field,
     valid_until_month: pub Field,
+    // Private: the network CA key and the card's ODA objects (interfaces F2)
+    n_ca: [u8; CA_BYTES],
+    ca_redc: [u128; 17],
+    issuer_cert: [u8; CA_BYTES],
+    issuer_redc: [u128; 12],
+    icc_cert: [u8; ISSUER_BYTES],
+    static_data: [u8; STATIC_BYTES],
+    icc_redc: [u128; 7],
+    sdad: [u8; ICC_BYTES],
 ) {
-    // Placeholder so the skeleton compiles; replaced by the constraints above.
-    let _ = (ca_root, rules_root, app_id, un, nullifier, valid_until_month);
+    // TODO(1, 5, 7): Merkle membership under ca_root and rules_root, and the nullifier.
+    let _ = (ca_root, rules_root, app_id, nullifier);
+
+    // Step 1 · bank certificate, opened with the network key
+    let m: [u8; CA_BYTES] = recover_e3::<17, 1984>(n_ca, ca_redc, issuer_cert);
+    assert(m[0] == 0x6A, "issuer: header");
+    assert(m[1] == 0x02, "issuer: format");
+    assert(m[CA_BYTES - 1] == 0xBC, "issuer: trailer");
+    assert((m[11] == 0x01) & (m[12] == 0x01), "issuer: algorithms");
+    assert(m[13] == ISSUER_BYTES as u8, "issuer: key length");
+    assert(m[14] == 0x01, "issuer: exponent length");
+    // Hash input: m[1..L-22] || remainder (none in this profile) || exponent 03
+    let mut h1: [u8; CA_BYTES - 21] = [0; CA_BYTES - 21];
+    for i in 0..CA_BYTES - 22 {
+        h1[i] = m[i + 1];
+    }
+    h1[CA_BYTES - 22] = 0x03;
+    assert(sha1(h1) == sub_bytes::<CA_BYTES, 20>(m, CA_BYTES - 21), "issuer: hash");
+    let n_issuer: [u8; ISSUER_BYTES] = sub_bytes(m, 15);
+    // The rest of the key field is padding (no remainder for these sizes)
+    for i in 15 + ISSUER_BYTES..CA_BYTES - 21 {
+        assert(m[i] == 0xBB, "issuer: padding");
+    }
+    let issuer_id: [u8; 4] = sub_bytes(m, 2);
+    let issuer_exp_month = bcd_month(m[6], m[7]);
+
+    // Step 2 · card certificate, opened with the bank key
+    let c: [u8; ISSUER_BYTES] = recover_e3::<12, 1408>(n_issuer, issuer_redc, icc_cert);
+    assert(c[0] == 0x6A, "icc: header");
+    assert(c[1] == 0x04, "icc: format");
+    assert(c[ISSUER_BYTES - 1] == 0xBC, "icc: trailer");
+    assert((c[17] == 0x01) & (c[18] == 0x01), "icc: algorithms");
+    assert(c[19] == ICC_BYTES as u8, "icc: key length");
+    assert(c[20] == 0x01, "icc: exponent length");
+    // Hash input: c[1..L-22] || remainder (none) || exponent 03 || static data
+    let mut h2: [u8; ISSUER_BYTES - 21 + STATIC_BYTES] = [0; ISSUER_BYTES - 21 + STATIC_BYTES];
+    for i in 0..ISSUER_BYTES - 22 {
+        h2[i] = c[i + 1];
+    }
+    h2[ISSUER_BYTES - 22] = 0x03;
+    for i in 0..STATIC_BYTES {
+        h2[ISSUER_BYTES - 21 + i] = static_data[i];
+    }
+    assert(sha1(h2) == sub_bytes::<ISSUER_BYTES, 20>(c, ISSUER_BYTES - 21), "icc: hash");
+    let pan: [u8; 10] = sub_bytes(c, 2);
+    let icc_exp_month = bcd_month(c[12], c[13]);
+    let n_icc: [u8; ICC_BYTES] = sub_bytes(c, 21);
+    for i in 21 + ICC_BYTES..ISSUER_BYTES - 21 {
+        assert(c[i] == 0xBB, "icc: padding");
+    }
+
+    // Constraint 3 · the bank certificate's issuer ID is a prefix of the PAN
+    check_issuer_prefix(issuer_id, pan);
+
+    // Step 3 · the card's signature, opened with the card key
+    let s: [u8; ICC_BYTES] = recover_e3::<7, 768>(n_icc, icc_redc, sdad);
+    assert(s[0] == 0x6A, "sdad: header");
+    assert((s[1] == 0x05) | (s[1] == 0x95), "sdad: format");
+    assert(s[ICC_BYTES - 1] == 0xBC, "sdad: trailer");
+
+    // Step 4 / constraint 4 · freshness: the signature covers this session's UN (termData = UN for RuPay)
+    let un_bytes: [u8; 4] = un.to_be_bytes();
+    let mut h3: [u8; ICC_BYTES - 22 + 4] = [0; ICC_BYTES - 22 + 4];
+    for i in 0..ICC_BYTES - 22 {
+        h3[i] = s[i + 1];
+    }
+    for i in 0..4 {
+        h3[ICC_BYTES - 22 + i] = un_bytes[i];
+    }
+    assert(sha1(h3) == sub_bytes::<ICC_BYTES, 20>(s, ICC_BYTES - 21), "sdad: hash (stale or replayed)");
+
+    // Constraint 6 · both certificates are valid through valid_until_month
+    valid_until_month.assert_max_bit_size::<32>();
+    let v = valid_until_month as u32;
+    assert(issuer_exp_month >= v, "issuer certificate expires too soon");
+    assert(icc_exp_month >= v, "card certificate expires too soon");
 }
