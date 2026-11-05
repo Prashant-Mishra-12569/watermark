@@ -9,14 +9,14 @@ The split follows the line where the two halves touch least.
 
 - **Prashant owns everything that touches card bytes:** chip → phone → test card → circuit → prover.
   Only Prashant has the Android phone and the real cards, and each of these parts must match the card's exact bytes.
-- **Samanve owns everything users and the chain see:** website, app screens, contracts, relayer, paymaster.
+- **Samanway owns everything users and the chain see:** website, app screens, contracts, relayer, paymaster.
   His Mac runs Foundry, Node and the alt mempool tooling natively, and he leads UI.
 
 The two halves meet in only two places, both defined in [interfaces.md](interfaces.md):
-1. **Prashant → Samanve:** the proof, its public inputs (F4) and `Verifier.sol`.
-2. **Samanve → Prashant:** the signed session and QR (F1), and the deployed addresses (F11).
+1. **Prashant → Samanway:** the proof, its public inputs (F4) and `Verifier.sol`.
+2. **Samanway → Prashant:** the signed session and QR (F1), and the deployed addresses (F11).
 
-| Area (spec section) | Prashant · Windows + Android + cards | Samanve · Mac + UI |
+| Area (spec section) | Prashant · Windows + Android + cards | Samanway · Mac + UI |
 |---|---|---|
 | Android app (G, M) | deep link, session check, NFC/IsoDep, EMV flow, local maths and policy check, encryption, upload | all Compose screens and visuals (Android Studio previews with fake states) |
 | `TapUiState.kt` | shared: changes by agreement | shared |
@@ -38,7 +38,7 @@ The `sdk/src/types.ts` and `sdk/src/chains.ts` files are shared, so both can edi
 
 ## Devices
 
-| | Prashant (Windows 10) | Samanve (macOS) |
+| | Prashant (Windows 10) | Samanway (macOS) |
 |---|---|---|
 | Node | 24 + `corepack enable` (pnpm) | 24 + `corepack enable` |
 | Foundry | native (`forge` 1.7.x) | `foundryup` |
@@ -51,7 +51,7 @@ passes through the Mac's RAM, so all request logs stay off (`DEMO_MODE=true`).
 
 ## Timeline (IST, best case)
 
-| By | Prashant | Samanve | Done when |
+| By | Prashant | Samanway | Done when |
 |---|---|---|---|
 | Fri 04:00 | skeleton pushed; SBI card feasibility check | tools installed; workshop steps 1, 3, 7, 8 | repo live; first devnet tx accepted |
 | Fri 08:00 | Android app shell + deep link + session check; synthetic test card; Noir spike (RSA e=3 + SHA-1) | relayer `/session`; `/verify` page with QR | **the laptop QR opens the app on the phone** |
@@ -62,7 +62,7 @@ passes through the Mac's RAM, so all request logs stay off (`DEMO_MODE=true`).
 | Sat 06:00 | rehearse; record the tap | edit video | three clean demo runs |
 | Sat 08:00 | submit | check every link | submission confirmed |
 
-Sleep 4 hours each, at staggered times (e.g. Prashant 13:00–17:00, Samanve 18:00–22:00). Check in for 10 minutes at each row.
+Sleep 4 hours each, at staggered times (e.g. Prashant 13:00–17:00, Samanway 18:00–22:00). Check in for 10 minutes at each row.
 
 **Cut order if behind:**
 1. Arkiv.
@@ -77,7 +77,7 @@ Sleep 4 hours each, at staggered times (e.g. Prashant 13:00–17:00, Samanve 18:
 
 ## Git workflow
 
-- Branches are `prashant/<topic>` and `samanve/<topic>`, merged into `main` by small PRs several times a day.
+- Branches are `prashant/<topic>` and `samanway/<topic>`, merged into `main` by small PRs several times a day.
 - Before each task, run `git switch main` and then `git pull --ff-only`. Merge, never rebase shared work.
 - Commit every 30–60 minutes and push before every break. ETHGlobal requires steady history, and one large
   commit can lead to disqualification.

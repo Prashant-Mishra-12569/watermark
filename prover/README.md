@@ -1,6 +1,6 @@
 # prover
 
-**Written by Prashant, run by Samanve on the Mac.** Spec section O; interfaces F2, F3, F4.
+**Written by Prashant, run by Samanway on the Mac.** Spec section O; interfaces F2, F3, F4.
 Node + TypeScript on port 8787, calling `nargo execute` and `bb prove` / `bb verify`.
 
 ## Flow

@@ -1,6 +1,6 @@
 # relayer
 
-**Owner: Samanve.** Spec section K; interfaces F1, F5, F6, F7. Node + TypeScript + viem, port 8788.
+**Owner: Samanway.** Spec section K; interfaces F1, F5, F6, F7. Node + TypeScript + viem, port 8788.
 
 ## Endpoints (F6)
 `POST /session` · `GET /session/:id` · `POST /stamp` · `POST /pay` · `GET /status/:wallet` · `GET /policy/:appId` · `GET /stats/:appId`

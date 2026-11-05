@@ -1,6 +1,6 @@
 # contracts
 
-Foundry project. **Owner: Samanve.** Prashant supplies `src/generated/Verifier.sol` from the circuit.
+Foundry project. **Owner: Samanway.** Prashant supplies `src/generated/Verifier.sol` from the circuit.
 Spec sections J and L; ABI in [docs/interfaces.md](../docs/interfaces.md) F5.
 
 | Contract | Chain | Job |

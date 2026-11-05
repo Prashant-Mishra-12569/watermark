@@ -2,7 +2,7 @@
 
 **Version 1.0 · 2026-11-06.** This file is the contract between every part of Watermark.
 Code against it, not against each other's code. Changes need agreement from both
-Prashant and Samanve: bump the version and add a line to the changelog at the bottom.
+Prashant and Samanway: bump the version and add a line to the changelog at the bottom.
 
 ```
 Website ──POST /session──▶ Relayer ──signed session (no gas)──▶ Website
@@ -300,8 +300,8 @@ forge verify-contract <addr> src/X.sol:X --rpc-url https://rpc.testnet.whitechai
 
 | Path | Producer | Consumers |
 |---|---|---|
-| `deployments/whitechain.json`, `deployments/devnet.json` | Samanve | everyone |
-| `contracts/src/generated/Verifier.sol` | Prashant (`bb write_solidity_verifier`) | Samanve deploys it |
+| `deployments/whitechain.json`, `deployments/devnet.json` | Samanway | everyone |
+| `contracts/src/generated/Verifier.sol` | Prashant (`bb write_solidity_verifier`) | Samanway deploys it |
 | `prover/keys/prover_pub.pem` (public half only) | Prashant | Tap app |
 | `policies/test.json`, `policies/live.json` | Prashant | relayer, website, app |
 | `sdk/src/types.ts`, `sdk/src/chains.ts` | both | all TypeScript packages |

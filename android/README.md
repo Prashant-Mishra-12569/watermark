@@ -2,7 +2,7 @@
 
 **Owners:**
 - **Prashant:** card logic in packages `nfc/`, `emv/`, `session/`, `crypto/`, `net/`, `policy/`.
-- **Samanve:** Compose screens in package `ui/`.
+- **Samanway:** Compose screens in package `ui/`.
 - **Shared:** `TapUiState.kt` (change by agreement).
 
 Spec sections G and M; interfaces F1, F2, F3, F8.

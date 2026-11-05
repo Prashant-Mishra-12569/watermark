@@ -3,7 +3,7 @@
 **Tap your bank card on your phone once, and your wallet gets a private "real card" stamp that bots can't fake.**
 No money is charged, and no card number goes on-chain. *Bots can't hold plastic.*
 
-Built at ETHGlobal Mumbai 2026 by Prashant Mishra and Samanve.
+Built at ETHGlobal Mumbai 2026 by Prashant Mishra and Samanway Baranwal.
 
 > Status: under active development during the hackathon. Anything marked *untested* or *estimated* is labelled that
 > way on purpose.

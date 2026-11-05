@@ -1,6 +1,6 @@
 # web
 
-**Owner: Samanve.** Spec section N; interfaces F1, F6, F7.
+**Owner: Samanway.** Spec section N; interfaces F1, F6, F7.
 
 ## Create the app
 `create-next-app` needs an empty folder, so move this README out first and merge it back afterwards.
