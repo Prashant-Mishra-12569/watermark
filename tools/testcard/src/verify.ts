@@ -40,6 +40,8 @@ export interface OdaResult {
   /** Month index (F1 formula) through which both certificates are valid. */
   validThroughMonth: number;
   iccModulus: string;
+  /** The bank (issuer) public key recovered from its certificate. */
+  issuerModulus: string;
   dynamicDataLength: number;
 }
 
@@ -125,6 +127,7 @@ export function verifyOda(input: OdaInput): OdaResult {
     iccCertExpiry,
     validThroughMonth: Math.min(mmyyToMonth(issuerCertExpiry), mmyyToMonth(iccCertExpiry)),
     iccModulus: hex(nC),
+    issuerModulus: hex(nI),
     dynamicDataLength: ldd,
   };
 }

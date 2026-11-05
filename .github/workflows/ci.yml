@@ -37,6 +37,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm -r typecheck
       - run: pnpm -r test
+      - name: Committed caRoot and rulesRoot match the keys and leaves
+        run: node tools/zk/src/roots.ts --check
 
   contracts:
     runs-on: ubuntu-latest
