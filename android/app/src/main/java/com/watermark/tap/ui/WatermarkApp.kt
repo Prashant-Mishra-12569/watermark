@@ -37,9 +37,11 @@ fun WatermarkApp(state: TapUiState) {
                     TapUiState.CheckingLocally -> Text("Checking the card on this phone…")
                     TapUiState.VerifiedOnPhone -> Text("Genuine card ✓ It signed this session's challenge. Checked on this phone.")
                     is TapUiState.Refused -> Text(state.reason.message)
+                    TapUiState.LoadingSession -> Text("Loading the session…")
                     TapUiState.Sending -> Text("Sending encrypted card data…")
-                    is TapUiState.Proving -> Text("Proving…")
-                    is TapUiState.Stamped -> Text("Stamped ✓")
+                    is TapUiState.Proving -> Text("Proving… (zero-knowledge, about 10 seconds)")
+                    TapUiState.ProvedNotStamped -> Text("Proof verified ✓ Your card is genuine. Waiting for the relayer to stamp it on-chain.")
+                    is TapUiState.Stamped -> Text("Stamped ✓ ${state.txHash.take(10)}…")
                     is TapUiState.Error -> Text("Something went wrong: ${state.message}")
                 }
             }
