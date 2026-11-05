@@ -58,3 +58,11 @@ test("the verify link carries every F1 field", async () => {
   assert.deepEqual([...q.keys()], ["w", "app", "n", "e", "v", "c", "r", "sig", "p"]);
   assert.equal(q.get("p"), "http://10.0.0.2:8787");
 });
+
+test("the fallback link carries only the session id and the relayer URL", async () => {
+  const { buildFallbackLink } = await import("./session.ts");
+  const q = new URL(buildFallbackLink("abc_123", "http://10.0.0.2:8788").replace("watermark://", "http://")).searchParams;
+  assert.deepEqual([...q.keys()], ["id", "p"]);
+  assert.equal(q.get("id"), "abc_123");
+  assert.equal(q.get("p"), "http://10.0.0.2:8788");
+});

@@ -7,7 +7,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { toBigInt, unhex } from "./bytes.ts";
-import { verifyOda } from "./verify.ts";
+import { verifyOda, type OdaInput } from "./verify.ts";
 
 /** noir-bignum Barrett parameter: floor(2^(2 * bits + 6) / n), as N little-endian 120-bit limbs. */
 export function redcLimbs(modulusHex: string, bits: number, limbs: number): string[] {
@@ -33,7 +33,7 @@ export interface CircuitInputs {
 
 export function proverToml(f: CircuitInputs, validUntilMonth: number, unOverride?: string): string {
   // The recovered keys are needed for the Barrett parameters; this also refuses a broken tap early.
-  const chain = verifyOda({ ...(f.card as never), caModulus: f.caModulus });
+  const chain = verifyOda({ ...f.card, caModulus: f.caModulus } as OdaInput);
   const issuerModulus = recoverIssuerModulus(f);
   const un = unOverride ?? f.card.un;
   return [

@@ -2,6 +2,21 @@
 
 **Owner: Samanway.** Spec section K; interfaces F1, F5, F6, F7. Node + TypeScript + viem, port 8788.
 
+## Run
+```sh
+cp .env.example .env          # at the repo root; fill SESSION_SIGNER_KEY, PROVER_URL, APP_IDS, REGISTRY_ADDRESS
+pnpm --filter @watermark/relayer dev     # node --watch, reads ../.env, listens on 0.0.0.0:8788
+pnpm --filter @watermark/relayer test
+```
+Node 24 runs the TypeScript directly (type stripping), so there is no build step.
+`/session` returns 503 `CHAIN_NOT_READY` for a chain until its registry address is set.
+
+| Endpoint | Status |
+|---|---|
+| `POST /session`, `GET /session/:id` | ✅ signed EIP-712 session + F1 deep link, rate-limited per IP, capped open sessions |
+| `GET /status/:wallet` | ✅ reads `isStamped` (+ `quotaLeft` once the sponsor is deployed) |
+| `POST /stamp`, `POST /pay`, `GET /policy`, `GET /stats` | not built yet |
+
 ## Endpoints (F6)
 `POST /session` · `GET /session/:id` · `POST /stamp` · `POST /pay` · `GET /status/:wallet` · `GET /policy/:appId` · `GET /stats/:appId`
 

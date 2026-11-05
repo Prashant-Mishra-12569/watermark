@@ -84,3 +84,9 @@ export function buildVerifyLink(signed: SignedSession, proverUrl: string): strin
   });
   return `watermark://verify?${q.toString()}`;
 }
+
+/** F1 fallback when the full QR is too dense to scan: the app fetches GET /session/:id from the relayer. */
+export function buildFallbackLink(sessionId: string, relayerUrl: string): string {
+  const q = new URLSearchParams({ id: sessionId, p: relayerUrl });
+  return `watermark://verify?${q.toString()}`;
+}
