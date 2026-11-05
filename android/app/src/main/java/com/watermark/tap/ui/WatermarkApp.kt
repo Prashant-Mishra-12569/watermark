@@ -35,6 +35,7 @@ fun WatermarkApp(state: TapUiState) {
                     TapUiState.WaitingForCard -> Text("Hold your bank card to the back of the phone.")
                     TapUiState.Reading -> Text("Reading card… keep it still.")
                     TapUiState.CheckingLocally -> Text("Checking the card on this phone…")
+                    TapUiState.VerifiedOnPhone -> Text("Genuine card ✓ It signed this session's challenge. Checked on this phone.")
                     is TapUiState.Refused -> Text(state.reason.message)
                     TapUiState.Sending -> Text("Sending encrypted card data…")
                     is TapUiState.Proving -> Text("Proving…")
