@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The prover runs on a laptop on the same Wi-Fi or hotspot, over plain HTTP at a LAN IP that changes per network.
+  Card data is always sent inside the F2 envelope (RSA-OAEP + AES-GCM to the prover's built-in public key),
+  so a cleartext hop only exposes ciphertext. Everything else the app fetches is public.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
