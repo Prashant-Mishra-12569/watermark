@@ -1,0 +1,7 @@
+packages:
+  - sdk
+  - web
+  - relayer
+  - prover
+  - mcp
+  - tools/*
