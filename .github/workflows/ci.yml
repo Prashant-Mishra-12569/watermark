@@ -1,0 +1,49 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  guard:
+    name: no secrets or card data
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Block card-number-like digit runs and private keys
+        run: |
+          set -e
+          # Bounded by non-alphanumerics, so hex addresses and EMV AIDs (A000000524...) don't trigger it
+          if git grep -nE '(^|[^0-9A-Za-z])[0-9]{13,19}([^0-9A-Za-z]|$)' -- ':!*.pdf' ':!pnpm-lock.yaml' ':!*.svg'; then
+            echo "::error::Found a 13-19 digit run. Card numbers must never be committed."; exit 1
+          fi
+          if git grep -nE '(PRIVATE_KEY|SECRET|ACCESS_KEY)[A-Z_]*=["'"'"']?(0x)?[0-9a-fA-F]{32,}' -- ':!*.pdf'; then
+            echo "::error::Found what looks like a committed key."; exit 1
+          fi
+          if git ls-files | grep -E '(^|/)\.env$|\.jks$|\.keystore$'; then
+            echo "::error::Secret file tracked."; exit 1
+          fi
+
+  sdk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @watermark/sdk typecheck
+      - run: pnpm --filter @watermark/sdk test
+
+  contracts:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: foundry-rs/foundry-toolchain@v1
+      - run: forge build
