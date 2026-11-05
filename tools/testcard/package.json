@@ -1,0 +1,23 @@
+{
+  "name": "@watermark/testcard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Synthetic EMV test card (RSA e=3, RuPay sizes) and the ODA reference verifier",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate": "node src/generate.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test \"src/**/*.test.ts\""
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@watermark/sdk": "workspace:*"
+  }
+}
