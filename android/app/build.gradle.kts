@@ -14,8 +14,10 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
-        // Session signer address allowed by this build (interfaces F1). Set before the demo.
-        buildConfigField("String", "SESSION_SIGNER_ADDRESS", "\"0x0000000000000000000000000000000000000000\"")
+        // Session signer this build trusts (interfaces F1), from gradle.properties `watermark.sessionSigner`
+        val sessionSigner = providers.gradleProperty("watermark.sessionSigner").get()
+        require(Regex("^0x[0-9a-fA-F]{40}$").matches(sessionSigner)) { "watermark.sessionSigner must be an address" }
+        buildConfigField("String", "SESSION_SIGNER_ADDRESS", "\"$sessionSigner\"")
         // true only in the mirrored demo build: lets scrcpy show the tap screen (FLAG_SECURE off)
         buildConfigField("boolean", "DEMO_MIRROR", "false")
     }
@@ -52,6 +54,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.bouncycastle)
     debugImplementation(libs.androidx.ui.tooling)
     testImplementation(libs.junit)
 }

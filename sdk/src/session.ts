@@ -2,7 +2,8 @@
  * Session helpers shared by the website, relayer, prover and SDK (interfaces F1).
  * The Android app and the contract implement the same rules. Keep them in sync.
  */
-import { hexToBytes, sha256, type Address, type Hex } from "viem";
+import { hashTypedData, hexToBytes, recoverTypedDataAddress, sha256, type Address, type Hex } from "viem";
+import type { Session, SignedSession } from "./types.ts";
 
 export const SESSION_TTL_SECONDS = 600;
 export const STAMP_MONTHS = 3;
@@ -38,4 +39,48 @@ export function monthIndex(date: Date): number {
 /** validUntilMonth for a new session: the current month + STAMP_MONTHS. */
 export function sessionValidUntilMonth(now: Date = new Date()): number {
   return monthIndex(now) + STAMP_MONTHS;
+}
+
+/** EIP-712 typed data for a session, in the shape viem's signTypedData / hashTypedData expect. */
+export function sessionTypedData(s: Session) {
+  return {
+    domain: sessionDomain(Number(s.chainId), s.registry),
+    types: SESSION_TYPES,
+    primaryType: "Session",
+    message: {
+      wallet: s.wallet,
+      appId: BigInt(s.appId),
+      nonce: s.nonce,
+      expiresAt: BigInt(s.expiresAt),
+      validUntilMonth: s.validUntilMonth,
+      chainId: BigInt(s.chainId),
+      registry: s.registry,
+    },
+  } as const;
+}
+
+/** The EIP-712 digest the session signer signs. Also the AES-GCM AAD for the F2 envelope. */
+export function hashSession(s: Session): Hex {
+  return hashTypedData(sessionTypedData(s));
+}
+
+export async function recoverSessionSigner(signed: SignedSession): Promise<Address> {
+  return recoverTypedDataAddress({ ...sessionTypedData(signed.session), signature: signed.sig });
+}
+
+/** watermark://verify link for the QR (interfaces F1). */
+export function buildVerifyLink(signed: SignedSession, proverUrl: string): string {
+  const s = signed.session;
+  const q = new URLSearchParams({
+    w: s.wallet,
+    app: s.appId,
+    n: s.nonce,
+    e: s.expiresAt,
+    v: String(s.validUntilMonth),
+    c: s.chainId,
+    r: s.registry,
+    sig: signed.sig,
+    p: proverUrl,
+  });
+  return `watermark://verify?${q.toString()}`;
 }

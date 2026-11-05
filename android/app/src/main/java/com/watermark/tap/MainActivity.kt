@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.mutableStateOf
 import com.watermark.tap.session.SUPPORTED_CHAINS
+import com.watermark.tap.session.SessionVerifier
 import com.watermark.tap.session.VerifyLink
 import com.watermark.tap.session.VerifyLinkException
 import com.watermark.tap.session.VerifyLinkParser
@@ -47,7 +48,10 @@ class MainActivity : ComponentActivity() {
     private fun consentFor(link: VerifyLink.Full): TapUiState {
         if (link.expiresAt <= System.currentTimeMillis() / 1000) return TapUiState.Refused(RefusalReason.SESSION_EXPIRED)
         check(link.chainId in SUPPORTED_CHAINS)
-        // TODO(F1): recover the EIP-712 signer of the session and compare with BuildConfig.SESSION_SIGNER_ADDRESS.
+        // A QR we didn't sign (fake site, edited link) stops here, before any card is read.
+        if (!SessionVerifier.isSignedBy(link, BuildConfig.SESSION_SIGNER_ADDRESS)) {
+            return TapUiState.Refused(RefusalReason.WRONG_SIGNER)
+        }
         // TODO(F8): fetch GET /policy/:appId for the real app name, filter label and what the stamp reveals.
         return TapUiState.Consent(
             appName = "Watermark",
