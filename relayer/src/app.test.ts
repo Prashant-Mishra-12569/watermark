@@ -47,7 +47,7 @@ test("POST /session returns a session signed by the session signer, and a matchi
   assert.equal(session.validUntilMonth, 325); // Nov 2026 = 322, + 3
   assert.match(session.nonce, /^0x[0-9a-f]{64}$/);
   assert.equal(deriveUn(session.nonce).length, 8);
-  assert.equal(await recoverSessionSigner(session, sig), SIGNER);
+  assert.equal(await recoverSessionSigner({ session, sig }), SIGNER);
 
   const url = new URL(qr);
   assert.equal(url.searchParams.get("n"), session.nonce);

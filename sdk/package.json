@@ -10,7 +10,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "node --test \"src/**/*.test.ts\""
+    "test": "node --test \"src/**/*.test.ts\"",
+    "test-link": "node scripts/test-link.ts"
   },
   "dependencies": {
     "viem": "^2.57.16"

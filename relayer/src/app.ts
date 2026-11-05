@@ -4,7 +4,7 @@ import { cors } from "hono/cors";
 import { bytesToHex, getAddress, isAddress, type Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import {
-  buildDeepLink,
+  buildVerifyLink,
   SESSION_TTL_SECONDS,
   sessionTypedData,
   sessionValidUntilMonth,
@@ -86,7 +86,7 @@ export function createApp(deps: AppDeps) {
       refuse("BUSY", wallet);
       return c.json({ error: "BUSY" }, 503);
     }
-    return c.json({ session, sig, qr: buildDeepLink(session, sig, config.proverUrl), sessionId });
+    return c.json({ session, sig, qr: buildVerifyLink({ session, sig }, config.proverUrl), sessionId });
   });
 
   /** F6: GET /session/:id → { session, sig }. The QR fallback. */

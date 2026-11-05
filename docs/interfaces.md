@@ -231,7 +231,8 @@ Logs hold only the reason and a truncated wallet (`0x12…abcd`). Never log bodi
 - **Known trade-off:** anyone who sees a signed 3009 authorization can submit it to USDT directly. That only moves the
   user's own USDT to the intended recipient and skips our quota. It doesn't spend our budget.
 
-USDT: `0xcedfB56113143d55b2358b8CFbB0dEB5Ad2f55a7` (the prize page). Confirm the supply source with Whitechain.
+USDT: `0xcedfB56113143d55b2358b8CFbB0dEB5Ad2f55a7`, "the only one that counts" (Whitechain flyer). 6 decimals, and
+supports both permit and EIP-3009, so Plan A is expected to work. Get it by swapping WBT on YetiTrade.
 
 ---
 
@@ -284,7 +285,7 @@ sender was approved first. So the transaction is:
 | | Whitechain Sepolia | Alt mempool devnet | Arkiv Rabdi (optional) |
 |---|---|---|---|
 | Chain ID | 1874 (`0x752`) | 1337 (`0x539`) | 7794095 |
-| RPC | https://rpc.testnet.whitechain.io | exec https://altmempool.forshtat.com · sidecar `/rpc` | https://rpc.rabdi.db-chain.testnet.arkiv.network (access key) |
+| RPC | https://rpc.ankr.com/whitechain_testnet (backup https://rpc.testnet.whitechain.io) | exec https://altmempool.forshtat.com · gateway https://altmempoolgateway.forshtat.com/rpc (faucet) | https://rpc.rabdi.db-chain.testnet.arkiv.network (access key) |
 | Explorer | https://explorer.testnet.whitechain.io (Blockscout) | https://explorer.altmempool.wtf | https://rabdi.explorer.arkiv.network |
 | Gas token | WBT | ETH (devnet) | tGLM |
 | Notes | define it with `viem` `defineChain`. **Never** use viem's `whitechainTestnet`, which is chain 2625 | staking registry `0xd51c04d7a0b01124e84de152f4e56d9eecb22d2f`, min stake > 0.01 ETH, delay 86400 | SDK `@arkiv-network/sdk` |

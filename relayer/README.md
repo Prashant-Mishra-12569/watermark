@@ -37,8 +37,8 @@ Node 24 runs the TypeScript directly (type stripping), so there is no build step
 - Refusals are logged with only the reason and a truncated wallet. Bodies are never logged.
 
 ## Where the WBT comes from
-- **Testnet:** https://faucet.testnet.whitechain.io gives 0.5 WBT per rolling 24 h and needs a GitHub account at least
-  30 days old.
+- **Testnet:** https://faucet.testnet.whitechain.io gives 2 WBT a day (per Whitechain's flyer) and needs a GitHub
+  account older than 30 days. Swap some WBT for USDT on YetiTrade to fund the business wallet.
 - **Production:** the business tops up the relayer wallet, and the dashboard shows "budget left today".
 
 ## Bot demo (`scripts/bots.ts`)

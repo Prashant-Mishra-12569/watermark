@@ -10,7 +10,8 @@ export const whitechainSepolia = defineChain({
   nativeCurrency: { name: "WhiteBIT Coin", symbol: "WBT", decimals: 18 },
   rpcUrls: {
     default: {
-      http: ["https://rpc.testnet.whitechain.io"],
+      // Ankr is the primary RPC on Whitechain's hackathon flyer; the official endpoint is the backup.
+      http: ["https://rpc.ankr.com/whitechain_testnet", "https://rpc.testnet.whitechain.io"],
       webSocket: ["wss://rpc.testnet.whitechain.io/ws"],
     },
   },
@@ -30,7 +31,8 @@ export const altmempoolDevnet = defineChain({
   nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
   rpcUrls: {
     default: { http: ["https://altmempool.forshtat.com"] },
-    sidecar: { http: ["https://altmempool.forshtat.com/rpc"] },
+    // The gateway sidecar: frame txs, the faucet and explorer methods (altmempool.forshtat.com/rpc has no faucet)
+    sidecar: { http: ["https://altmempoolgateway.forshtat.com/rpc"] },
   },
   blockExplorers: {
     default: { name: "Alt Mempool Explorer", url: "https://explorer.altmempool.wtf" },
@@ -38,7 +40,7 @@ export const altmempoolDevnet = defineChain({
   testnet: true,
 });
 
-/** Official test USDT required by the Whitechain prize (6 decimals). */
+/** Official test USDT, "the only one that counts" for the Whitechain prize. 6 decimals, supports permit and EIP-3009. */
 export const USDT_WHITECHAIN = "0xcedfB56113143d55b2358b8CFbB0dEB5Ad2f55a7" as const;
 export const USDT_DECIMALS = 6;
 

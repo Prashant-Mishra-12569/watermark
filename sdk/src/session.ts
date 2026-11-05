@@ -2,15 +2,8 @@
  * Session helpers shared by the website, relayer, prover and SDK (interfaces F1).
  * The Android app and the contract implement the same rules. Keep them in sync.
  */
-import {
-  hashTypedData,
-  hexToBytes,
-  recoverTypedDataAddress,
-  sha256,
-  type Address,
-  type Hex,
-} from "viem";
-import type { Session } from "./types.ts";
+import { hashTypedData, hexToBytes, recoverTypedDataAddress, sha256, type Address, type Hex } from "viem";
+import type { Session, SignedSession } from "./types.ts";
 
 export const SESSION_TTL_SECONDS = 600;
 export const STAMP_MONTHS = 3;
@@ -48,51 +41,51 @@ export function sessionValidUntilMonth(now: Date = new Date()): number {
   return monthIndex(now) + STAMP_MONTHS;
 }
 
-/** EIP-712 typed data for a session (F1). Converts the F0 JSON strings to the values viem signs. */
-export function sessionTypedData(session: Session) {
+/** EIP-712 typed data for a session, in the shape viem's signTypedData / hashTypedData expect. */
+export function sessionTypedData(s: Session) {
   return {
-    domain: sessionDomain(Number(session.chainId), session.registry),
+    domain: sessionDomain(Number(s.chainId), s.registry),
     types: SESSION_TYPES,
     primaryType: "Session",
     message: {
-      wallet: session.wallet,
-      appId: BigInt(session.appId),
-      nonce: session.nonce,
-      expiresAt: BigInt(session.expiresAt),
-      validUntilMonth: session.validUntilMonth,
-      chainId: BigInt(session.chainId),
-      registry: session.registry,
+      wallet: s.wallet,
+      appId: BigInt(s.appId),
+      nonce: s.nonce,
+      expiresAt: BigInt(s.expiresAt),
+      validUntilMonth: s.validUntilMonth,
+      chainId: BigInt(s.chainId),
+      registry: s.registry,
     },
   } as const;
 }
 
-/** The 32-byte EIP-712 hash of a session. Also the AAD of the F2 envelope. */
-export function hashSession(session: Session): Hex {
-  return hashTypedData(sessionTypedData(session));
+/** The EIP-712 digest the session signer signs. Also the AES-GCM AAD for the F2 envelope. */
+export function hashSession(s: Session): Hex {
+  return hashTypedData(sessionTypedData(s));
 }
 
-/** Recovers the address that signed a session. Compare it with the app's sessionSigner. */
-export function recoverSessionSigner(session: Session, sig: Hex): Promise<Address> {
-  return recoverTypedDataAddress({ ...sessionTypedData(session), signature: sig });
+export async function recoverSessionSigner(signed: SignedSession): Promise<Address> {
+  return recoverTypedDataAddress({ ...sessionTypedData(signed.session), signature: signed.sig });
 }
 
-/** F1 deep link with the full signed session, put in the QR. */
-export function buildDeepLink(session: Session, sig: Hex, proverUrl: string): string {
+/** watermark://verify link for the QR (interfaces F1). */
+export function buildVerifyLink(signed: SignedSession, proverUrl: string): string {
+  const s = signed.session;
   const q = new URLSearchParams({
-    w: session.wallet,
-    app: session.appId,
-    n: session.nonce,
-    e: session.expiresAt,
-    v: String(session.validUntilMonth),
-    c: session.chainId,
-    r: session.registry,
-    sig,
+    w: s.wallet,
+    app: s.appId,
+    n: s.nonce,
+    e: s.expiresAt,
+    v: String(s.validUntilMonth),
+    c: s.chainId,
+    r: s.registry,
+    sig: signed.sig,
     p: proverUrl,
   });
   return `watermark://verify?${q.toString()}`;
 }
 
-/** F1 fallback when the full QR is too dense: the app fetches GET /session/:id from the relayer. */
+/** F1 fallback when the full QR is too dense to scan: the app fetches GET /session/:id from the relayer. */
 export function buildFallbackLink(sessionId: string, relayerUrl: string): string {
   const q = new URLSearchParams({ id: sessionId, p: relayerUrl });
   return `watermark://verify?${q.toString()}`;
