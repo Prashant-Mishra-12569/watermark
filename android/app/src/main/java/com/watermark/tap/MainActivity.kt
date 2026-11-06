@@ -101,7 +101,8 @@ class MainActivity : ComponentActivity(), NfcAdapter.ReaderCallback {
         if (link.expiresAt <= System.currentTimeMillis() / 1000) return TapUiState.Refused(RefusalReason.SESSION_EXPIRED)
         check(link.chainId in SUPPORTED_CHAINS)
         // A QR we didn't sign (fake site, edited link) stops here, before any card is read.
-        if (!SessionVerifier.isSignedBy(link, BuildConfig.SESSION_SIGNER_ADDRESS)) {
+        val trusted = BuildConfig.SESSION_SIGNERS.split(",")
+        if (trusted.none { SessionVerifier.isSignedBy(link, it) }) {
             return TapUiState.Refused(RefusalReason.WRONG_SIGNER)
         }
         val adapter = nfc
