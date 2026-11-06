@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "watermark": {
+      "command": "node",
+      "args": ["mcp/src/index.ts"],
+      "env": { "WHITECHAIN_RPC": "https://rpc.ankr.com/whitechain_testnet" }
+    }
+  }
+}
