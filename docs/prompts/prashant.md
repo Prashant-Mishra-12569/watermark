@@ -595,3 +595,24 @@ Result:
 - Motion: cards lift on hover (mouse devices only), section heads rise in on scroll, the outline button's arrow
   nudges on hover; all off under reduced motion.
 - 223 website tests pass, typecheck is clean, and the production build succeeds.
+
+## 03:25
+
+**74.**
+> [Six screenshots of the live site on my phone: the hero, "How it works", "Live on Whitechain Sepolia", the bot
+> test, the privacy panel and an "Anywhere bots cost you money" section, all stacked vertically.] This isn't what I
+> wanted, and the landing page looks ugly on a phone. I want most things horizontal; I have to scroll a lot. Change
+> those sections to horizontal scrolling and optimise creatively for mobile (research mobile UI design if useful).
+> Keep the theme, make it good-looking, and give the landing page all its elements side by side like on desktop:
+> the card, the Mumbai theme, everything, but optimised for mobile. Be creative and unique.
+
+Result:
+- The live site didn't have my previous changes (merged on GitHub, but not pulled on the Mac that serves it), and
+  it shows a new headline and an "Anywhere bots cost you money" section that aren't on GitHub yet.
+- Hero under 900px now follows the laptop layout: copy, then the claims card and the stamp side by side (a compact
+  feed on phones), then Mumbai along the bottom. At 360px the copy, both buttons and the claim scene fit on the
+  first screen.
+- New swipe rows on phones: the privacy points (plus the trust note and "Good to know" as their own cards), the bot
+  test (the wallet checker first, then the bot farm), and the "Live on Whitechain Sepolia" values as tiles. Code
+  blocks in "Add it" are shorter on phones and scroll inside.
+- 223 website tests pass, typecheck is clean, and the production build succeeds.
