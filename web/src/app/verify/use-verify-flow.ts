@@ -37,6 +37,12 @@ export interface Stamp {
   expiresAt: number;
 }
 
+/** A /status read failed. The QR keeps working; the next poll is at retryAt (ms, this device's clock). */
+export interface StatusNote {
+  code: RelayerErrorCode;
+  retryAt: number;
+}
+
 /**
  * The /verify flow: chosen wallet (burner or the person's own) → POST /session → QR → poll GET /status → Verified.
  *
@@ -53,7 +59,7 @@ export function useVerifyFlow(config: WebConfig, wallet: WalletInfo) {
   const [sessionLoading, setSessionLoading] = useState(false);
   const [sessionError, setSessionError] = useState<SessionError | null>(null);
   const [stamp, setStamp] = useState<Stamp | null>(null);
-  const [statusNote, setStatusNote] = useState<RelayerErrorCode | null>(null);
+  const [statusNote, setStatusNote] = useState<StatusNote | null>(null);
   const [firstCheckDone, setFirstCheckDone] = useState(false);
 
   const alive = useRef(false);
@@ -169,7 +175,7 @@ export function useVerifyFlow(config: WebConfig, wallet: WalletInfo) {
       } catch (e) {
         if (stopped) return;
         errors += 1;
-        setStatusNote(e instanceof RelayerError ? e.code : "HTTP_ERROR");
+        setStatusNote({ code: e instanceof RelayerError ? e.code : "HTTP_ERROR", retryAt: Date.now() + statusPollDelay(errors) });
         setFirstCheckDone(true);
       }
       if (!stopped) timer = setTimeout(() => void tick(), statusPollDelay(errors));
