@@ -1,0 +1,523 @@
+/*
+ * The hero's claim gate (hero-gate.tsx). Layout first, then one calm 6 s loop (GATE_CYCLE_MS in hero-gate-data.ts).
+ * The four rows are always on screen: a wallet waits, a little faded, with a grey bar where its status will be.
+ *
+ *   0.60 s  bot 1 is checked: it pushes against the gate, is knocked back, "Refused · no stamp"
+ *   1.45 s  bot 2, the same
+ *   2.30 s  bot 3, the same
+ *   3.20 s  the stamped wallet gets through: the seal lands, "Claimed #042 · stamped wallet", and the stamp, lifted
+ *           until now, lands too (one saffron ring around it)
+ *   5.30 s  the statuses fade back to their grey bars, the stamp lifts again, and the loop starts over
+ *
+ * Every keyframe is inside prefers-reduced-motion: no-preference, so with reduced motion (and before the CSS runs)
+ * the resting styles are the final frame: three refused, one claimed, the stamp at rest, no grey bars. Hover pauses
+ * it. Transform and opacity only, plus the stamp's shadow.
+ */
+
+.gate {
+  --feed-w: min(100%, 360px);
+  --stamp-w: clamp(150px, 48vw, 220px);
+  --tilt: 4deg;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  margin: 0;
+}
+
+@media (min-width: 520px) {
+  .gate {
+    --feed-w: 280px;
+    --stamp-w: 190px;
+    flex-direction: row;
+    justify-content: center;
+    gap: 28px;
+  }
+}
+
+/* From 900px the gate is the right-hand column of the hero (hero.module.css). The feed keeps the width its longest
+   line needs; the stamp is sized from the screen height, so a short (zoomed) screen gets a smaller one. */
+@media (min-width: 900px) {
+  .gate {
+    --feed-w: 280px;
+    --stamp-w: clamp(124px, min(23svh, 14vw), 200px);
+    justify-content: flex-end;
+    gap: clamp(14px, 1.6vw, 24px);
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------ the feed */
+
+.feed {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  width: var(--feed-w);
+  padding: 15px 14px 10px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.05),
+    0 1px 2px rgb(0 0 0 / 0.05),
+    0 18px 40px -18px rgb(0 0 0 / 0.28);
+}
+
+.rows {
+  margin-top: 10px;
+  list-style: none;
+  padding: 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 10px;
+  padding: 7px 6px;
+  border-top: 1px solid var(--line);
+}
+
+/* The one wallet that gets in sits on a quiet surface, its seal in saffron. */
+.pass {
+  margin-top: 4px;
+  border-top-color: transparent;
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.pass .icon {
+  background: #fff;
+}
+
+.seal {
+  display: block;
+  transform: rotate(-12deg);
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 1px;
+  font-size: 12px;
+  line-height: 17px;
+}
+
+/* The grey bar on a wallet that is not checked yet (motion only; see the loop). */
+.wait {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 24px;
+  width: 62%;
+  height: 7px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.11);
+}
+
+.pass .wait {
+  width: 78%;
+  background: rgb(0 0 0 / 0.09);
+}
+
+/* A short (zoomed) laptop screen: the same feed, a little tighter, so Mumbai keeps more of the first screen. */
+@media (min-width: 900px) and (max-height: 640px) {
+  .feed {
+    padding: 12px 12px 8px;
+  }
+  .rows {
+    margin-top: 8px;
+  }
+  .row {
+    padding-block: 5px;
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------ the prize */
+
+.prize {
+  position: relative;
+  order: -1;
+  flex: none;
+  width: var(--stamp-w);
+  transform: rotate(var(--tilt));
+}
+
+@media (min-width: 520px) {
+  .prize {
+    order: 0;
+  }
+}
+
+.stamp {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.1),
+    0 22px 44px -16px rgb(0 0 0 / 0.42);
+}
+
+/* The saffron ring that flashes once when the stamp lands (motion only). */
+.prize::after {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border: 1.5px solid var(--saffron);
+  border-radius: 10px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------------------------------------ the loop */
+
+@media (prefers-reduced-motion: no-preference) {
+  .wait {
+    display: block;
+  }
+
+  .row[data-step="0"] {
+    animation: gate-bot-0 6s ease-out infinite both;
+  }
+  .row[data-step="0"] .status {
+    animation: gate-label-0 6s ease-out infinite both;
+  }
+  .row[data-step="0"] .wait {
+    animation: gate-wait-0 6s ease-out infinite both;
+  }
+  .row[data-step="1"] {
+    animation: gate-bot-1 6s ease-out infinite both;
+  }
+  .row[data-step="1"] .status {
+    animation: gate-label-1 6s ease-out infinite both;
+  }
+  .row[data-step="1"] .wait {
+    animation: gate-wait-1 6s ease-out infinite both;
+  }
+  .row[data-step="2"] {
+    animation: gate-bot-2 6s ease-out infinite both;
+  }
+  .row[data-step="2"] .status {
+    animation: gate-label-2 6s ease-out infinite both;
+  }
+  .row[data-step="2"] .wait {
+    animation: gate-wait-2 6s ease-out infinite both;
+  }
+  .row[data-step="3"] {
+    animation: gate-pass 6s ease-out infinite both;
+  }
+  .row[data-step="3"] .status {
+    animation: gate-label-3 6s ease-out infinite both;
+  }
+  .row[data-step="3"] .wait {
+    animation: gate-wait-3 6s ease-out infinite both;
+  }
+  .seal {
+    animation: gate-seal 6s ease-out infinite both;
+  }
+  .prize {
+    animation: gate-prize 6s ease-in-out infinite both;
+  }
+  .prize::after {
+    animation: gate-ring 6s ease-out infinite both;
+  }
+
+  .gate:hover *,
+  .gate:hover .prize::after {
+    animation-play-state: paused;
+  }
+}
+
+/* A bot waits (faded), is checked: pushes against the gate, is knocked back and settles. At the end of the loop it
+   fades back to waiting. One keyframes block per row (each one is checked at its own time in the same 6 s loop). */
+@keyframes gate-bot-0 {
+  0%,
+  6% {
+    opacity: 0.5;
+    transform: none;
+  }
+  10% {
+    opacity: 1;
+    transform: translateX(6px);
+  }
+  12% {
+    transform: translateX(-3px);
+  }
+  14.2%,
+  88% {
+    opacity: 1;
+    transform: none;
+  }
+  95%,
+  100% {
+    opacity: 0.5;
+    transform: none;
+  }
+}
+@keyframes gate-bot-1 {
+  0%,
+  20.2% {
+    opacity: 0.5;
+    transform: none;
+  }
+  24.2% {
+    opacity: 1;
+    transform: translateX(6px);
+  }
+  26.2% {
+    transform: translateX(-3px);
+  }
+  28.4%,
+  88% {
+    opacity: 1;
+    transform: none;
+  }
+  95%,
+  100% {
+    opacity: 0.5;
+    transform: none;
+  }
+}
+@keyframes gate-bot-2 {
+  0%,
+  34.3% {
+    opacity: 0.5;
+    transform: none;
+  }
+  38.3% {
+    opacity: 1;
+    transform: translateX(6px);
+  }
+  40.3% {
+    transform: translateX(-3px);
+  }
+  42.5%,
+  88% {
+    opacity: 1;
+    transform: none;
+  }
+  95%,
+  100% {
+    opacity: 0.5;
+    transform: none;
+  }
+}
+
+/* "Refused · no stamp" shows the moment the bot hits the gate, in place of its grey bar. */
+@keyframes gate-label-0 {
+  0%,
+  10% {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  12.5%,
+  88% {
+    opacity: 1;
+    transform: none;
+  }
+  94%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+@keyframes gate-label-1 {
+  0%,
+  24.2% {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  26.7%,
+  88% {
+    opacity: 1;
+    transform: none;
+  }
+  94%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+@keyframes gate-label-2 {
+  0%,
+  38.3% {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  40.8%,
+  88% {
+    opacity: 1;
+    transform: none;
+  }
+  94%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+/* The grey bars: there until the status shows, back when it fades at the end of the loop. */
+@keyframes gate-wait-0 {
+  0%,
+  10% {
+    opacity: 1;
+  }
+  11.5%,
+  89% {
+    opacity: 0;
+  }
+  96%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes gate-wait-1 {
+  0%,
+  24.2% {
+    opacity: 1;
+  }
+  25.7%,
+  89% {
+    opacity: 0;
+  }
+  96%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes gate-wait-2 {
+  0%,
+  38.3% {
+    opacity: 1;
+  }
+  39.8%,
+  89% {
+    opacity: 0;
+  }
+  96%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes gate-wait-3 {
+  0%,
+  55.8% {
+    opacity: 1;
+  }
+  57.3%,
+  89% {
+    opacity: 0;
+  }
+  96%,
+  100% {
+    opacity: 1;
+  }
+}
+
+/* The stamped wallet glides straight through. */
+@keyframes gate-pass {
+  0%,
+  49.2% {
+    opacity: 0.5;
+    transform: none;
+  }
+  53% {
+    opacity: 1;
+    transform: translateX(5px);
+  }
+  56%,
+  88% {
+    opacity: 1;
+    transform: none;
+  }
+  95%,
+  100% {
+    opacity: 0.5;
+    transform: none;
+  }
+}
+@keyframes gate-label-3 {
+  0%,
+  55.8% {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  59.2%,
+  88% {
+    opacity: 1;
+    transform: none;
+  }
+  94%,
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+/* The seal is pressed onto the row: big and turned, then flat at its resting -12deg. */
+@keyframes gate-seal {
+  0%,
+  55.8% {
+    opacity: 0;
+    transform: scale(1.8) rotate(-34deg);
+  }
+  60.8% {
+    opacity: 1;
+    transform: scale(0.94) rotate(-8deg);
+  }
+  63.3%,
+  88% {
+    opacity: 1;
+    transform: rotate(-12deg);
+  }
+  94%,
+  100% {
+    opacity: 0;
+    transform: rotate(-12deg);
+  }
+}
+
+/* The prize waits a little lifted, lands as the stamped wallet claims it, and lifts again before the next loop. */
+@keyframes gate-prize {
+  0%,
+  55.8% {
+    transform: translateY(-10px) rotate(calc(var(--tilt) + 2.5deg)) scale(1.025);
+  }
+  60.5% {
+    transform: translateY(2px) rotate(calc(var(--tilt) - 0.6deg)) scale(0.985);
+  }
+  64%,
+  90% {
+    transform: rotate(var(--tilt));
+  }
+  100% {
+    transform: translateY(-10px) rotate(calc(var(--tilt) + 2.5deg)) scale(1.025);
+  }
+}
+
+@keyframes gate-ring {
+  0%,
+  59% {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  63% {
+    opacity: 0.85;
+    transform: none;
+  }
+  78%,
+  100% {
+    opacity: 0;
+    transform: scale(1.05);
+  }
+}
