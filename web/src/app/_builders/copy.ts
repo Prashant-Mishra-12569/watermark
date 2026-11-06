@@ -10,9 +10,9 @@
 // ------------------------------------------------------------------ 1. Hero
 
 export const HERO = {
-  eyebrow: "Anti-bot for airdrops, mints and rewards",
-  title: "Stop bots from farming your *airdrop*.",
-  sub: "Your users tap a real bank card on their phone. Only those wallets can claim. No KYC. No gas.",
+  eyebrow: "Bot protection for any onchain app",
+  title: "Keep *bots* out of your app.",
+  sub: "Your users tap their bank card on their phone once, and their wallet gets a stamp. Bots can make endless wallets, but they can't make bank cards, so they never get in. No KYC, and no gas fees for your users.",
   add: { label: "Add it to my app", href: "#add" },
   /** SITE_FINAL's "Try the live drop" only while the drop is open (PASS_LIVE); until then it doesn't say "live". */
   drop: { label: "Try our drop", soonLabel: "Try our drop", href: "/pass" },
@@ -22,6 +22,23 @@ export const HERO = {
 export function heroDropLabel(passLive: boolean): string {
   return passLive ? HERO.drop.label : HERO.drop.soonLabel;
 }
+
+// ------------------------------------------------------------------ 1b. Where it works
+
+export const USES_TITLE = "Anywhere bots cost you *money*.";
+export const USES_LEAD = "A bot can make a thousand wallets in a minute, but it can't make a thousand bank cards. That one fact protects all of these.";
+
+export const USES: readonly { title: string; body: string; icon: "ticket" | "coin" | "wallet" | "check" | "building" | "agent" }[] = [
+  { title: "Airdrops and mints", body: "Each real card gets one claim, so someone with 1,000 wallets gets nothing extra.", icon: "ticket" },
+  { title: "Gas you sponsor", body: "You only pay gas for stamped wallets, so bots can't burn through your budget.", icon: "coin" },
+  { title: "Faucets", body: "Free test tokens go to people with real cards, not to scripts.", icon: "wallet" },
+  { title: "Rewards and referrals", body: "Points, quests and referral bonuses go to real users instead of bot farms.", icon: "check" },
+  { title: "Votes and grants", body: "Every voter needs a real card, so faking a crowd gets expensive fast.", icon: "building" },
+  { title: "AI agents", body: "Your AI agent can check a wallet before it sends money or gives access.", icon: "agent" },
+];
+
+/** The one function behind every use above (the registry's view, docs/INTEGRATE.md). */
+export const USES_CHECK = "isStamped(wallet, appId)";
 
 // ------------------------------------------------------------------ 2. How it works
 
@@ -36,25 +53,25 @@ export interface HowStep {
 export const HOW_TITLE = "How it *works*.";
 
 export const HOW_STEPS: readonly HowStep[] = [
-  { title: "You add one line", body: "In your contract, your server or your AI agent.", icon: "code" },
+  { title: "You add one line", body: "Put one check in your contract, your server or your AI agent.", icon: "code" },
   {
     title: "Users tap their card",
-    body: "Once, on our Android app. A private proof checks the card is real.",
+    body: "They tap their bank card on our Android app once, and a private proof checks that it's real.",
     icon: "tap",
   },
-  { title: "Bots get refused", body: "No real card, no claim. One card claims once.", icon: "shield" },
+  { title: "Bots get refused", body: "No real card means no stamp, and no stamp means no way in.", icon: "shield" },
 ];
 
 // ------------------------------------------------------------------ 3. Add it
 
 export const ADD_TITLE = "Add it in *one line*.";
-export const ADD_LEAD = "Solidity, TypeScript or your AI agent. No API key. No sign-up.";
+export const ADD_LEAD = "Use Solidity, TypeScript or your AI agent. There's no API key and nothing to sign up for.";
 
 /** Each block's words. The code itself is docs/INTEGRATE.md's and mcp/README.md's, verbatim (snippets.ts, mcp-data.ts). */
 export const ADD_BLOCKS = {
   solidity: {
     title: "Solidity",
-    body: "One call in your contract. No stamp, no claim.",
+    body: "Add one modifier to your contract, and wallets without a stamp get turned away.",
     label: "Solidity · onlyStamped",
     /** The one line: the modifier on your own function (How step 1 shows the same). */
     useLabel: "Your contract: the one line",
@@ -62,13 +79,13 @@ export const ADD_BLOCKS = {
   },
   sdk: {
     title: "TypeScript SDK",
-    body: "Check one wallet, or 200 at once. It reads the chain directly.",
+    body: "Check one wallet or 200 at once. It reads straight from the chain.",
     note: "The SDK lives in the repo (sdk/). It isn't on npm yet.",
     label: "TypeScript · @watermark/sdk",
   },
   mcp: {
     title: "AI agents (MCP)",
-    body: "Your agent checks wallets before it pays a reward. It holds no keys and sees no card data.",
+    body: "Your agent can check wallets before it pays anyone. It holds no keys and never sees card data.",
     label: "MCP client config (JSON)",
   },
 } as const;
@@ -81,7 +98,7 @@ export const TEST_TITLE = "Try to *farm* it.";
 
 /** The body line, with /attack's real bot count. */
 export function botTestLead(count: number): string {
-  return `We send ${count} bot wallets at our own drop. Watch every one get refused. Real requests, live.`;
+  return `Press the button and we'll send ${count} bot wallets at our own drop. You'll watch every one of them get turned away, and these are real requests.`;
 }
 
 export const TEST_CTA = { label: "Run the bot test", href: "/attack" } as const;
@@ -89,7 +106,7 @@ export const TEST_CTA = { label: "Run the bot test", href: "/attack" } as const;
 // ------------------------------------------------------------------ 5. You stay in control
 
 export const CONTROL_TITLE = "You decide who *counts*.";
-export const CONTROL_LEAD = "Use our card list or bring your own. Every list is public.";
+export const CONTROL_LEAD = "You can use our card list or bring your own. Either way, the list is public.";
 
 /** The parts of lib/policy-summary.ts's PolicySummary this section needs. */
 export interface ControlPolicy {
@@ -152,7 +169,7 @@ export function controlFacts(p: ControlPolicy | null): ControlFact[] {
       title: months ? `Stamps last up to ${months} ${months === 1 ? "month" : "months"}` : "Stamps expire",
       line: "One card, one wallet per app.",
     },
-    { key: "store", icon: "lock", title: "Nothing to store", line: "No KYC files. No card numbers." },
+    { key: "store", icon: "lock", title: "Nothing to store", line: "You never hold KYC files or card numbers." },
   ];
 }
 
@@ -189,7 +206,7 @@ export const OWN_LIST = "Use your own card list";
 // ------------------------------------------------------------------ 6. Proof
 
 export const PROOF_TITLE = "See it *yourself*.";
-export const PROOF_LEAD = "Every step is on a public chain. Tap one to check it.";
+export const PROOF_LEAD = "Everything below happened on a public chain. Tap any card to check it yourself.";
 
 // ------------------------------------------------------------------ 7. Privacy and limits
 
@@ -202,20 +219,20 @@ export const PRIVACY_EYEBROW = "Privacy and limits";
  * Never claim the data stays on the phone.
  */
 export const PRIVACY_ROWS: readonly { label: string; text: string }[] = [
-  { label: "We see, for a moment", text: "Your card data, to make the proof. Then we wipe it." },
-  { label: "We store", text: "Nothing from your card." },
-  { label: "On-chain", text: "A proof, a one-way card ID, your wallet and an end date." },
+  { label: "What we see", text: "Your card data, just long enough to make the proof. Then we wipe it." },
+  { label: "What we keep", text: "Nothing from your card." },
+  { label: "What goes on-chain", text: "A proof, a one-way card ID, your wallet and an end date." },
 ];
 
-export const PRIVACY_TRUST = "You trust us on the wipe. Proving on the phone fixes that. It is next.";
+export const PRIVACY_TRUST = "For now, you have to trust us to wipe it. Making the proof on the phone itself fixes that, and it's next on our list.";
 
 /** "Good to know" (docs/INTEGRATE.md "Limits" and "Which cards work today"). */
 export const GOOD_TO_KNOW: readonly string[] = [
   // "Visa and Mastercard: coming soon" is said once, in "You stay in control".
-  "Only Indian RuPay debit cards work today.",
-  "Test networks only, for now.",
-  "One card, one wallet per app. No reset.",
-  "A stamp is not KYC. Two cards make two stamps.",
-  "There is no PIN, so a stamp proves a real card, not who holds it.",
+  "Right now, only RuPay debit cards from India work.",
+  "Everything runs on test networks for now.",
+  "One card works for one wallet per app, and it can't be reset.",
+  "A stamp isn't KYC. Someone with two cards can get two stamps.",
+  "There's no PIN, so a stamp shows someone had a real card, not who they are.",
 ];
 

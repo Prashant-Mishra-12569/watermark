@@ -19,7 +19,7 @@ const instrumentSerif = Instrument_Serif({
 export const metadata: Metadata = {
   title: "Watermark · Real people leave a mark",
   description:
-    "Watermark lets only wallets backed by a real bank card claim. Add it with one line. No KYC. Your users pay no fees.",
+    "Keep bots out of your onchain app. Your users tap a real bank card once to get a stamp, and bots can't. It works for airdrops, sponsored gas, faucets, rewards, votes and AI agents. No KYC.",
   referrer: "no-referrer",
   // Absolute URLs for the share images (opengraph-image.png / twitter-image.png in this folder).
   metadataBase: new URL("https://usewatermark.xyz"),
@@ -29,13 +29,13 @@ export const metadata: Metadata = {
     siteName: "Watermark",
     url: "https://usewatermark.xyz",
     title: "Watermark · Real people leave a mark",
-    description: "Only wallets backed by a real bank card can claim. One line of code. No KYC. Users pay no fees.",
+    description: "Your users tap a real bank card once, and they're in. Bots don't have bank cards, so they stay out.",
   },
   twitter: {
     card: "summary_large_image",
     site: "@usewatermark",
     title: "Watermark · Real people leave a mark",
-    description: "Only wallets backed by a real bank card can claim. One line of code. No KYC. Users pay no fees.",
+    description: "Your users tap a real bank card once, and they're in. Bots don't have bank cards, so they stay out.",
   },
 };
 

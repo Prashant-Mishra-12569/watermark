@@ -4,7 +4,8 @@
 
 > Watermark lets an app accept only wallets backed by a real bank card. A user taps the card on our Android app
 > once, a zero-knowledge proof is checked on-chain, and the wallet gets a "stamp". Your contract, backend or AI agent
-> checks the stamp before an airdrop, mint or reward pays out.
+> checks the stamp before it lets a wallet in: airdrops, mints, sponsored gas, faucets, rewards, votes or AI agent
+> payouts. Bots can make wallets for free, but they can't make bank cards.
 
 This file is the full reference for people and for AI agents. The same text is at /llms.txt.
 - Website: https://usewatermark.xyz
@@ -16,7 +17,8 @@ This file is the full reference for people and for AI agents. The same text is a
 
 - A stamp on (wallet, appId) means: this wallet was linked to one real bank card that passed this app's card filter.
 - It is not identity, KYC, age, balance or one-person-one-vote. A person with three cards can get three stamps.
-- It makes every extra wallet cost a real bank card. That is what stops bots from farming airdrops, mints and rewards.
+- It makes every extra wallet cost a real bank card. That is what stops bots from farming airdrops and rewards,
+  draining sponsored gas and faucets, and faking crowds in votes.
 - The card number is never stored and never goes on-chain. Our prover holds the card data in memory only while it
   proves, then wipes it. One card can stamp one wallet per app. A stamp lasts up to 3 months.
 - Checking a stamp is one on-chain read: no API key, no account with us, no server of ours in the path.
