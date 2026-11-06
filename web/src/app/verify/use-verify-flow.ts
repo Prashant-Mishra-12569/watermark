@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Address } from "viem";
 import { SESSION_TTL_SECONDS } from "@watermark/sdk";
-import { browserStorage, loadOrCreateBurner } from "@/lib/burner.ts";
 import type { WebConfig } from "@/lib/config.ts";
 import { createSession, getStatus, RelayerError, type RelayerErrorCode, type SessionResponse } from "@/lib/relayer.ts";
 import {
@@ -39,7 +38,7 @@ export interface Stamp {
 }
 
 /**
- * The /verify flow: silent wallet → POST /session → QR → poll GET /status → Verified.
+ * The /verify flow: chosen wallet (burner or the person's own) → POST /session → QR → poll GET /status → Verified.
  *
  * - One POST /session per mount, expiry or explicit retry. React StrictMode runs effects twice in dev, so the
  *   first request is guarded by a ref that survives the simulated remount.
@@ -47,11 +46,9 @@ export interface Stamp {
  *   stopped once stamped or unmounted. Status errors never hide the QR.
  * - "Verified" only ever comes from a /status answer with stamped: true.
  */
-export function useVerifyFlow(config: WebConfig) {
+export function useVerifyFlow(config: WebConfig, wallet: WalletInfo) {
   const { relayerUrl, appId, chainId } = config;
 
-  const [wallet, setWallet] = useState<WalletInfo | null>(null);
-  const [walletFailed, setWalletFailed] = useState(false);
   const [session, setSession] = useState<HeldSession | null>(null);
   const [sessionLoading, setSessionLoading] = useState(false);
   const [sessionError, setSessionError] = useState<SessionError | null>(null);
@@ -75,15 +72,8 @@ export function useVerifyFlow(config: WebConfig) {
     };
   }, []);
 
-  // 1. Silent browser wallet, client only (no storage access during server rendering).
-  useEffect(() => {
-    try {
-      const b = loadOrCreateBurner(appId, browserStorage());
-      setWallet({ address: b.account.address, persistent: b.persistent });
-    } catch {
-      setWalletFailed(true);
-    }
-  }, [appId]);
+  // 1. The wallet comes from the page's WalletGate (burner or the person's own wallet). The session only binds its
+  //    address: no signature is needed from the wallet here.
 
   // 2. POST /session. Never runs twice at once, never after unmount, never once stamped.
   const requestSessionRef = useRef<() => Promise<void>>(async () => {});
@@ -209,5 +199,5 @@ export function useVerifyFlow(config: WebConfig) {
     void requestSession();
   }, [requestSession, retryBlockedUntil]);
 
-  return { wallet, walletFailed, session, sessionLoading, sessionError, stamp, statusNote, newQr, retryBlockedUntil };
+  return { wallet, session, sessionLoading, sessionError, stamp, statusNote, newQr, retryBlockedUntil };
 }

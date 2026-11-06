@@ -15,6 +15,7 @@ import {
   walletLast4,
 } from "@/lib/view.ts";
 import { REFRESH_LEAD_SECONDS } from "@/lib/timing.ts";
+import type { ActiveWallet } from "../_wallet/use-wallet";
 import { useVerifyFlow } from "./use-verify-flow";
 
 function useNow(active: boolean): number {
@@ -28,8 +29,17 @@ function useNow(active: boolean): number {
   return now;
 }
 
-export function VerifyFlow({ config, onNewWallet }: { config: WebConfig; onNewWallet: () => void }) {
-  const flow = useVerifyFlow(config);
+export function VerifyFlow({
+  config,
+  wallet: active,
+  onNewWallet,
+}: {
+  config: WebConfig;
+  wallet: ActiveWallet;
+  /** Only for the burner: "Demo tools → start over with a new wallet". */
+  onNewWallet?: (() => void) | undefined;
+}) {
+  const flow = useVerifyFlow(config, active);
   const { wallet, session, stamp } = flow;
   const now = useNow(!stamp);
   const [shortQr, setShortQr] = useState(false);
@@ -54,14 +64,6 @@ export function VerifyFlow({ config, onNewWallet }: { config: WebConfig; onNewWa
   const errorCopy = flow.sessionError
     ? sessionErrorCopy(flow.sessionError.code, { relayerUrl: config.relayerUrl, appId: config.appId, chainName: chain })
     : null;
-
-  if (flow.walletFailed) {
-    return (
-      <p role="alert" className="rounded-xl bg-error-bg p-5 text-error">
-        This browser couldn&apos;t create a wallet. Try another browser.
-      </p>
-    );
-  }
 
   return (
     <div className="grid items-start gap-5 md:grid-cols-[auto_minmax(0,1fr)] md:gap-8">
@@ -246,7 +248,7 @@ export function VerifyFlow({ config, onNewWallet }: { config: WebConfig; onNewWa
           </p>
         )}
 
-        <DemoTools stamped={!!stamp} onNewWallet={onNewWallet} />
+        {onNewWallet && <DemoTools stamped={!!stamp} onNewWallet={onNewWallet} />}
       </div>
     </div>
   );
