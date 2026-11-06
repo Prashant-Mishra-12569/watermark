@@ -29,6 +29,7 @@ import {
   type PayWriter,
 } from "./pay.ts";
 import { formatUsdt } from "./usdt.ts";
+import { PassService, PaymentIndex, type LogIndexSettings, type PassReader, type PassWriter } from "./pass.ts";
 
 export interface AppDeps {
   config: Config;
@@ -41,6 +42,12 @@ export interface AppDeps {
   payWriter?: PayWriter | null;
   /** The business key for POST /fund. null/absent = /fund answers 503 FUND_NOT_CONFIGURED. */
   funder?: FundWriter | null;
+  /** Chain reads for /pass (GENESIS_PASS_ADDRESS). Absent = /pass answers 503 PASS_NOT_CONFIGURED. */
+  passReader?: PassReader | null;
+  /** Mints the Genesis Pass (the relayer key, the pass's minter). null/absent = POST /pass answers 503 RELAYER_NOT_CONFIGURED. */
+  passWriter?: PassWriter | null;
+  /** true = start scanning the sponsor's payment logs right away (index.ts), so the first /pass answer is quick. */
+  warmUp?: boolean;
   /** Client IP for rate limiting. Never trust X-Forwarded-For: there is no proxy in front. */
   clientIp: (c: Context) => string;
   nowMs?: () => number;
@@ -107,6 +114,32 @@ export function createApp(deps: AppDeps) {
           deps.funder,
         )
       : null;
+  // Genesis Pass: the live app's sponsor gives the registry, the appId and the PaymentRelayed events to read.
+  const passAddress = config.pass.address;
+  let passes: PassService | null = null;
+  if (passAddress && sponsor && payChain && deps.passReader) {
+    const reader = deps.passReader;
+    const head = () => reader.blockNumber(payChain);
+    const logSettings: LogIndexSettings = {
+      startBlock: async () => {
+        if (config.pass.fromBlock !== null) return config.pass.fromBlock;
+        const h = await head();
+        return h > config.pass.lookbackBlocks ? h - config.pass.lookbackBlocks : 0n;
+      },
+      head,
+      chunk: config.pass.logsChunkBlocks,
+      refreshMs: PASS_LOGS_REFRESH_MS,
+      nowMs,
+    };
+    const payments = new PaymentIndex(logSettings, reader, payChain);
+    passes = new PassService(
+      { maxGas: config.pass.maxGas, budgetWei: config.pass.budgetWei, receiptTimeoutMs: config.stamp.receiptTimeoutMs },
+      { sponsor, chain: payChain, pass: passAddress, reader, writer: deps.passWriter ?? null, queues: txQueues, payments, nowMs },
+    );
+    if (deps.warmUp) void payments.index.refresh().catch(() => {});
+  }
+  const passLimiter = new RateLimiter(config.pass.perMinutePerIp, nowMs);
+  const passReadLimiter = new RateLimiter(PASS_READS_PER_MINUTE_PER_IP, nowMs);
   const payLimiter = new RateLimiter(config.pay.perMinutePerIp, nowMs);
   const fundLimiter = new RateLimiter(config.pay.perMinutePerIp, nowMs);
 
@@ -130,6 +163,7 @@ export function createApp(deps: AppDeps) {
       relayer: deps.writer?.address ?? null,
       sponsor: payChain?.sponsor ?? null,
       business: deps.funder?.address ?? null,
+      genesisPass: passAddress,
     }),
   );
 
@@ -290,6 +324,66 @@ export function createApp(deps: AppDeps) {
     }
   });
 
+  /** Why /pass can't run: no pass address, or no sponsor (the pass needs the live app's sponsor for both tasks). */
+  const passMissing = (): string => (!passAddress ? "PASS_NOT_CONFIGURED" : !sponsor ? "SPONSOR_NOT_CONFIGURED" : "PASS_NOT_CONFIGURED");
+
+  /**
+   * GET /pass → { pass, remaining, totalSupply, maxSupply }. No wallet needed: it feeds the landing page's counter.
+   * Read from the chain and cached for PASS_SUPPLY_CACHE_MS (pass.ts), so page views don't each cost an RPC call.
+   */
+  app.get("/pass", async (c) => {
+    if (!passes) return fail(c, 503, passMissing());
+    if (!passReadLimiter.allow(deps.clientIp(c))) return fail(c, 429, "RATE_LIMIT");
+    try {
+      return c.json(await passes.supply());
+    } catch {
+      return fail(c, 502, "CHAIN_UNAVAILABLE");
+    }
+  });
+
+  /**
+   * GET /pass/:wallet → { stamped, paid, claimed, tokenId, remaining, totalSupply, maxSupply, image, pass }.
+   * paid is null when the payment history can't be read right now. image is the minted token's on-chain SVG.
+   */
+  app.get("/pass/:wallet", async (c) => {
+    if (!passes) return fail(c, 503, passMissing());
+    const w = c.req.param("wallet");
+    if (!isAddress(w) || BigInt(w) === 0n) return fail(c, 400, "BAD_REQUEST", { message: "wallet" });
+    if (!passReadLimiter.allow(deps.clientIp(c))) return fail(c, 429, "RATE_LIMIT");
+    try {
+      return c.json(await passes.status(getAddress(w)));
+    } catch {
+      return fail(c, 502, "CHAIN_UNAVAILABLE");
+    }
+  });
+
+  /**
+   * POST /pass { wallet } → { txHash, tokenId, from }. Mints the Watermark Genesis Pass to a stamped wallet that made
+   * one gas-free payment. The relayer pays the gas. See pass.ts for the flow and every refusal.
+   */
+  app.post(
+    "/pass",
+    bodyLimit({ maxSize: 1024, onError: (c) => c.json({ reason: "BAD_REQUEST", error: "BAD_REQUEST", message: "body too large" }, 413) }),
+    async (c) => {
+      if (!passes) return fail(c, 503, passMissing());
+      if (!passes.canMint) return fail(c, 503, "RELAYER_NOT_CONFIGURED");
+      const body = (await c.req.json().catch(() => null)) as Record<string, unknown> | null;
+      const w = body && typeof body === "object" && !Array.isArray(body) ? body.wallet : undefined;
+      if (typeof w !== "string" || !isAddress(w) || BigInt(w) === 0n)
+        return fail(c, 400, "BAD_REQUEST", { message: "wallet must be a non-zero address" });
+      const wallet = getAddress(w);
+      if (!passLimiter.allow(deps.clientIp(c))) return fail(c, 429, "RATE_LIMIT", {}, wallet);
+      try {
+        const out = await passes.claim(wallet);
+        if (out.logReason) refuse(out.logReason, wallet);
+        else if (!config.demoMode) console.log(`pass minted ${shortWallet(wallet)}`);
+        return c.json(out.body, out.status);
+      } catch {
+        return fail(c, 500, "INTERNAL", {}, wallet);
+      }
+    },
+  );
+
   /** F6: GET /status/:wallet?app=<appId>&chain=<chainId> → { stamped, expiresAt, quotaLeft }. Reads the chain. */
   app.get("/status/:wallet", async (c) => {
     const wallet = c.req.param("wallet");
@@ -310,6 +404,11 @@ export function createApp(deps: AppDeps) {
 
   return app;
 }
+
+/** A miss in the payment or mint index rescans new blocks at most this often. */
+export const PASS_LOGS_REFRESH_MS = 4_000;
+/** GET /pass/:wallet per IP per minute (the page polls it while a claim settles). */
+export const PASS_READS_PER_MINUTE_PER_IP = 60;
 
 function isUint248(s: unknown): s is string {
   return typeof s === "string" && /^\d{1,75}$/.test(s) && BigInt(s) < 1n << 248n;

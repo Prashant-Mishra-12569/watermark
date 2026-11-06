@@ -34,6 +34,7 @@ export interface Config {
   businessKey: Hex | null;
   stamp: StampConfig;
   pay: PayConfig;
+  pass: PassConfig;
   /** Deprecated settings that were still honoured; index.ts prints them at startup. */
   warnings: string[];
 }
@@ -70,6 +71,50 @@ export interface PayConfig {
   /** PAY_PAUSED=true: every POST /pay is refused PAUSED (an operator switch; nothing else changes). */
   paused: boolean;
 }
+
+/** Watermark Genesis Pass (POST /pass, GET /pass/:wallet). Runs on the chain that has the sponsor. */
+export interface PassConfig {
+  /** WatermarkGenesisPass (GENESIS_PASS_ADDRESS). null = /pass answers 503 PASS_NOT_CONFIGURED. */
+  address: Address | null;
+  /**
+   * First block scanned for the sponsor's PaymentRelayed events (PASS_FROM_BLOCK). Default: the sponsor's deploy
+   * block when SPONSOR_ADDRESS is a known sponsor (KNOWN_SPONSOR_DEPLOY_BLOCKS), else null (= the last
+   * PASS_LOOKBACK_BLOCKS).
+   */
+  fromBlock: bigint | null;
+  /** How far back to scan when fromBlock is null (PASS_LOOKBACK_BLOCKS, default 50000). */
+  lookbackBlocks: bigint;
+  /** Blocks per eth_getLogs call (PASS_LOGS_CHUNK_BLOCKS, default 1000: Ankr's Whitechain RPC refuses 2000). */
+  logsChunkBlocks: bigint;
+  /** Refuse GAS_CAP when a mint's estimate is above this (MAX_GAS_PER_PASS). */
+  maxGas: bigint;
+  /** Daily mint budget in wei, reset at 00:00 UTC (PASS_BUDGET_WEI). Separate from stamps and payments. */
+  budgetWei: bigint;
+  /** POST /pass requests per IP per minute (PASSES_PER_MINUTE_PER_IP). */
+  perMinutePerIp: number;
+}
+
+/**
+ * Deploy blocks of known sponsors on Whitechain Sepolia (read from each deploy tx's receipt): no PaymentRelayed event
+ * can be older. The pass's payment task counts only payments through SPONSOR_ADDRESS, so the scan starts at that
+ * sponsor's deploy block. pass.test.ts checks that deployments/whitechain.json's "sponsor" is listed here.
+ */
+export const KNOWN_SPONSOR_DEPLOY_BLOCKS: Readonly<Record<string, bigint>> = {
+  // Current sponsor, bound to the current live app: tx 0x64e89664…1e9c (deployments/whitechain.json txHashes.sponsor).
+  "0x21b6ae18a412afb84a09263939c5e787d374939a": 12_378_949n,
+  // Previous sponsor (first live app, before the stricter filter): tx 0x8def6437…ac8c (txHashes.previousSponsor).
+  "0xabd7327f6e6b884aef395b80de073b8add0ad7ba": 12_369_271n,
+};
+export const DEFAULT_PASS_LOOKBACK_BLOCKS = 50_000n;
+export const DEFAULT_PASS_LOGS_CHUNK_BLOCKS = 1_000n;
+/** A mint with an on-chain SVG stays well under this; the cap only stops a runaway estimate. */
+export const DEFAULT_MAX_GAS_PER_PASS = 500_000n;
+/**
+ * 0.1 WBT: all 100 mints in one UTC day with room to spare. A mint used 120,584 gas on a Whitechain fork (gas limit
+ * 144,700 after the 1.2x estimate margin); at Whitechain's ~5 gwei that is ~0.0006-0.0007 WBT each, ~0.07 WBT for 100.
+ * Set PASS_BUDGET_WEI to change it.
+ */
+export const DEFAULT_PASS_BUDGET_WEI = 100_000_000_000_000_000n;
 
 /** 0.1 WBT: ~6 stamps at 3M gas and 5 gwei. Set STAMP_BUDGET_WEI to change it. */
 export const DEFAULT_STAMP_BUDGET_WEI = 100_000_000_000_000_000n;
@@ -188,6 +233,16 @@ export function loadConfig(rawEnv: NodeJS.ProcessEnv = process.env): Config {
     ],
   ]);
 
+  const sponsorAddress = chains.get(whitechainSepolia.id)?.sponsor ?? null;
+  const sponsorDeployBlock = sponsorAddress ? (KNOWN_SPONSOR_DEPLOY_BLOCKS[sponsorAddress.toLowerCase()] ?? null) : null;
+  const passFromBlock = env.PASS_FROM_BLOCK?.trim() ? wei("PASS_FROM_BLOCK", env, 0n) : sponsorDeployBlock;
+  if (passFromBlock !== null && sponsorDeployBlock !== null && passFromBlock > sponsorDeployBlock) {
+    warnings.push(
+      `PASS_FROM_BLOCK ${passFromBlock} is after the sponsor's deploy block ${sponsorDeployBlock}: ` +
+        "earlier payments won't unlock the Genesis Pass. Leave it empty to use the deploy block",
+    );
+  }
+
   return {
     port: Number(env.RELAYER_PORT ?? 8788),
     sessionSignerKey: key as Hex,
@@ -218,6 +273,15 @@ export function loadConfig(rawEnv: NodeJS.ProcessEnv = process.env): Config {
       perMinutePerIp: positiveInt("PAYS_PER_MINUTE_PER_IP", env, 10),
       maxRevertsPerWallet: positiveInt("PAY_MAX_REVERTS_PER_WALLET", env, 2),
       paused: env.PAY_PAUSED?.trim() === "true",
+    },
+    pass: {
+      address: optionalAddress("GENESIS_PASS_ADDRESS", env),
+      fromBlock: passFromBlock,
+      lookbackBlocks: positiveGas("PASS_LOOKBACK_BLOCKS", env, DEFAULT_PASS_LOOKBACK_BLOCKS),
+      logsChunkBlocks: positiveGas("PASS_LOGS_CHUNK_BLOCKS", env, DEFAULT_PASS_LOGS_CHUNK_BLOCKS),
+      maxGas: positiveGas("MAX_GAS_PER_PASS", env, DEFAULT_MAX_GAS_PER_PASS),
+      budgetWei: wei("PASS_BUDGET_WEI", env, DEFAULT_PASS_BUDGET_WEI),
+      perMinutePerIp: positiveInt("PASSES_PER_MINUTE_PER_IP", env, 5),
     },
     warnings,
   };
