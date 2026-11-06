@@ -7,7 +7,7 @@
  * The drawing is a 5:1 picture (MumbaiSkyline: the SVG is the full width of its wrapper, height from its aspect
  * ratio). So it is always sized by its WIDTH: a narrower wrapper is a smaller, whole drawing, never a cropped one.
  *
- * Under 900px: copy, then Mumbai (as wide as the column, at most 17svh tall), then the claim gate.
+ * Under 900px: copy, then the claim gate (feed and stamp side by side), then Mumbai (as wide as the column, at most 13svh tall).
  * From 900px: copy left, claim gate right (the .top row), and Mumbai under them in whatever height is left on the
  * first screen: the .sky cell grows to fill it (flex: 1, between 88px and 236px), and the drawing inside is
  * min(100% of the cell's width, 5x the cell's height) wide (a size container, cq units). Any space left over goes
@@ -17,13 +17,14 @@
 
 .hero {
   /* Phones and tablets: the tallest the drawing may be. */
-  --sky-max-h: clamp(64px, 17svh, 200px);
+  --sky-max-h: clamp(56px, 13svh, 160px);
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  /* Like the laptop layout: copy, then the claim scene, then Mumbai along the bottom of the first screen. */
   grid-template-areas:
     "copy"
-    "sky"
-    "gate";
+    "gate"
+    "sky";
   row-gap: clamp(20px, 3.2svh, 32px);
   padding-top: clamp(16px, 3svh, 32px);
   padding-bottom: clamp(24px, 4svh, 40px);

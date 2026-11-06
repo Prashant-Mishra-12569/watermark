@@ -38,24 +38,37 @@
   }
 }
 
-/* Phones: the stamp rests on the feed's top-right corner, like a collectible laid on the card, instead of taking a
-   whole screen of its own above it. The feed's title sits on the left, so nothing is covered. */
+/* Phones: the feed and the stamp side by side, as on a laptop, so the whole claim scene fits on the first screen.
+   The feed takes what the stamp leaves and gets a compact row (smaller icon, tighter padding). */
 @media (max-width: 519.98px) {
   .gate {
-    --stamp-w: clamp(104px, 30vw, 128px);
-    display: block;
-    position: relative;
-    padding-top: calc(var(--stamp-w) * 0.6);
+    --stamp-w: clamp(88px, 27vw, 118px);
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
   }
   .gate .feed {
-    margin-inline: auto;
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
+    padding: 11px 10px 7px;
+    border-radius: 16px;
   }
-  /* .gate .prize: beats the base .prize rule further down this file. */
   .gate .prize {
-    position: absolute;
-    top: 0;
-    right: 6px;
-    z-index: 2;
+    order: 0;
+    margin-inline-end: 4px;
+  }
+  .gate .rows {
+    margin-top: 6px;
+  }
+  .gate .row {
+    grid-template-columns: 26px minmax(0, 1fr);
+    column-gap: 8px;
+    padding: 5px 4px;
+  }
+  .gate .icon {
+    width: 26px;
+    height: 26px;
   }
 }
 
