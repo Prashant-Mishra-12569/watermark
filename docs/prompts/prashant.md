@@ -635,3 +635,16 @@ Result:
 - Checked GitHub (all PRs merged, CI green), the live site (both phone updates live), the APK on the site, both
   servers, the chain (balances, NFT stock, the live check), the EF tx and the repo documents. Listed what's left
   before shooting and before submission.
+
+## 05:05
+
+**77.**
+> Check the latest pushes and commits, verify again, and check the workflow too. Is everything built and ready?
+
+Result:
+- Samanway's final push (PR #38) failed CI on main: the card-number guard flagged 13-digit numbers in the saved alt
+  mempool record. They're millisecond timestamps (late October 2026), not card numbers, so the guard now skips
+  that one raw evidence file (with a comment saying why); the other guards still run on it.
+- Gave his new "Anywhere bots cost you money" section the same phone swipe row as the others.
+- Re-checked: 400 TypeScript tests, typecheck, roots, the production web build, the live site (matches main),
+  both servers, AI_USAGE.md (now complete) and Samanway's prompt logs. The site still serves the older APK.
