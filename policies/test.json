@@ -1,9 +1,19 @@
 {
   "label": "Watermark test (synthetic + test cards)",
   "environment": "test",
-  "appId": "",
-  "leaves": [],
-  "rulesRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "appId": "12345",
+  "leaves": [
+    {
+      "network": "RUPAY",
+      "networkId": 1,
+      "prefixLength": 6,
+      "prefix": "990001",
+      "bank": "Synthetic test card",
+      "type": "debit",
+      "status": "tested"
+    }
+  ],
+  "rulesRoot": "0x288520708dd4920995a6a73e6edc1c9a1726b62dfff2340c72873e2fb767fdab",
   "quotaPerDay": 20,
   "stampMonths": 3
 }

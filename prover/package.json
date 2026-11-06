@@ -1,0 +1,27 @@
+{
+  "name": "@watermark/prover",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Watermark prover: decrypts a tap in memory, proves it and hands the proof to the relayer (spec O, interfaces F3)",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch --env-file-if-exists=../.env src/index.ts",
+    "start": "node --env-file-if-exists=../.env src/index.ts",
+    "keygen": "node scripts/keygen.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test \"src/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.6",
+    "@watermark/sdk": "workspace:*",
+    "@watermark/testcard": "workspace:*",
+    "@watermark/zk": "workspace:*",
+    "hono": "^4.10.4",
+    "viem": "^2.57.16"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^5.9.3"
+  }
+}

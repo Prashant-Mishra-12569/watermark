@@ -3,7 +3,7 @@
   "environment": "live",
   "appId": "",
   "leaves": [],
-  "rulesRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+  "rulesRoot": "0x0d07f6e7a8a0e9199d6d92801fff867002ff5b4808962f9da2ba5ce1bdd26a73",
   "quotaPerDay": 20,
   "stampMonths": 3
 }

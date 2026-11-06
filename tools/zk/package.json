@@ -1,0 +1,24 @@
+{
+  "name": "@watermark/zk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Off-circuit Poseidon2, packing, Merkle trees and circuit inputs (interfaces F4, F8), plus in-memory proving",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test \"src/**/*.test.ts\""
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@aztec-foundation/bb.js": "6.0.0",
+    "@noir-lang/noir_js": "1.0.0",
+    "@watermark/testcard": "workspace:*"
+  }
+}

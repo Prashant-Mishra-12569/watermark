@@ -39,6 +39,9 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+    // The prover's PUBLIC key (prover/keys/prover_pub.pem) ships inside the app as an asset.
+    sourceSets["main"].assets.srcDir("../../prover/keys")
+
     buildFeatures {
         compose = true
         buildConfig = true
