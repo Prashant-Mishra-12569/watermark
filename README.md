@@ -46,6 +46,7 @@ passport.
 
 ## Architecture
 See [docs/interfaces.md](docs/interfaces.md) for every interface, and [docs/PLAN.md](docs/PLAN.md) for the build plan.
+**Integrating Watermark in your own product** (wallets, dapps, airdrops, AI agents): [docs/INTEGRATE.md](docs/INTEGRATE.md).
 
 | Part | Folder | Stack |
 |---|---|---|
