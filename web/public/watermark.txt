@@ -698,3 +698,63 @@ watermark_stamp_history (MCP) or stampHistory (SDK) shows how many wallets your 
   https://explorer.testnet.whitechain.io/tx/0xd7e0166584dbb3b404d2b81308b5b69c94fa52b4d2d0da6a66759a52bb86bc07
 - Gas-free USDT payment (live app):
   https://explorer.testnet.whitechain.io/tx/0xb848b7c8c589335d17ab1570f0cb1765325a1d065e58a2f9447e9d333e376879
+
+## 15. Customize it
+
+What a business can change, how, and what runs today. "On-chain" means the contracts enforce it, not our servers.
+The same table, for people: https://usewatermark.xyz/docs#customize
+
+Stamp length
+- Options: 1, 2 or 3 months. A stamp lasts until the end of a month 1 to 3 months ahead (on-chain rule: the registry
+  refuses any other validUntilMonth). A renewal only ever extends a stamp, never shortens it.
+- How: the app's session signer picks the month when it signs each session. Our relayer uses 3 months for the live
+  and test apps. Your own app with your own session signer can choose 1 or 2.
+- Shorter windows, such as "tapped in the last hour / 24 hours / 7 days": isStamped only gives the expiry, not when
+  the card was tapped. Your backend reads the stamp's time instead: stampHistory (SDK) or the registry's Stamped
+  event gives each stamp's block (a renewal emits a new event); read that block's timestamp and decide. A contract
+  can't read past events, so do this off-chain.
+- Longer than 3 months: not possible today. The 3-month cap is in the registry, so it needs a registry upgrade.
+
+Claims per wallet per day
+- Airdrops, mints and rewards: your own contract decides (1, 5, 20 or any number). The Drop example in section 4 keeps
+  one claim per wallet with a `claimed` mapping.
+- Sponsored payments: each WatermarkSponsor has its own quotaPerDay per wallet per UTC day, fixed when it is deployed
+  (QUOTA_PER_DAY in contracts/script/DeploySponsor.s.sol). Ours is 20.
+
+Which cards count
+- Your own card list: BIN prefixes (6 or 8 digits, up to 8,192) from a public BIN list. For example leave out prepaid,
+  or keep only some banks' listed ranges. The live app's list: 4,208 RuPay bank-debit ranges, no prepaid.
+- How: draft it with watermark_draft_policy (SDK draftPolicy), then register your own app with
+  watermark_prepare_register_app (SDK prepareRegisterApp) and send that unsigned transaction from your wallet
+  (section 10). Your own app runs its own session signer.
+- A list can't change after you register it: a new list means a new appId.
+
+One card, one wallet per app
+- Always on (on-chain). The registry binds each card's nullifier to one wallet per app.
+- A new campaign where the same cards may join again can use a new appId.
+
+Who pays network fees
+- You do, so your users pay $0. Stamps: the relayer pays the gas. Payments: deploy your own WatermarkSponsor
+  (DeploySponsor.s.sol with APP_ID, RELAYER_ADDRESS and QUOTA_PER_DAY) and run the relayer with SPONSOR_ADDRESS
+  (section 9).
+- Caps: PAY_MAX_USDT (largest payment, default 5 USDT), MAX_GAS_PER_PAY (gas per payment, default 300,000) and
+  DAILY_BUDGET_WEI (payment gas per UTC day, default 0.1 WBT).
+
+Rate limits and budgets (relayer environment settings, relayer/src/config.ts; defaults in brackets)
+- SESSIONS_PER_MINUTE_PER_IP (10), MAX_OPEN_SESSIONS (5000)
+- STAMPS_PER_MINUTE_PER_IP (30), STAMP_MAX_QUEUE (20), MAX_GAS_PER_STAMP (3,500,000), STAMP_BUDGET_WEI (0.1 WBT a day)
+- PAYS_PER_MINUTE_PER_IP (10), MAX_GAS_PER_PAY (300,000), DAILY_BUDGET_WEI (0.1 WBT a day), PAY_MAX_USDT (5),
+  PAY_MAX_REVERTS_PER_WALLET (2), PAY_PAUSED (false)
+- PASSES_PER_MINUTE_PER_IP (5), MAX_GAS_PER_PASS (500,000), PASS_BUDGET_WEI (0.1 WBT a day): the Genesis Pass only
+- CORS_ORIGINS: the websites allowed to call the relayer from a browser
+
+Card networks
+- RuPay debit: live. Visa and Mastercard: planned, not live. Their card lists can be drafted, but no card can be proven
+  yet.
+
+Chains
+- Whitechain Sepolia (1874): live. Contracts there check the stamp directly.
+- Any other chain: check from your backend before you pay out (section 5). Running the registry on another chain means
+  deploying it there; our relayer only serves Whitechain Sepolia and the alt mempool devnet today.
+
+Pricing: free during the hackathon testnet.

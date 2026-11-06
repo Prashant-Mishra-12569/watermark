@@ -1,14 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { DOCS, REPO_URL } from "../../lib/site.ts";
+import { REPO_URL } from "../../lib/site.ts";
 import { FOOTER_LINKS, SITE_CTA, siteNav } from "./nav.ts";
 
-test("header nav is exactly SITE_FINAL's: Genesis Drop, GitHub, then the Add Watermark pill", () => {
+test("header nav is exactly: Genesis Drop, Docs, GitHub, then the Add Watermark pill", () => {
   for (const passLive of [true, false]) {
     assert.deepEqual(
       siteNav(passLive).map((i) => [i.label, i.href]),
       [
         ["Genesis Drop", "/pass"],
+        ["Docs", "/docs"],
         ["GitHub", REPO_URL],
       ],
     );
@@ -22,8 +23,7 @@ test("footer links follow SITE_FINAL: Genesis Drop, Bot test, GitHub, Docs, Cred
     FOOTER_LINKS.map((i) => i.label),
     ["Genesis Drop", "Bot test", "GitHub", "Docs", "Credits"],
   );
-  assert.equal(FOOTER_LINKS.find((i) => i.label === "Docs")?.href, DOCS.integrate);
-  assert.match(DOCS.integrate, /\/docs\/INTEGRATE\.md$/u);
+  assert.equal(FOOTER_LINKS.find((i) => i.label === "Docs")?.href, "/docs");
 });
 
 test("retired pages are never linked: no /dev, /sponsor or /verify in the header or footer", () => {

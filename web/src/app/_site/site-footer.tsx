@@ -57,8 +57,9 @@ export function SiteFooter() {
         </nav>
       </div>
 
-      {/* Edge to edge on phones, so the drawing's landmarks stay big enough to read. */}
-      <div className="mx-auto mt-8 max-w-[1400px] sm:mt-12 sm:px-6">
+      {/* On the page grid, like the hero's drawing: the same container and gutters as the words above it (the whole
+          drawing at every width, never cropped), with a little room under the sea lines. */}
+      <div className="mx-auto mt-8 max-w-6xl px-4 pb-6 sm:mt-12 sm:px-6 sm:pb-8">
         <MumbaiSkyline draw className="text-ink" />
       </div>
     </footer>

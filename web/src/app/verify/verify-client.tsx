@@ -116,7 +116,7 @@ export function VerifyClient() {
   );
 }
 
-/** Beside the wallet choice (lg+ only): the card that will be stamped, with two honest chips. */
+/** Beside the wallet choice (from 900px): the card that will be stamped, with two honest chips. */
 function ChooserCard() {
   return (
     <div className="relative w-full max-w-[340px] py-6">

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { cx } from "../_site/cx";
 import { FloatChip } from "../_site/float-chip";
 import { emphasize } from "../_site/headline";
 import { DropSteps } from "../_wallet/drop-steps";
@@ -29,19 +30,63 @@ export function VerifyHeading({
   drop?: boolean;
 }) {
   return (
-    <div className="flex min-w-0 flex-col items-start gap-5">
-      {drop && <DropSteps current={1} done={stamped ? [1] : []} className="mb-1 sm:mb-3" />}
-      {(chain || bar) && (
-        <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          {chain ? <FloatChip tone="ink">{`Testnet · ${chain}`}</FloatChip> : <span />}
+    <StepHeadingTop
+      drop={drop ? <DropSteps current={1} done={stamped ? [1] : []} /> : null}
+      chip={chain ? <FloatChip tone="ink">{`Testnet · ${chain}`}</FloatChip> : null}
+      bar={bar}
+    >
+      <h1 className={STEP_H1}>{emphasize(title)}</h1>
+      {lead && <p className={STEP_LEAD}>{keepOnChain(lead)}</p>}
+    </StepHeadingTop>
+  );
+}
+
+/**
+ * The shared top of /verify and /pay: the drop's step bar (on its walk), the "Testnet" chip and the wallet bar, then
+ * the h1 and its line (children). The gaps shrink on a short laptop screen (svh), so the wallet choice under it starts
+ * on the first screen. From lg, on the drop's walk, the chip sits at the end of the step bar's row instead of on a row
+ * of its own (the chip is rendered in one place or the other, never both: display none hides the other from screen
+ * readers too).
+ */
+export function StepHeadingTop({
+  drop,
+  chip,
+  bar,
+  children,
+}: {
+  drop: ReactNode;
+  chip: ReactNode;
+  bar?: ReactNode;
+  children: ReactNode;
+}) {
+  const walk = Boolean(drop);
+  return (
+    <div className="flex min-w-0 flex-col items-start gap-[clamp(12px,2.2svh,20px)]">
+      {drop && (
+        <div className="mb-1 flex w-full min-w-0 items-center gap-6 sm:mb-[clamp(4px,1.2svh,12px)]">
+          <div className="min-w-0 max-w-2xl flex-1">{drop}</div>
+          {chip && <div className="hidden shrink-0 lg:block">{chip}</div>}
+        </div>
+      )}
+      {(chip || bar) && (
+        <div
+          className={cx(
+            "flex w-full min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2",
+            walk && !bar && "lg:hidden",
+          )}
+        >
+          {chip ? <div className={cx(walk && "lg:hidden")}>{chip}</div> : <span />}
           {bar}
         </div>
       )}
-      <h1 className={STEP_H1}>{emphasize(title)}</h1>
-      {lead && <p className="max-w-[46ch] text-base leading-relaxed text-muted sm:text-lg lg:text-xl">{keepOnChain(lead)}</p>}
+      {children}
     </div>
   );
 }
+
+/** The line under a step's h1: two lines on a laptop (wider measure, a size smaller on a short screen). */
+export const STEP_LEAD =
+  "max-w-[46ch] text-base leading-relaxed text-muted sm:text-lg min-[56.25rem]:max-w-[60ch] min-[56.25rem]:text-[length:clamp(17px,2.7svh,20px)]";
 
 /**
  * The step's h1, sized from the viewport's width AND height (short laptop screens get a smaller line, so the QR or the

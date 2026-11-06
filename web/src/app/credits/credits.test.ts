@@ -43,7 +43,7 @@ test("every credit links over https and names its licence", () => {
 const passFixture = (id: number) => new URL(`../../../../contracts/test/fixtures/pass-svg/${id}.svg`, import.meta.url);
 
 test("the only image files the site ships are Genesis Drop stamps, byte for byte the contract's own picture", () => {
-  // So the page's "every picture is drawn in code" stays true: anything else needs a credit in credits-data.ts (and
+  // So the page's "every picture is our own" stays true: anything else needs a credit in credits-data.ts (and
   // a new lead on the page) first.
   const images = filesUnder(publicDir).filter((p) => /\.(png|jpe?g|webp|gif|avif|svg)$/i.test(p));
   for (const path of images) {

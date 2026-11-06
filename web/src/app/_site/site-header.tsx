@@ -40,17 +40,18 @@ export function SiteHeader({
           <span className="flex shrink-0 items-center">
             <Logo />
           </span>
+          {/* The step text is never cut: on a narrow phone the pill and Exit get tighter instead (under 380px). */}
           <p className="flex min-w-0 flex-1 justify-center text-sm font-semibold">
-            <span className="inline-flex min-w-0 items-center gap-2 rounded-full bg-surface px-3.5 py-1.5">
+            <span className="inline-flex shrink-0 items-center gap-2 rounded-full bg-surface px-3.5 py-1.5 max-[379px]:gap-1.5 max-[379px]:px-2.5">
               <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-saffron" />
               {step ? (
-                <span className="truncate">
+                <span className="whitespace-nowrap">
                   {/* Phones keep the step, the part that changes; the drop's name stays for screen readers. */}
                   <span className="max-sm:sr-only">Genesis Drop · </span>
-                  <span className="whitespace-nowrap">Step {step} of 3</span>
+                  <span>Step {step} of 3</span>
                 </span>
               ) : (
-                <span className="truncate">Genesis Drop</span>
+                <span className="whitespace-nowrap">Genesis Drop</span>
               )}
             </span>
           </p>
@@ -58,7 +59,7 @@ export function SiteHeader({
           <div className="hidden shrink-0 sm:block">
             <ConnectButton />
           </div>
-          <PillButton href="/pass" variant="secondary" size="sm" className="shrink-0">
+          <PillButton href="/pass" variant="secondary" size="sm" className="shrink-0 max-[379px]:px-4">
             Exit
           </PillButton>
         </div>

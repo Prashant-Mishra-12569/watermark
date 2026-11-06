@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { BankCard } from "../_site/bank-card";
 import { FloatChip } from "../_site/float-chip";
 import { emphasize } from "../_site/headline";
-import { STEP_H1 } from "../verify/verify-heading";
+import { STEP_H1, STEP_LEAD, StepHeadingTop } from "../verify/verify-heading";
 import { DropSteps, type DropStep } from "../_wallet/drop-steps";
 
 /** The page width every /pay state shares (the header's container, same as /verify; clipped sideways the same way). */
@@ -41,20 +41,19 @@ export function PayHeading({
   drop?: boolean;
 }) {
   return (
-    <div className="flex min-w-0 flex-col items-start gap-5">
-      {drop && <DropSteps current={2} done={done} className="mb-1 sm:mb-3" />}
-      <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <FloatChip tone="ink">Testnet · Whitechain Sepolia</FloatChip>
-        {bar}
-      </div>
+    <StepHeadingTop
+      drop={drop ? <DropSteps current={2} done={done} /> : null}
+      chip={<FloatChip tone="ink">Testnet · Whitechain Sepolia</FloatChip>}
+      bar={bar}
+    >
       <h1 className={STEP_H1}>{emphasize(PAY_COPY.title)}</h1>
-      <p className="max-w-[44ch] text-base leading-relaxed text-muted sm:text-lg lg:text-xl">{PAY_COPY.lead}</p>
-    </div>
+      <p className={STEP_LEAD}>{PAY_COPY.lead}</p>
+    </StepHeadingTop>
   );
 }
 
 /**
- * Beside the wallet choice (lg+ only, decorative): the same plain card as /verify's chooser and two chips that say
+ * Beside the wallet choice (from 900px, decorative): the same plain card as /verify's chooser and two chips that say
  * how this page works. No "stamped" or "paid" here: nothing has been checked or paid yet.
  */
 export function PayChooserAside() {

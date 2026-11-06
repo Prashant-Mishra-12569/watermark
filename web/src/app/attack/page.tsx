@@ -10,7 +10,7 @@ import { PillButton } from "../_site/pill-button";
 import { StatusChip, type StatusKind } from "../_site/status-chip";
 import { PROOF_PAYMENT, EF_ADMITTED_TX } from "@/lib/evidence.ts";
 import { PASS_LIVE, altmempoolTxUrl } from "@/lib/site.ts";
-import { AttackClient } from "./attack-client";
+import { AttackClient, AttackProvider, HeroLaunch } from "./attack-client";
 import { BOT_COUNT, limitLine } from "./bots.ts";
 
 export const metadata: Metadata = {
@@ -37,7 +37,7 @@ const CODE = "font-mono text-[0.92em] wrap-anywhere";
  * so the headline never runs into the farm panel beside it.
  */
 const H1 =
-  "mt-6 text-balance text-[clamp(40px,min(6.4vw,11svh),84px)] font-semibold leading-[1] tracking-[-0.035em] sm:mt-7";
+  "mt-6 text-balance text-[clamp(40px,min(6.4vw,11svh),84px)] font-semibold leading-[1] tracking-[-0.035em] sm:mt-[clamp(16px,3svh,28px)]";
 
 interface Guard {
   name: string;
@@ -124,22 +124,30 @@ function FarmPanel() {
 export default function AttackPage() {
   return (
     <main className="mx-auto max-w-6xl px-4 sm:px-6">
-      <div className="pt-6 sm:pt-8">
-        <BackLink />
-      </div>
-      {/* Two columns from 900px (a laptop at 150% zoom included); stacked below, the panel capped at 560px. */}
-      <header className="grid gap-10 pb-12 pt-6 sm:gap-12 sm:pb-16 sm:pt-8 min-[900px]:grid-cols-12 min-[900px]:items-center min-[900px]:gap-12 xl:gap-16">
-        <div className="min-w-0 min-[900px]:col-span-6">
-          <FloatChip tone="ink">Bot test · Real requests on testnet</FloatChip>
-          <h1 className={H1}>{emphasize("Bot army vs. *Watermark*.")}</h1>
-          <p className="mt-6 max-w-[44ch] text-pretty text-lg leading-relaxed text-muted xl:text-xl">{subLine(PASS_LIVE)}</p>
+      {/* One bot test for the page: the hero's Launch button and the night card below share it. */}
+      <AttackProvider>
+        <div className="pt-6 sm:pt-[clamp(16px,3svh,32px)]">
+          <BackLink />
         </div>
-        <div className="min-w-0 min-[900px]:col-span-6">
-          <FarmPanel />
-        </div>
-      </header>
+        {/* Two columns from 900px (a laptop at 150% zoom included), top-aligned so the Launch button stays on the first
+            screen of a short (zoomed) laptop; stacked below, the panel capped at 560px. */}
+        <header className="grid gap-10 pb-12 pt-6 sm:gap-12 sm:pb-16 sm:pt-[clamp(16px,3svh,32px)] min-[900px]:grid-cols-12 min-[900px]:items-start min-[900px]:gap-12 xl:gap-16">
+          <div className="min-w-0 min-[900px]:col-span-6">
+            <FloatChip tone="ink">Bot test · Real requests on testnet</FloatChip>
+            <h1 className={H1}>{emphasize("Bot army vs. *Watermark*.")}</h1>
+            <p className="mt-[clamp(16px,3svh,24px)] max-w-[44ch] text-pretty text-lg leading-relaxed text-muted min-[900px]:text-[length:clamp(16px,2.6svh,20px)]">{subLine(PASS_LIVE)}</p>
+            {/* The page's main action, on the first screen; the results land on the dark card below. */}
+            <div className="mt-[clamp(20px,3.6svh,32px)]">
+              <HeroLaunch />
+            </div>
+          </div>
+          <div className="min-w-0 min-[900px]:col-span-6">
+            <FarmPanel />
+          </div>
+        </header>
 
-      <AttackClient />
+        <AttackClient />
+      </AttackProvider>
 
       <section
         aria-label="A wallet with a real bank card"

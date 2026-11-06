@@ -49,7 +49,8 @@ function SolidityPanel() {
       <Lead>
         <p>{ADD_BLOCKS.solidity.body}</p>
       </Lead>
-      <div className="mt-6 max-w-3xl">
+      {/* Full width, so its right edge lines up with the code block under it. */}
+      <div className="mt-6">
         <OneLine />
       </div>
       <p className="mb-3 mt-8 text-sm font-medium text-muted">{ADD_BLOCKS.solidity.pasteOnce}</p>
@@ -137,17 +138,20 @@ const TABS: readonly AddTab[] = [
   },
 ];
 
-/** One "Live on Whitechain Sepolia" row: what it is, the full value with Copy, and extras (explorer, status). */
+/**
+ * One "Live on Whitechain Sepolia" row, on a fixed three-column grid: what it is | the full value (wraps anywhere,
+ * with the status and explorer link under it) | Copy. Copy always sits in the right-hand column, so it never jumps
+ * under a long value; on phones the label goes on top and the value and Copy share the row under it.
+ */
 function LiveRow({ label, hint, value, extra }: { label: string; hint: string; value: string; extra?: ReactNode }) {
   return (
-    <div className="grid min-w-0 gap-2 border-t border-line py-5 first:border-t-0 sm:grid-cols-[12rem_minmax(0,1fr)] sm:gap-8">
+    <div className="grid min-w-0 gap-2 border-t border-line py-5 first:border-t-0 sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-6 lg:grid-cols-[12rem_minmax(0,1fr)] lg:gap-8">
       <dt className="min-w-0">
         <span className="font-semibold">{label}</span>
         <span className="block text-sm text-muted">{hint}</span>
       </dt>
-      <dd className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
-        <CopyText value={value} label={label} className="min-w-0" />
-        {extra}
+      <dd className="min-w-0 self-center">
+        <CopyText value={value} label={label} extra={extra} split />
       </dd>
     </div>
   );
@@ -179,12 +183,12 @@ export function Add({ liveLabel }: { liveLabel: string }) {
               hint="WatermarkRegistry"
               value={ADDR.registry}
               extra={
-                <span className="flex items-center gap-3">
+                <>
                   {BLOCKSCOUT_VERIFIED.registry && <StatusChip status="verified" />}
-                  <ExternalLink href={addressUrl(ADDR.registry)} className="text-sm text-muted">
+                  <ExternalLink href={addressUrl(ADDR.registry)} className="whitespace-nowrap text-sm text-muted">
                     Explorer
                   </ExternalLink>
-                </span>
+                </>
               }
             />
             <LiveRow label="Live appId" hint={liveLabel} value={LIVE_APP.appId} />

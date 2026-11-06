@@ -9,7 +9,9 @@ import { BAND, SectionHead, WRAP } from "./kit";
 /*
  * SITE_FINAL "Page 1" section 2, "Three steps. *Zero* bots." (id="how"): three step cards, each read top to bottom
  * (line icon and step, title, one line, then a small picture of that step on a white panel at the bottom). Three
- * across from 1024px, stacked below that. Server component, no JS. The cards rise into place as they scroll in
+ * across from 900px (like the home hero, so a laptop zoomed to 150% gets them side by side), stacked below that. Side
+ * by side, the cards share two grid rows (subgrid): the words, then the pictures, so the three pictures start on the
+ * same line and are the same height whatever the length of the words above them. Server component, no JS. The cards rise into place as they scroll in
  * (how.module.css); with reduced motion, or without scroll-driven animations, they are simply there. The pictures are
  * aria-hidden: the step text says it all.
  */
@@ -123,14 +125,14 @@ export function How() {
         <SectionHead id="how" eyebrow="How it works" title={HOW_TITLE} />
 
         {/* One simple card per step at every size: step label, title, line, then the picture at the bottom.
-            Three across from 1024px, stacked below that. */}
-        <ol className="mt-12 grid grid-cols-1 gap-4 sm:mt-16 sm:gap-6 lg:grid-cols-3 lg:gap-6">
+            Three across from 900px (two shared rows: words, pictures), stacked below that. */}
+        <ol className="mt-12 grid grid-cols-1 gap-4 sm:mt-16 sm:gap-6 min-[56.25rem]:grid-cols-3 min-[56.25rem]:grid-rows-[auto_1fr] min-[56.25rem]:gap-x-4 min-[56.25rem]:gap-y-0 lg:gap-x-6">
           {HOW_STEPS.map((step, i) => (
             <li
               key={step.title}
               style={{ "--wm-i": i } as CSSProperties}
               className={cx(
-                "flex min-w-0 flex-col rounded-card bg-surface p-6 sm:p-8",
+                "flex min-w-0 flex-col rounded-card bg-surface p-6 sm:p-8 min-[56.25rem]:row-span-2 min-[56.25rem]:grid min-[56.25rem]:grid-rows-subgrid min-[56.25rem]:p-6 lg:p-8",
                 styles.card,
               )}
             >
@@ -144,14 +146,14 @@ export function How() {
                   </span>
                   <span className="text-sm font-medium text-muted">Step {i + 1}</span>
                 </div>
-                <h3 className="mt-6 text-[24px] font-semibold leading-[1.15] tracking-[-0.025em] sm:text-[26px] lg:text-[24px] xl:text-[26px]">
+                <h3 className="mt-6 text-[24px] font-semibold leading-[1.15] tracking-[-0.025em] sm:text-[26px] min-[56.25rem]:text-[22px] lg:text-[24px] xl:text-[26px]">
                   {step.title}
                 </h3>
                 <p className="mt-3 text-pretty text-base leading-relaxed text-muted sm:text-[17px]">
                   {step.body}
                 </p>
               </div>
-              <div aria-hidden="true" className="mt-auto flex min-w-0 flex-col pt-8">
+              <div aria-hidden="true" className="mt-auto flex min-w-0 flex-col pt-8 min-[56.25rem]:mt-0 min-[56.25rem]:pt-7">
                 {VISUAL[step.icon]}
               </div>
             </li>
