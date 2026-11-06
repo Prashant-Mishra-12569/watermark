@@ -62,6 +62,10 @@ test("POST /session returns a session signed by the session signer, and a matchi
 test("POST /session refuses bad input, unknown apps and chains without a registry", async () => {
   const app = makeApp({ SESSIONS_PER_MINUTE_PER_IP: "100" });
   assert.equal((await post(app, { wallet: "0x123", appId: "42", chainId: "1874" })).status, 400);
+  // SEC-1: the registry refuses a stamp for address(0), so no session is signed for it.
+  const zero = await post(app, { wallet: "0x0000000000000000000000000000000000000000", appId: "42", chainId: "1874" });
+  assert.equal(zero.status, 400);
+  assert.match(((await zero.json()) as { message: string }).message, /zero address/);
   assert.equal((await post(app, { wallet: WALLET, appId: 42, chainId: "1874" })).status, 400); // F0: decimal string
   assert.equal((await post(app, { wallet: WALLET, appId: (1n << 248n).toString(), chainId: "1874" })).status, 400);
   assert.equal((await post(app, { wallet: WALLET, appId: "42", chainId: "1" })).status, 400);
