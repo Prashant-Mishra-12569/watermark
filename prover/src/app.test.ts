@@ -87,6 +87,10 @@ test("a valid envelope is decrypted, proved and stamped", async () => {
   const inputs = h.proved[0] as Record<string, unknown>;
   assert.equal(inputs.un, "0x02d449a3");
   assert.equal(inputs.app_id, "0x" + (12345).toString(16).padStart(64, "0"));
+  // The relayer gets the proof with the VerifierRouter profile byte in front (0x00 = RuPay), public inputs unchanged.
+  const body = h.stamped[0] as { proof: string; publicInputs: string[] };
+  assert.equal(body.proof, "0x00abcd");
+  assert.deepEqual(body.publicInputs, ["0x01"]);
 });
 
 test("the same session can only be used once", async () => {

@@ -31,6 +31,8 @@ interface Job extends ProveJob {
 }
 
 const HEX = /^0x[0-9a-fA-F]*$/;
+/** VerifierRouter profile id for today's circuit (RuPay CA 1984 / issuer 1408 / ICC 768, fDDA), as one hex byte. */
+export const RUPAY_PROFILE = "00";
 
 function parseEnvelope(body: unknown): Envelope | null {
   const b = body as Partial<Envelope> | null;
@@ -154,11 +156,16 @@ export function createApp(deps: AppDeps) {
         });
         const proof = await deps.prove(built.inputs);
         if (!config.demoMode) console.log(`proved in ${proof.provingMs} ms`);
-        job.txHash = await deps.stamp({ session: s, sig: env.sig, proof: proof.proof, publicInputs: proof.publicInputs });
+        // The registry's verifier is a VerifierRouter: the first proof byte picks the circuit profile, and the router
+        // strips it before calling that profile's HonkVerifier. 0x00 = today's RuPay circuit (interfaces F3/F5).
+        const routed = `0x${RUPAY_PROFILE}${proof.proof.slice(2)}` as `0x${string}`;
+        job.txHash = await deps.stamp({ session: s, sig: env.sig, proof: routed, publicInputs: proof.publicInputs });
         job.status = "done";
       } catch (e) {
         job.status = "error";
         job.error = errorCode(e);
+        // Operator log: the reason only (a code or the first line of the error), never card data or inputs.
+        if (!config.demoMode) console.log(`job failed: ${job.error} (${logReason(e)})`);
       } finally {
         // Best effort: drop every reference to the card data. JS strings can't be zeroed.
         for (const k of CARD_KEYS) card[k] = "";
@@ -176,6 +183,14 @@ export function createApp(deps: AppDeps) {
   });
 
   return app;
+}
+
+/** Why a job failed, for the operator: PolicyError code, OdaError message, or the error's first line (max 160 chars). */
+export function logReason(e: unknown): string {
+  if (e instanceof PolicyError) return `PolicyError ${e.code}`;
+  const name = e instanceof Error ? e.constructor.name : typeof e;
+  const first = (e instanceof Error ? e.message : String(e)).split("\n")[0] ?? "";
+  return `${name}: ${first.replace(/[0-9a-fA-F]{16,}/g, "<hex>").slice(0, 160)}`;
 }
 
 function errorCode(e: unknown): ProveError {
