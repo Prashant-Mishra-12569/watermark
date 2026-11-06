@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- API 27+: white navigation bar with dark buttons -->
+    <style name="Theme.WatermarkTap" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/wm_white</item>
+        <item name="android:statusBarColor">@color/wm_white</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">@color/wm_white</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+</resources>
