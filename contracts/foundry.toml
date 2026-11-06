@@ -10,6 +10,13 @@ evm_version = "prague"
 optimizer = true
 optimizer_runs = 200
 via_ir = false
+# Deploy.s.sol reads caRoot / rulesRoot from the committed policy files; deployments/ holds F11 output.
+# test/fixtures holds the real synthetic-card proof used by RealProofStamp.t.sol
+fs_permissions = [
+    { access = "read", path = "../policies" },
+    { access = "read", path = "../deployments" },
+    { access = "read", path = "./test/fixtures" },
+]
 
 [rpc_endpoints]
 whitechain = "${WHITECHAIN_RPC}"
