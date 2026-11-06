@@ -5,6 +5,8 @@ import {
   createPublicClient,
   createWalletClient,
   http,
+  parseEventLogs,
+  zeroAddress,
   type Address,
   type Chain,
   type Hex,
@@ -12,9 +14,10 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { altmempoolDevnet, sessionTypedData, whitechainSepolia, type StampStatus } from "@watermark/sdk";
-import { registryAbi, sponsorAbi, usdtAbi } from "./abi.ts";
+import { genesisPassAbi, registryAbi, sponsorAbi, sponsorEventsAbi, usdtAbi } from "./abi.ts";
 import type { ChainConfig } from "./config.ts";
 import { PayRejected, type FundWriter, type PayCall, type PayReader, type PayWriter } from "./pay.ts";
+import type { MintCall, MintReceipt, PassReader, PassWriter } from "./pass.ts";
 import type { AppSignerReader } from "./preflight.ts";
 import { StampRejected, type ChainWriter, type StampCall } from "./stamp.ts";
 
@@ -270,4 +273,90 @@ export function viemChainWriter(relayerKey: Hex): ChainWriter {
 
     waitForReceipt: (c, hash, timeoutMs) => receipt(client(c), hash, timeoutMs),
   };
+}
+
+// ------------------------------------------------------------------ Genesis Pass
+
+/** Reads for /pass: the pass's views, and the sponsor's PaymentRelayed events (eth_getLogs, read-only). */
+export function viemPassReader(): PassReader {
+  const client = publicClients();
+  return {
+    blockNumber: (c) => client(c).getBlockNumber({ cacheTime: 0 }),
+    async paymentSenders(c, fromBlock, toBlock) {
+      const logs = await client(c).getLogs({
+        address: c.sponsor,
+        event: sponsorEventsAbi[0],
+        fromBlock,
+        toBlock,
+        strict: true,
+      });
+      return logs.map((l) => l.args.from);
+    },
+    passOf: (c, pass, wallet) =>
+      client(c).readContract({ address: pass, abi: genesisPassAbi, functionName: "passOf", args: [wallet] }),
+    async walletStatus(c, pass, wallet) {
+      const [stamped, stampExpiresAt, tokenId, left] = await client(c).readContract({
+        address: pass,
+        abi: genesisPassAbi,
+        functionName: "status",
+        args: [wallet],
+      });
+      return { stamped, stampExpiresAt: BigInt(stampExpiresAt), tokenId, left };
+    },
+    totalSupply: (c, pass) => client(c).readContract({ address: pass, abi: genesisPassAbi, functionName: "totalSupply" }),
+    maxSupply: (c, pass) => client(c).readContract({ address: pass, abi: genesisPassAbi, functionName: "MAX_SUPPLY" }),
+    tokenURI: (c, pass, tokenId) =>
+      client(c).readContract({ address: pass, abi: genesisPassAbi, functionName: "tokenURI", args: [tokenId] }),
+  };
+}
+
+/** mint(to) on WatermarkGenesisPass, sent from the relayer key (the pass's minter), which pays the gas. */
+export function viemPassWriter(relayerKey: Hex): PassWriter {
+  const account = privateKeyToAccount(relayerKey);
+  const client = publicClients();
+  const contractCall = (call: MintCall) => ({
+    address: call.pass,
+    abi: genesisPassAbi,
+    functionName: "mint" as const,
+    args: [call.to] as const,
+    account,
+  });
+  return {
+    address: account.address,
+    fees: (c) => fees(client(c)),
+    async simulate(call, gas, f) {
+      const { result } = await client(call.chain).simulateContract({ ...contractCall(call), gas, ...f }).catch(rethrowPay);
+      return result;
+    },
+    async estimateGas(call, f) {
+      return client(call.chain).estimateContractGas({ ...contractCall(call), ...f }).catch(rethrowPay);
+    },
+    async send(call, gas, f) {
+      const chain = chainFor(call.chain);
+      const wallet = createWalletClient({ account, chain, transport: http(call.chain.rpcUrl, { timeout: 15_000 }) });
+      return wallet.writeContract({ ...contractCall(call), chain, gas, ...f });
+    },
+    async waitForReceipt(c, hash, timeoutMs): Promise<MintReceipt> {
+      try {
+        const r = await client(c).waitForTransactionReceipt({ hash, timeout: timeoutMs, pollingInterval: 1_000 });
+        const costWei = r.gasUsed * r.effectiveGasPrice + l1Fee(r);
+        if (r.status !== "success") return { status: "reverted", costWei };
+        const mint = parseEventLogs({ abi: genesisPassAbi, eventName: "Transfer", logs: r.logs, strict: true }).find(
+          (l) => l.args.from === zeroAddress && r.to !== null && l.address.toLowerCase() === r.to.toLowerCase(),
+        );
+        return { status: "success", costWei, tokenId: mint ? mint.args.tokenId : null };
+      } catch {
+        return { status: "timeout" };
+      }
+    },
+  };
+}
+
+/** The pass's immutables, for the startup check (preflight.ts passWarnings). */
+export async function readPassInfo(c: ChainConfig, pass: Address) {
+  const pc = createPublicClient({ chain: chainFor(c), transport: http(c.rpcUrl, { timeout: 10_000 }) });
+  const read = <F extends "minter" | "registry" | "appId">(functionName: F) =>
+    pc.readContract({ address: pass, abi: genesisPassAbi, functionName });
+  const [minter, registry, appId] = await Promise.all([read("minter"), read("registry"), read("appId")]);
+  return { minter, registry, appId };
 }

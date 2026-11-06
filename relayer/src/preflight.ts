@@ -108,3 +108,41 @@ export async function sponsorWarnings(
   }
   return warnings;
 }
+
+/**
+ * WatermarkGenesisPass's immutables against this relayer (warn only). A different minter makes every POST /pass fail
+ * (NotMinter in the simulation, 422 PASS_REJECTED); a different registry or app means the pass checks a stamp other
+ * than the one /verify gives, and other than the one the payment task's sponsor checks.
+ */
+export async function passWarnings(
+  config: Pick<Config, "chains" | "pass">,
+  relayer: Address | null,
+  readPass: (chain: ChainConfig, pass: Address) => Promise<{ minter: Address; registry: Address; appId: bigint }>,
+  sponsorAppId: () => Promise<bigint | null>,
+): Promise<string[]> {
+  const pass = config.pass.address;
+  if (!pass) return [];
+  const chain = [...config.chains.values()].find((c) => c.sponsor && c.usdt);
+  if (!chain) return [`GENESIS_PASS_ADDRESS is set but SPONSOR_ADDRESS is not: /pass answers 503 SPONSOR_NOT_CONFIGURED`];
+  const warnings: string[] = [];
+  let info;
+  try {
+    info = await readPass(chain, pass);
+  } catch {
+    return [`could not read WatermarkGenesisPass ${pass} on chain ${chain.chainId}: check GENESIS_PASS_ADDRESS and the RPC`];
+  }
+  if (relayer && getAddress(info.minter) !== getAddress(relayer)) {
+    warnings.push(
+      `WatermarkGenesisPass.minter is ${getAddress(info.minter)}, but RELAYER_PRIVATE_KEY is ${getAddress(relayer)}. ` +
+        "Every claim will be refused (NotMinter)",
+    );
+  }
+  if (chain.registry && getAddress(info.registry) !== getAddress(chain.registry)) {
+    warnings.push(`WatermarkGenesisPass.registry is ${getAddress(info.registry)}, not REGISTRY_ADDRESS ${getAddress(chain.registry)}`);
+  }
+  const sponsorApp = await sponsorAppId().catch(() => null);
+  if (sponsorApp !== null && sponsorApp !== info.appId) {
+    warnings.push(`WatermarkGenesisPass is for appId ${info.appId}, but the sponsor pays for appId ${sponsorApp}: no wallet can unlock both tasks`);
+  }
+  return warnings;
+}

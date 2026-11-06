@@ -1,11 +1,11 @@
 /** Guards abi.ts against drifting from contracts/src/interfaces/IWatermarkRegistry.sol (interfaces F5) and from the
  * errors WatermarkRegistry.sol and MonthMath.sol declare. */
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { test } from "node:test";
-import { toFunctionSelector, toFunctionSignature, type Abi, type AbiFunction, type AbiParameter } from "viem";
+import { toEventSelector, toFunctionSelector, toFunctionSignature, type Abi, type AbiFunction, type AbiParameter } from "viem";
 import { SESSION_TYPES } from "@watermark/sdk";
-import { registryAbi, sponsorAbi } from "./abi.ts";
+import { genesisPassAbi, registryAbi, sponsorAbi, sponsorEventsAbi } from "./abi.ts";
 import { TRANSFER_WITH_AUTHORIZATION_TYPES } from "./usdt.ts";
 
 const sol = readFileSync(new URL("../../contracts/src/interfaces/IWatermarkRegistry.sol", import.meta.url), "utf8");
@@ -153,5 +153,46 @@ test("the sponsor error list is exactly the errors WatermarkSponsor.sol declares
   const declared = solErrors(sponsorSol).sort();
   assert.ok(declared.includes("NotStamped(address,uint256)"));
   assert.ok(declared.includes("QuotaUsed(address,uint32)"));
+  assert.deepEqual(ours, declared);
+});
+
+// ------------------------------------------------------------------ Genesis Pass inputs
+
+test("PaymentRelayed matches the event WatermarkSponsor.sol declares (the pass's payment task reads it)", () => {
+  const code = sponsorSol.replace(/\/\/.*$/gm, "");
+  const m = code.match(/event\s+PaymentRelayed\s*\(([^)]*)\)/);
+  assert.ok(m, "event PaymentRelayed in WatermarkSponsor.sol");
+  const params = m[1]!.split(",").map((p) => p.trim().split(/\s+/));
+  const ev = sponsorEventsAbi[0];
+  assert.deepEqual(
+    ev.inputs.map((i) => [i.type, ("indexed" in i && i.indexed) || false, i.name]),
+    params.map((p) => [p[0], p[1] === "indexed", p[p.length - 1]]),
+  );
+  assert.equal(toEventSelector(ev), "0x2107de5f734bded1faee3651c32467e82666bd9a4cd02f1fa615a5457585e5f3");
+});
+
+const passSolUrl = new URL("../../contracts/src/WatermarkGenesisPass.sol", import.meta.url);
+test("the Genesis Pass ABI matches WatermarkGenesisPass.sol", { skip: !existsSync(passSolUrl) && "contract not written yet" }, () => {
+  const passSol = readFileSync(passSolUrl, "utf8").replace(/\/\/.*$/gm, "");
+  assert.match(passSol, /function\s+mint\s*\(\s*address\s+\w+\s*\)[^{;]*returns\s*\(\s*uint256/);
+  assert.match(passSol, /function\s+tokenURI\s*\(\s*uint256\s+\w+\s*\)[^{;]*view[^{;]*returns\s*\(\s*string/);
+  assert.match(passSol, /function\s+claimed\s*\(\s*address\s+\w+\s*\)[^{;]*view[^{;]*returns\s*\(\s*bool/);
+  assert.match(
+    passSol,
+    /function\s+status\s*\(\s*address\s+\w+\s*\)[^{;]*view[^{;]*returns\s*\(\s*bool\s+\w+\s*,\s*uint64\s+\w+\s*,\s*uint256\s+\w+\s*,\s*uint256\s+\w+\s*\)/,
+  );
+  assert.match(passSol, /\bpublic\b[^;]*\btotalSupply\b|function\s+totalSupply\s*\(\s*\)/);
+  assert.match(passSol, /uint256\s+public\s+constant\s+MAX_SUPPLY\b|function\s+MAX_SUPPLY\s*\(\s*\)/);
+  assert.match(passSol, /event\s+Transfer\s*\(\s*address\s+indexed\s+\w+\s*,\s*address\s+indexed\s+\w+\s*,\s*uint256\s+indexed\s+\w+\s*\)/);
+  assert.match(passSol, /mapping\s*\(\s*address\s+wallet\s*=>\s*uint256\s+tokenId\s*\)\s*public\s+passOf\s*;/);
+  assert.match(passSol, /address\s+public\s+immutable\s+minter\s*;/);
+  assert.match(passSol, /IWatermarkRegistry\s+public\s+immutable\s+registry\s*;/);
+  assert.match(passSol, /uint256\s+public\s+immutable\s+appId\s*;/);
+  const ours = genesisPassAbi
+    .filter((x) => x.type === "error")
+    .map((e) => toFunctionSignature(e as never).replace(/\s/g, ""))
+    .sort();
+  const declared = solErrors(passSol).sort();
+  assert.ok(declared.includes("AlreadyClaimed(address,uint256)"));
   assert.deepEqual(ours, declared);
 });

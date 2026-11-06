@@ -18,6 +18,7 @@ Node 24 runs the TypeScript directly (type stripping), so there is no build step
 | `POST /stamp` | ✅ simulate → gas cap → stamp budget → one tx per chain at a time → receipt (see below) |
 | `POST /pay` | ✅ gasless USDT payment through WatermarkSponsor; the relayer pays the gas (see below) |
 | `POST /fund`, `GET /balance/:wallet` | ✅ demo funding by the business; USDT balance + sponsored payments left today |
+| `POST /pass`, `GET /pass/:wallet`, `GET /pass` | ✅ live (https://api.usewatermark.xyz/pass; pass `0x12DdF2A4C698A3271F21fEA07559467b6C8AdcB0`): Watermark Genesis Pass, a gas-free mint for a stamped wallet that paid once through the sponsor (see below). Answers 503 `PASS_NOT_CONFIGURED` when `GENESIS_PASS_ADDRESS` is unset |
 | `GET /policy`, `GET /stats` | not built yet |
 
 ## POST /stamp
@@ -113,6 +114,47 @@ another relayer → 422 `PAY_REJECTED` (`NotRelayer`). Nothing was sent to a pub
 and prints a `WARNING:` line when one doesn't match `RELAYER_PRIVATE_KEY`, `REGISTRY_ADDRESS`, `USDT_ADDRESS` or
 `APP_IDS` (warn only).
 
+## POST /pass, GET /pass/:wallet and GET /pass (Watermark Genesis Pass)
+Watermark uses its own service: **WatermarkGenesisPass** is a 100-piece ERC-721, one per real bank card, minted
+gas-free by this relayer (the pass's `minter`). A wallet unlocks it with two tasks, both checked without any third-party API:
+1. **stamped in the current live app** (the app `SPONSOR_ADDRESS` pays for, `liveAppId` in
+   `deployments/whitechain.json`): on-chain. The relayer checks `isStamped` first, and `mint` checks it again itself.
+2. **one gas-free payment through the current WatermarkSponsor** (`SPONSOR_ADDRESS`): checked **by the relayer only**,
+   from that sponsor's `PaymentRelayed(from, …)` events (`eth_getLogs`, read-only). A contract can't read past events
+   and the sponsor only keeps today's usage, so the contract trusts its minter for this task. The logs are scanned once
+   from `PASS_FROM_BLOCK` (default: the sponsor's deploy block, 12,378,949 for `0x21B6…939a`) in
+   `PASS_LOGS_CHUNK_BLOCKS` chunks (Ankr's Whitechain RPC refuses 2,000 blocks; 1,000 works), then only new blocks, at
+   most every 4 s, and the scan starts at boot so the first answer is quick. A payment never disappears, so a hit is
+   cached for good. Payments through the previous sponsor (`0xAbD7…D7BA`, the first live app) don't count: that app's
+   stamps don't unlock this pass either. Measured read-only on Whitechain Sepolia (6 Nov, ~21:30 IST): the first scan
+   from 12,378,949 to the head (~2,700 blocks) took 3 `eth_getLogs` calls and 1.5 s.
+
+**One card = one pass:** the registry binds a card to one wallet per app (nullifier), and the pass remembers every wallet
+that claimed (`passOf`, kept even after a transfer). A card holder can't get a second pass: their card can't stamp a
+second wallet in this app, and their one wallet has already claimed. The limit is per card, not per person: someone with two
+different cards can stamp two wallets. Passes are transferable; the scarcity applies to claiming, not to holding.
+
+- `POST /pass { wallet }` → `{ txHash, tokenId, from }` (`from` = the relayer, which paid the gas). Anyone may ask for
+  any wallet: the pass always goes to that wallet. Flow: rate limit per IP → one claim per wallet at a time → stamped →
+  `passOf(wallet) == 0` → supply left → paid → in the shared per-chain send queue: fees → estimateGas → `GAS_CAP` →
+  simulate (exact gas and fees) → `BUDGET_CAP` → send → receipt (token id from the `Transfer` log). Refusals: 400
+  `BAD_REQUEST`, 403 `NOT_STAMPED` / `NO_PAYMENT`, 409 `ALREADY_CLAIMED { tokenId }` / `CLAIM_PENDING { txHash? }`,
+  410 `SOLD_OUT`, 422 `GAS_CAP` / `PASS_REJECTED { detail }` (e.g. `NotMinter`), 429 `RATE_LIMIT`, 503
+  `PASS_NOT_CONFIGURED` / `SPONSOR_NOT_CONFIGURED` / `RELAYER_NOT_CONFIGURED` / `BUDGET_CAP` / `BUSY`, 502
+  `CHAIN_UNAVAILABLE` / `PASS_SEND_FAILED` / `PASS_REVERTED { txHash }`, 504 `PASS_PENDING { txHash }`.
+- `GET /pass/:wallet` → `{ pass, stamped, stampExpiresAt, paid, claimed, tokenId, remaining, totalSupply, maxSupply,
+  image }`. `stamped`, `stampExpiresAt` (unix seconds, 0 = none), the claim and the supply come from one
+  `pass.status(wallet)` call, so the page shows exactly the stamp `mint` checks. `paid` is `null` when the logs can't be
+  read right now; `image` is the token's on-chain SVG (`data:image/svg+xml;base64,…`, decoded from `tokenURI`) once
+  claimed.
+- `GET /pass` → `{ pass, remaining, totalSupply, maxSupply }`, for the landing page's counter (no wallet). It reads
+  `totalSupply()` and `MAX_SUPPLY()` (read once; it's a constant) and caches the answer for 5 s; a mint clears the
+  cache. Errors: 503 `PASS_NOT_CONFIGURED`, 502 `CHAIN_UNAVAILABLE`, 429 `RATE_LIMIT`.
+- Both GETs share one limit: 60 reads per IP per minute.
+
+**Startup check:** with `GENESIS_PASS_ADDRESS` set, the relayer reads the pass's `minter`, `registry` and `appId` and
+warns when the minter isn't `RELAYER_PRIVATE_KEY`, the registry isn't `REGISTRY_ADDRESS`, or the app isn't the sponsor's.
+
 ## Settings
 Stamps and payments have **separate** gas caps and **separate** daily budgets. A stamp runs the UltraHonk verifier
 (~2.9M gas), while a sponsored payment is ~100k, so one shared cap would either block stamps or let a payment burn 3M gas.
@@ -132,6 +174,13 @@ Stamps and payments have **separate** gas caps and **separate** daily budgets. A
 | `PAYS_PER_MINUTE_PER_IP` | 10 | `/pay` rate limit (and, separately counted, `/fund`) |
 | `PAY_MAX_REVERTS_PER_WALLET` | 2 | mined reverts per wallet per UTC day before `QUOTA_USED` |
 | `PAY_PAUSED` | false | `true` refuses every payment `PAUSED` |
+| `GENESIS_PASS_ADDRESS` | unset (→ `/pass` 503 `PASS_NOT_CONFIGURED`) | WatermarkGenesisPass (minter = the relayer) |
+| `PASS_FROM_BLOCK` | the sponsor's deploy block (12,378,949 for the current sponsor; warns if set later) | first block scanned for `PaymentRelayed` |
+| `PASS_LOOKBACK_BLOCKS` | 50,000 | how far back to scan for another sponsor with no `PASS_FROM_BLOCK` |
+| `PASS_LOGS_CHUNK_BLOCKS` | 1,000 | blocks per `eth_getLogs` call |
+| `MAX_GAS_PER_PASS` | 500,000 | `/pass` per-tx cap (`GAS_CAP`) |
+| `PASS_BUDGET_WEI` | 0.1 WBT (100 mints at ~120.6k gas and ~5 gwei ≈ 0.07 WBT) | `/pass` daily budget, separate from stamps and payments |
+| `PASSES_PER_MINUTE_PER_IP` | 5 | `/pass` rate limit |
 | `STAMPS_PER_MINUTE_PER_IP` | 30 | `/stamp` rate limit |
 | `STAMP_MAX_QUEUE` | 20 | txs (stamps and payments) waiting per chain before `BUSY` |
 | `STAMP_RECEIPT_TIMEOUT_MS` | 90,000 | wait for the receipt before `STAMP_PENDING` / `PAY_PENDING` / `FUND_PENDING` |
@@ -155,7 +204,7 @@ only: the relayer still starts (src/preflight.ts).
 
 ## Endpoints (F6)
 `POST /session` · `GET /session/:id` · `POST /stamp` · `POST /pay` · `GET /status/:wallet` · `GET /policy/:appId` · `GET /stats/:appId`
-· plus the demo routes `POST /fund` and `GET /balance/:wallet`
+· plus the demo routes `POST /fund` and `GET /balance/:wallet`, and the Genesis Pass routes `POST /pass`, `GET /pass/:wallet` and `GET /pass`
 
 ## Drain protection (spec K)
 | Layer | Rule |

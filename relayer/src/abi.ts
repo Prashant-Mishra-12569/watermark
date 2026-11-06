@@ -90,3 +90,45 @@ export const usdtAbi = parseAbi([
   "function DOMAIN_SEPARATOR() view returns (bytes32)",
   "function authorizationState(address authorizer, bytes32 nonce) view returns (bool)",
 ]);
+
+/**
+ * WatermarkSponsor's PaymentRelayed event (WatermarkSponsor.sol; abi.test.ts checks the declaration). The Genesis Pass
+ * unlock task "made one gas-free payment" is read from it: a contract can't read past events, so the relayer does.
+ */
+export const sponsorEventsAbi = parseAbi([
+  "event PaymentRelayed(address indexed from, address indexed to, uint256 value, bytes32 nonce, uint32 day, uint32 usedToday)",
+]);
+
+/**
+ * WatermarkGenesisPass (contracts/src/WatermarkGenesisPass.sol): a 100-piece ERC-721, one per stamped wallet of the
+ * live app, minted by the relayer. A mint is Transfer(address(0), to, id). The error list is exactly the errors the
+ * contract declares (abi.test.ts checks both ways), so a refused mint simulation is named.
+ */
+export const genesisPassAbi = parseAbi([
+  "function mint(address to) returns (uint256 tokenId)",
+  "function claimed(address wallet) view returns (bool)",
+  "function passOf(address wallet) view returns (uint256)",
+  "function status(address wallet) view returns (bool stamped, uint64 stampExpiresAt, uint256 tokenId, uint256 left)",
+  "function totalSupply() view returns (uint256)",
+  "function MAX_SUPPLY() view returns (uint256)",
+  "function tokenURI(uint256 tokenId) view returns (string)",
+  "function minter() view returns (address)",
+  "function registry() view returns (address)",
+  "function appId() view returns (uint256)",
+  "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)",
+
+  // constructor
+  "error ZeroAddress()",
+  "error NotAContract(address account)",
+  "error InvalidAppId(uint256 appId)",
+  // mint
+  "error NotMinter(address caller)",
+  "error AlreadyClaimed(address wallet, uint256 tokenId)",
+  "error SoldOut()",
+  "error NotStamped(address wallet)",
+  // ERC-721
+  "error NonexistentToken(uint256 tokenId)",
+  "error NotAuthorized(address caller, uint256 tokenId)",
+  "error WrongFrom(address from, address owner)",
+  "error UnsafeRecipient(address to)",
+]);
