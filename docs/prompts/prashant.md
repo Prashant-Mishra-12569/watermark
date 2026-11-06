@@ -537,3 +537,13 @@ Result:
   internal and 20 external links.
 - Cleaned up: removed the temporary handoff, moved Samanway's prompt log next to mine, and added the app screens row
   to AI_USAGE.md.
+
+## 02:35
+
+**70.**
+> [Screenshot of PR #32: "ci / typescript" failing; contracts and the secrets check passing.] Check this and solve it.
+
+Result:
+- Two website tests require the MCP config on usewatermark.xyz to match the JSON block in mcp/README.md exactly; the
+  new guide had dropped its `env` line. Put it back; all 399 TypeScript tests pass, and the README test count is
+  updated.
