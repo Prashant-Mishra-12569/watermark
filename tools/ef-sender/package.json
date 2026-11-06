@@ -1,0 +1,21 @@
+{
+  "name": "@watermark/ef-sender",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Builds and sends WatermarkQuotaPaymaster-sponsored EIP-8141 frame txs on the alt mempool devnet (1337), and pokes its clock",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "send": "node src/send-quota-tx.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node src/send-quota-tx.ts && node src/send-quota-tx.ts poke"
+  },
+  "dependencies": {
+    "@forshtat/hegota-support": "0.0.1",
+    "viem": "^2.57.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^5.9.3"
+  }
+}
