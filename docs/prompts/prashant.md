@@ -486,3 +486,29 @@ Result:
 - Added a "card already linked" message: the prover now passes the registry's NullifierBoundToOtherWallet reason
   through as CARD_ALREADY_LINKED instead of a generic failure.
 - Built the demo APK; 28 Android and 272 TypeScript tests pass. Not run on a phone yet.
+
+## 01:20
+
+**67.**
+> How do I see the APK? How do I download it from the website?
+
+Result:
+- Explained the three ways: previews in Android Studio, installing over USB with adb, and the website download,
+  which only works once Samanway places the file on the site (it returned 404 at this point).
+
+## 01:30
+
+**68.**
+> Now check the latest repo commits and verify what has been done in total and what's left. Check that everything
+> works properly and is live, or whether something is missing. Go deep and think at every step: there should be
+> no fault. [Then, during the check:] Continue with the latest commits, very deeply and precisely.
+
+Result:
+- Checked CI (green on main), every test locally (394 TypeScript, 28 Android, the demo APK builds), every public
+  page and both servers, the APK served by the site (byte-identical to our build), all six Whitechain contracts
+  (source-verified), the Genesis Pass (gated on the no-prepaid live app, 1 of 100 claimed), the EF devnet tx (still
+  there, 5 frames successful) and the docs page for AI agents (addresses consistent).
+- Fixed a website test that failed on Windows (file paths read from URLs), and updated the README (live links, the
+  APK signing certificate, the live-app stamp, the Genesis Pass claim, test counts, font credits).
+- Found for Samanway: the live relayer and prover still serve the old salt-2 app with the prepaid-inclusive filter,
+  and the business wallet has 19 test USDT, about 9 drop users at 2 USDT each.
