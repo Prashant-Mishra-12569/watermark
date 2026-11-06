@@ -12,7 +12,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "node --test \"src/**/*.test.ts\"",
-    "test-link": "node scripts/test-link.ts"
+    "test-link": "node scripts/test-link.ts",
+    "live-smoke": "node scripts/live-smoke.ts"
   },
   "dependencies": {
     "viem": "^2.57.16"
