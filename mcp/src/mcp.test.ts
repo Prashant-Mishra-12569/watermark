@@ -112,10 +112,10 @@ test("MCP round trip: list the tools and call two of them over the protocol", as
   const text = (res.content as { type: string; text: string }[])[0]!.text;
   assert.equal(JSON.parse(text).stamped, true);
 
-  // A full card number is rejected by the schema before any handler runs
+  // An invalid prefix is rejected by the schema before any handler runs
   const bad = await client.callTool({
     name: "watermark_draft_policy",
-    arguments: { networks: ["RUPAY"], prefixes: [{ network: "RUPAY", prefix: "9900010000123455" }] },
+    arguments: { networks: ["RUPAY"], prefixes: [{ network: "RUPAY", prefix: "9900010000" }] },
   });
   assert.equal(bad.isError, true);
   await client.close();
