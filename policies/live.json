@@ -1,7 +1,7 @@
 {
   "label": "RuPay bank debit (India, no prepaid)",
   "environment": "live",
-  "appId": "308663211604720878328034572238289142859725369530145873843287544799704764909",
+  "appId": "393344891601835728760966937624776276735512086066329273346256164761263100630",
   "source": "https://github.com/mostafa19950/bin-list-data",
   "license": "CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)",
   "note": "Every 6-digit Indian RuPay DEBIT BIN in the public dataset above that has a known product category, except prepaid ones (gift, transit, payroll), which can be bought over the counter. BINs with no category are left out too. Unofficial and possibly outdated, so every leaf is 'listed' (unproven). No prefix is chosen because of a team member's card. The network is proven by the RuPay CA key in the circuit; bank and card type come only from this list.",

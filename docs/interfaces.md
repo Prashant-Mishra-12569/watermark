@@ -262,21 +262,25 @@ supports both permit and EIP-3009, so Plan A is expected to work. Get it by swap
 ## F9 · Frame transaction shape (alt mempool, EIP-8141)
 
 Type `0x06`. EIP-8141 recognizes the validation prefix `[only_verify, pay]`, and `APPROVE_PAYMENT` reverts unless the
-sender was approved first. So the transaction is:
+sender was approved first. VERIFY frames can't read TIMESTAMP, so an `expiry_verify` frame in front gives the paymaster a
+protocol-checked deadline. The transaction that was admitted and mined on the devnet
+(`0xcab8c9e2…8a93`, block 3699) has 5 frames:
 
 | # | Mode | Target | Flags | Job |
 |---|---|---|---|---|
-| 0 | VERIFY (1) | `tx.sender` | `0x2` APPROVE_EXECUTION | the user's account approves the transaction |
-| 1 | VERIFY (1) | WatermarkQuotaPaymaster | `0x1` APPROVE_PAYMENT | reads the registry (stamped? not expired? quota left?), checks that frames 2–3 match this shape, then `APPROVE(APPROVE_PAYMENT)` |
-| 2 | SENDER (2) | user's target | `0x0` | the user's call |
-| 3 | DEFAULT (0) | WatermarkQuotaPaymaster | `0x0` | `consume()` updates the counter (VERIFY is static, so it can't) |
+| 0 | VERIFY (1) | `0x…8141` (expiry verifier) | `0x0` | data = `uint64be(deadline)`; an included tx has `t <= deadline` |
+| 1 | VERIFY (1) | `tx.sender` (EOA default code) | `0x2` APPROVE_EXECUTION | only_verify: the user's account approves the transaction |
+| 2 | VERIFY (1) | WatermarkQuotaPaymaster | `0x1` APPROVE_PAYMENT | `verifyAndPay()`: reads the registry (stamped? not expired? quota left?), checks frames 0, 3 and 4 match this shape, then `APPROVE(APPROVE_PAYMENT)` |
+| 3 | SENDER (2) | user's target | `0x0` | the user's call (no batch flag) |
+| 4 | DEFAULT (0) | WatermarkQuotaPaymaster | `0x0` | `consume()` with at least 50,000 gas: records `lastSeen` and the event (VERIFY is static, so it can't) |
 
-- The paymaster's VERIFY frame reads registry storage, which the public mempool refuses. Staked entities are allowed
+- The paymaster's VERIFY frame (frame 2) reads registry storage, which the public mempool refuses. Staked entities are allowed
   under STORAGE-032.
-- The staked verify budget is 1,000,000 gas (draft).
+- The deployed sidecar caps frames 0–2 at a flat 100,000 verify gas, whatever the stake. Ours declare 99,800; the pay
+  frame used 49,490 on the devnet (one sample).
 - Submit with `eth_sendFrameTransaction` on the sidecar. Track it with `skandha_frameTransactionStatus` and
   `eth_getFrameTransactionReceipt`.
-- Confirm the shape, the method names and reverted-frame behaviour with the alt mempool team.
+- Design, trade-offs and the measured gas: `docs/EF_ALTMEMPOOL.md` and `docs/EF_PAYMASTER_DESIGN.md`.
 
 ---
 
@@ -316,9 +320,11 @@ Deployment file schema:
 ---
 
 ## Changelog
+- **1.3 (2026-11-06):** F9 is 5 frames, matching the admitted devnet tx: an `expiry_verify` frame comes first, because
+  VERIFY frames can't read TIMESTAMP and the paymaster needs a deadline.
 - **1.2 (2026-11-06):** the live policy drops prepaid BINs (732) and BINs with no category (1,318), leaving 4,208.
   Prepaid cards can be bought over the counter with little KYC, so they would let one person make many stamps. Rules are
-  immutable per appId, so this is a new live app (salt `0x…02`); the old one is superseded.
+  immutable per appId, so this is a new live app (salt `0x…03`, because `0x…02` already held a test app with the old rules); the old one is superseded.
 - **1.1 (2026-11-06):** rules tree depth 12 → 13 (8,192 leaves), so the live policy can hold every public Indian
   RuPay debit BIN (6,258). One more Poseidon2 per proof; new Verifier.sol (agreed before the first deploy).
 - **1.0 (2026-11-06):** first version, from build spec v3 section F. Changes from the spec:
