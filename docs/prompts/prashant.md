@@ -558,3 +558,15 @@ Result:
   watermark.txt and llms.txt, and the Tap app's home screen ("Real people leave a *mark*."). The precise line stays
   next to it: a stamp proves a real bank card, not one unique person.
 - Website tests (223) and Android tests pass; the demo APK is rebuilt.
+
+## 02:45
+
+**72.**
+> [Screenshot of the README on GitHub: "Unable to render rich display: svg element not in render tree" where the
+> Mermaid diagrams should be.] Fix it properly, and change the tagline in the README and anywhere else it's left.
+
+Result:
+- GitHub renders Mermaid in a sandboxed frame it controls, and it was failing there. Replaced the three Mermaid
+  diagrams with SVG images in the brand colours (docs/assets), checked by rendering them locally.
+- The old tagline was still on main because PR #32 merged before the tagline commits; they're on this branch now.
+  Nothing else in the repo still uses it, and the GitHub description already shows the new one.
