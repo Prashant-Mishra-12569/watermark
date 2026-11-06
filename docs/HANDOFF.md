@@ -1,4 +1,4 @@
-# Handoff: Prashant → Samanway (Fri 6 Nov, 18:10 IST)
+# Handoff: Prashant → Samanway (Fri 6 Nov, updated 18:40 IST)
 
 Temporary working note. We delete it before submission.
 
@@ -22,20 +22,29 @@ Tests after the merge: 152 TypeScript (sdk 25, mcp 11, testcard 16, web 42, rela
 
 ## 2. What I'm doing next
 
-1. README: the real stamp tx as the headline proof (`0xd7e01665…`, block 12368812), plus the "what works today" table.
+1. ✅ README: the real-card stamp tx and your admitted EF tx are in the "What works today" table and the track
+   checklists (all links checked: HTTP 200, and the EF receipt was read from the devnet RPC). The limitations now cover
+   Visa/MC (planned, not live), the stamp length and no revoke. **When you edit the README, build on this version.**
 2. Must-refuse tests on the phone, each with a screenshot:
    - the same card with a new wallet (expected: the Registry reverts with `NullifierBoundToOtherWallet`)
    - a renewal with the same card and same wallet (expected: extends, never shortens)
    - an expired QR
    - a card outside the filter (refused on the phone, before anything is sent)
-3. The second card tap on the **devnet** for the EF track, once your paymaster and the devnet registry are up.
-4. The AI-use disclosure (`docs/AI_USAGE.md`, prompt logs), privacy doc check, pitch, and recording the live tap.
+3. ~~The second card tap on the devnet~~: no longer needed, since your admitted tx qualifies us. I'll do a real-card
+   devnet tap only if there's spare time.
+4. The AI-use disclosure: I already have a draft `docs/AI_USAGE.md` and my prompt log `docs/prompts/prashant.md`.
+   **Please don't start a separate AI_USAGE.md.** Send me your part (which files and parts were AI-assisted, plus your
+   prompts as `docs/prompts/samanway.md`), and I'll merge them into one file. Also: the privacy doc check, the pitch,
+   and recording the live tap.
 5. Submission at 08:00.
 
 ## 3. What I need from you
 
 - The **Sponsor address** in `deployments/whitechain.json` (currently `"sponsor": null`). The SDK, MCP and README link to it.
-- The **devnet deployment file** and the paymaster address, so I can do the EF tap.
+- `deployments/devnet.json`, the paymaster code and the sender tool in the repo (your task #1), so the README and SDK
+  can link to the devnet Registry `0x1838…E42C` and the paymaster `0x6218…7097`.
+- **Update F9 in `docs/interfaces.md`**: the spec says 4 frames, and your admitted tx has 5 (deadline, sender check,
+  paymaster pays, user call, quota count). The doc and the code must match, or the judges will notice.
 - A decision on **stamp length per app** (section 5): stay fixed at 3 months, or let each app choose 1–3.
 
 ## 4. What's left on your side (from `docs/PLAN.md`)
@@ -47,9 +56,10 @@ Tests after the merge: 152 TypeScript (sdk 25, mcp 11, testcard 16, web 42, rela
 - [ ] `WHITECHAIN_FEEDBACK.md`: "What worked" and "Where we got stuck" are still `_TBD_`.
 - [ ] A 2–4 min video showing user, business and relayer (real voice, ≥720p, not sped up, not recorded on a phone).
 
-**EF alt-mempool prize. Nothing for it is on `main` yet, so it's the biggest risk:**
-- [ ] The devnet registry, `WatermarkQuotaPaymaster` (it stakes itself), and the 4-frame F9 tx.
-- [ ] **One admitted tx link** on explorer.altmempool.wtf, or the code that submits one. `docs/EF_ALTMEMPOOL.md` already explains the design and the gas trade-off.
+**EF alt-mempool prize:**
+- [x] Admitted and mined: [tx `0xcab8c9e2…`](https://explorer.altmempool.wtf/tx/0xcab8c9e2171a8048c8f5e12d4bb830c92cba7f458763d2c7ac8f23ab1faa8a93?node=https%3A%2F%2Faltmempool.forshtat.com%2Frpc), devnet block 3,699, all 5 frames successful, user paid 0.
+- [ ] Commit the paymaster code, the sender tool and `deployments/devnet.json` (your #1). The judges need the code, not just the link.
+- [ ] `docs/EF_ALTMEMPOOL.md`: results, the 5-frame shape, and the "attack" rows (an unstamped wallet refused; the public mempool rejecting the same tx). The design and the measured gas trade-off are already in it, so extend them rather than rewrite.
 
 **Website and polish:**
 - [ ] `/attack`, `/sponsor` (shows the filters), `/dev`. Only `/` and `/verify` exist on `main` today.
@@ -57,7 +67,7 @@ Tests after the merge: 152 TypeScript (sdk 25, mcp 11, testcard 16, web 42, rela
 - [ ] Fix the failing Sponsor test `test_quotaRollback_tokenRevertAfterEarlierPayments` (`vm.recordLogs` window).
 - [ ] Arkiv: only if everything above is done.
 
-If time runs short, my suggested order: **Sponsor deploy → /pay with a real USDT tx → README link → EF admitted tx → video → the rest.**
+If time runs short, my suggested order: **EF code + devnet.json in the repo → Sponsor deploy → /pay with a real USDT tx → README link → video → the rest.**
 
 ## 5. How stamp expiry works (and what a company can control)
 
