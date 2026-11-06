@@ -5,6 +5,11 @@ No money is charged, and no card number goes on-chain. *Bots can't hold plastic.
 
 Built at ETHGlobal Mumbai 2026 by Prashant Mishra and Samanway Baranwal.
 
+**Live:** [usewatermark.xyz](https://usewatermark.xyz) (for companies) ·
+[Genesis Drop](https://usewatermark.xyz/pass) (claim a free on-chain Mumbai stamp NFT with your card) ·
+[Bot test](https://usewatermark.xyz/attack) · [Android app](https://usewatermark.xyz/app) ·
+[Docs for builders and AI agents](https://usewatermark.xyz/watermark.txt)
+
 > Status: under active development during the hackathon. Anything marked *untested* or *estimated* is labelled that
 > way on purpose.
 
@@ -139,7 +144,7 @@ verified their certificate chain. We also wrote the planning spec in [docs/spec/
 app is in this repository.** All project code was written during the hackathon.
 
 ## Prior art
-Carte Bleue (ETHGlobal Lisbon 2026), zkEMV (ZK Hack Berlin 2025), GOAT RAMP (ETHGlobal Istanbul).
+zkEMV (ZK Hack Berlin 2025), GOAT RAMP (ETHGlobal Istanbul).
 
 ## Libraries used
 | Area | Libraries |
