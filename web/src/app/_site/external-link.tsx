@@ -28,7 +28,8 @@ export function ExternalLink({
       rel="noopener noreferrer"
       title={title}
       className={cx(
-        "underline decoration-current/35 decoration-1 underline-offset-4 transition-colors hover:decoration-current",
+        // py-2.5 on an inline link makes it easier to tap on a phone (about 40px tall) without moving any text.
+        "py-2.5 underline decoration-current/35 decoration-1 underline-offset-4 transition-colors hover:decoration-current",
         className,
       )}
     >

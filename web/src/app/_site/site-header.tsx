@@ -93,7 +93,7 @@ export function SiteHeader({
   return (
     <header className="bg-bg">
       <div className={BAR}>
-        <Link href="/" aria-label="Watermark home" className="mr-auto flex shrink-0 items-center rounded-full">
+        <Link href="/" aria-label="Watermark home" className="mr-auto flex min-h-11 shrink-0 items-center rounded-full">
           <Logo />
         </Link>
 

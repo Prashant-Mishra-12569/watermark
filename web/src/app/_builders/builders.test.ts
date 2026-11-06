@@ -57,31 +57,27 @@ const LIVE_POLICY: ControlPolicy = {
 // ------------------------------------------------------------------ SITE_FINAL "Page 1", word for word
 
 test("hero: SITE_FINAL eyebrow, H1, sub and both pills", () => {
-  assert.equal(HERO.eyebrow, "For airdrops, mints and rewards");
+  assert.equal(HERO.eyebrow, "Anti-bot for airdrops, mints and rewards");
   assert.equal(HERO.title, "Stop bots from farming your *airdrop*.");
   assert.equal(
     HERO.sub,
-    "Watermark lets only wallets backed by a real bank card claim. Add it with one line. No KYC. Your users pay no fees.",
+    "Your users tap a real bank card on their phone. Only those wallets can claim. No KYC. No gas.",
   );
-  assert.deepEqual(HERO.add, { label: "Add Watermark", href: "#add" });
-  assert.deepEqual(HERO.drop, { label: "Try the live drop", soonLabel: "Try the drop", href: "/pass" });
+  assert.deepEqual(HERO.add, { label: "Add it to my app", href: "#add" });
+  assert.deepEqual(HERO.drop, { label: "Try our drop", soonLabel: "Try our drop", href: "/pass" });
   // "live" only while the drop is open.
-  assert.equal(heroDropLabel(true), "Try the live drop");
-  assert.equal(heroDropLabel(false), "Try the drop");
+  assert.equal(heroDropLabel(true), "Try our drop");
+  assert.equal(heroDropLabel(false), "Try our drop");
 });
 
 test("how it works: the headline and three steps", () => {
-  assert.equal(HOW_TITLE, "Three steps. *Zero* bots.");
+  assert.equal(HOW_TITLE, "How it *works*.");
   assert.deepEqual(
     HOW_STEPS.map((s) => [s.title, s.body, s.icon]),
     [
-      ["You add one check", "In your contract, your backend or your AI agent.", "code"],
-      [
-        "Users tap their card once",
-        "On our phone app. A private proof checks the card is real. No card number is stored.",
-        "tap",
-      ],
-      ["Only stamped wallets claim", "Bots get refused before they touch your tokens.", "shield"],
+      ["You add one line", "In your contract, your server or your AI agent.", "code"],
+      ["Users tap their card", "Once, on our Android app. A private proof checks the card is real.", "tap"],
+      ["Bots get refused", "No real card, no claim. One card claims once.", "shield"],
     ],
   );
 });
@@ -100,7 +96,7 @@ test("section headlines", () => {
 test("the bot test line uses /attack's own bot count", () => {
   assert.equal(
     botTestLead(BOT_COUNT),
-    `Press the button. We make ${BOT_COUNT} bot wallets and send them at our own drop. Every one gets refused. These are real requests.`,
+    `We send ${BOT_COUNT} bot wallets at our own drop. Watch every one get refused. Real requests, live.`,
   );
   assert.equal(BOT_COUNT, 5);
   assert.deepEqual(TEST_CTA, { label: "Run the bot test", href: "/attack" });
@@ -116,7 +112,7 @@ test("control facts read SITE_FINAL's lines with the live list's own numbers", (
       ["Which cards count", "4,208 RuPay bank debit ranges from India. No prepaid cards, because anyone can buy many."],
       ["Sponsor your users' fees", "They pay $0, up to 20 payments a day each."],
       ["Stamps last up to 3 months", "One card, one wallet per app."],
-      ["Nothing sensitive to store", "No KYC files, no card numbers."],
+      ["Nothing to store", "No KYC files. No card numbers."],
     ],
   );
   assert.equal(LIVE_POLICY.prefixCount, 4208);

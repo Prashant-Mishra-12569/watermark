@@ -10,7 +10,7 @@ import { DownloadQr } from "./download-qr";
 export const metadata: Metadata = {
   title: "Get the app · Watermark",
   description:
-    "Watermark Tap, the free Android app that checks your bank card is real, with a tap. Needed once to stamp your wallet.",
+    "Watermark Tap: our free Android app checks your bank card with one tap. You need it once, to stamp your wallet.",
 };
 
 /*
@@ -22,8 +22,8 @@ export const metadata: Metadata = {
 const COPY = {
   eyebrow: "Watermark Tap",
   eyebrowTail: "Android",
-  title: "Tap your card. *Keep* it private.",
-  sub: "The free Android app that checks your bank card is real, with a tap. Needed once to stamp your wallet.",
+  title: "Tap your card, *once*.",
+  sub: "Our free Android app checks your bank card with one tap. You need it once, to stamp your wallet.",
   download: "Download for Android (.apk)",
   back: "Back to the drop",
   missing: "The Android app is being published.",
@@ -50,9 +50,9 @@ const INSTALL: readonly { title: string; body: ReactNode }[] = [
 const READS: readonly { icon: LineIconName; text: string }[] = [
   {
     icon: "card",
-    text: "Your card chip's public certificates and a one-time signature for this session (they include your card number).",
+    text: "Your card's public certificates and a one-time signature. These include your card number.",
   },
-  { icon: "lock", text: "Encrypted on your phone, opened only by our prover, used once, then wiped." },
+  { icon: "lock", text: "Locked on your phone. Only our server opens it, uses it once, then wipes it." },
 ];
 
 const NEVER: readonly string[] = [
@@ -233,7 +233,7 @@ function Install() {
     <section aria-labelledby="app-install-title" className="border-t border-line py-16 sm:py-20">
       <Headline id="app-install-title">Install in *three* steps.</Headline>
       <p className="mt-5 max-w-[60ch] text-pretty text-lg leading-relaxed text-muted sm:text-xl">
-        Android blocks apps from outside the Play Store by default, so it asks you once.
+        The app isn&rsquo;t from the Play Store, so Android asks you once.
       </p>
       <ol className="mt-10 grid gap-3 md:grid-cols-3">
         {INSTALL.map((s, i) => (
@@ -252,7 +252,7 @@ function Privacy() {
   return (
     <section aria-labelledby="app-privacy-title" className="border-t border-line py-16 sm:py-20">
       <Headline id="app-privacy-title">
-        What the app reads, and what it *never* does.
+        What it reads. What it *never* does.
       </Headline>
       <div className="mt-10 grid gap-3 md:grid-cols-2">
         <div className="min-w-0 rounded-card bg-surface p-7 sm:p-8">

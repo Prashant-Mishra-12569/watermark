@@ -36,7 +36,7 @@ export function SiteFooter() {
     <footer data-site-footer="" className="mt-16 overflow-x-clip border-t border-line bg-bg sm:mt-24">
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 pt-12 sm:gap-8 sm:px-6 sm:pt-16 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end lg:gap-10">
         <div className="min-w-0">
-          <Link href="/" aria-label="Watermark home" className="inline-flex rounded-full">
+          <Link href="/" aria-label="Watermark home" className="inline-flex min-h-11 items-center rounded-full">
             <Logo />
           </Link>
           <p className="mt-6 max-w-[16ch] text-[clamp(30px,4.2vw,48px)] font-semibold leading-[1.06] tracking-[-0.03em] text-balance sm:mt-8">

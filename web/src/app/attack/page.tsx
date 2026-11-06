@@ -16,7 +16,7 @@ import { BOT_COUNT, limitLine } from "./bots.ts";
 export const metadata: Metadata = {
   title: "Bot test · Watermark",
   description:
-    "Making wallets is free, so bots make thousands. Watch 5 wallets with no card ask for every free thing. Real requests, nothing faked.",
+    "Bots make wallets for free. Watch 5 wallets with no card ask for every free thing. Every request is real.",
 };
 
 /**
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
  */
 function subLine(passLive: boolean): string {
   const asks = passLive ? "test USDT, a free payment and a Genesis Drop NFT" : "test USDT and a free payment";
-  return `Making wallets is free, so bots make thousands. Press the button. We make ${BOT_COUNT} wallets with no card. Each asks for ${asks}. These are real requests. Nothing here is faked.`;
+  return `Bots make wallets for free. Press the button: ${BOT_COUNT} bots with no card ask for ${asks}. Watch every one get refused.`;
 }
 
 /** /attack is a tool opened from the home page's "Try to farm it" section (SITE_FINAL): "back" returns there. */

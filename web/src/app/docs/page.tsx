@@ -24,7 +24,7 @@ import {
 export const metadata: Metadata = {
   title: "Docs · Watermark",
   description:
-    "Watermark for businesses: stop bot wallets from farming your airdrop, mint or rewards. How it works, the MCP server, code to add it, and every setting you can change.",
+    "Stop bots from farming your airdrop. How Watermark works, the MCP server for AI agents, the code to add it, and every setting you can change.",
 };
 
 /*
@@ -117,7 +117,7 @@ export default function DocsPage() {
 
         <div className="grid min-w-0 gap-16 sm:gap-20">
           {/* 1. What it stops */}
-          <DocSection id="stops" title="What it *stops*." lead="Every extra wallet costs a real bank card. That is what bots can't fake at scale.">
+          <DocSection id="stops" title="What it *stops*." lead="Each extra wallet needs another real bank card. Bots can't fake that.">
             <ul className="grid gap-3 sm:grid-cols-2">
               {STOPS.map((s) => (
                 <li key={s.title} className="min-w-0 rounded-card bg-surface p-5 sm:p-6">
@@ -156,7 +156,7 @@ export default function DocsPage() {
           <DocSection
             id="mcp"
             title="Connect your AI *agent*."
-            lead="MCP (Model Context Protocol) lets an AI app such as Claude Desktop, Claude Code or Cursor use outside tools. Our MCP server gives your agent 12 Watermark tools."
+            lead="Your AI agent can check wallets for you. MCP (Model Context Protocol) lets apps like Claude Desktop, Claude Code or Cursor use our 12 Watermark tools."
           >
             <div className="flex flex-wrap gap-2">
               {["Read-only", "Holds no keys", "Signs nothing", "Runs locally"].map((c) => (
@@ -278,7 +278,7 @@ export default function DocsPage() {
           <DocSection
             id="customize"
             title="*Customize* it."
-            lead="What you can change, how, and what runs today. On-chain rules are enforced by the contracts, not by us."
+            lead="What you can change, and what runs today. The contracts enforce the on-chain rules, not us."
           >
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
               <span className="inline-flex items-center gap-2">

@@ -21,7 +21,7 @@ export const TOC = [
 
 export const HERO = {
   title: "Watermark for *businesses*.",
-  sub: "Stop bot wallets from farming your airdrop, mint or rewards. Only wallets backed by a real bank card can claim. No KYC files to store. Your users pay no fees.",
+  sub: "Stop bots from farming your airdrop, mint or rewards. Only wallets with a real bank card can claim. No KYC. Your users pay no fees.",
 } as const;
 
 /** "What it stops". */
@@ -47,15 +47,15 @@ export const NOT_DOES = [
 export const HOW_STEPS = [
   {
     title: "The user taps their card, once",
-    body: "They open your verify link, scan a QR code with our Android app (Watermark Tap) and tap a bank card on the phone. No payment is made.",
+    body: "They open your verify link, scan the QR with our Android app (Watermark Tap) and tap a bank card. Nothing is charged.",
   },
   {
     title: "A private proof",
-    body: "Our prover turns the tap into a zero-knowledge proof: a genuine card on your card list signed this session. The card number is never stored and never goes on-chain.",
+    body: "Our prover turns the tap into a zero-knowledge proof: a real card, on your card list, signed this session. The card number is never stored or put on-chain.",
   },
   {
     title: "A stamp on Whitechain",
-    body: "WatermarkRegistry checks the proof and stamps the wallet for your app, for up to 3 months. The user pays no gas.",
+    body: "WatermarkRegistry checks the proof and stamps the wallet for your app, for up to 3 months. The user pays no fees.",
   },
   {
     title: "Your app checks the stamp",
