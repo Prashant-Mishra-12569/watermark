@@ -21,16 +21,16 @@ export const TOC = [
 
 export const HERO = {
   title: "Watermark for *businesses*.",
-  sub: "Stop bots from farming your airdrop, mint or rewards. Only wallets with a real bank card can claim. No KYC. Your users pay no fees.",
+  sub: "Keep bots away from anything you give out or protect, like airdrops, sponsored gas, faucets, rewards, votes and AI agent payouts. Only wallets backed by a real bank card get in. There's no KYC, and your users never pay fees.",
 } as const;
 
 /** "What it stops". */
 export const STOPS = [
-  { title: "One person, 1,000 wallets", body: "Every extra wallet needs another real bank card. One card gets one claim in your app." },
-  { title: "Airdrop farms and sybil scripts", body: "Scripts can make wallets for free. They can't make bank cards." },
+  { title: "One person, 1,000 wallets", body: "Every extra wallet needs another real bank card, so one card gets one wallet in your app." },
+  { title: "Airdrop farms and sybil scripts", body: "Scripts can make wallets for free, but they can't make bank cards." },
   {
     title: "Bots draining your free stuff",
-    body: "Free mints, faucets, referral and quest rewards, and gas you sponsor: only stamped wallets get them.",
+    body: "Free mints, faucets, referral and quest rewards, and the gas you sponsor only go to stamped wallets.",
   },
   { title: "Fake signups for perks", body: "A new account with a fresh wallet gets nothing until a real card stands behind it." },
 ] as const;
@@ -40,7 +40,7 @@ export const NOT_DOES = [
   "It isn't KYC or identity. We never learn who the user is.",
   "One card is not one person. Two cards can make two stamps.",
   "A borrowed card works too. A contactless tap has no PIN.",
-  "RuPay cards (India) only today. Visa and Mastercard are planned, not live.",
+  "Only RuPay cards from India work today. Visa and Mastercard are planned, but not live yet.",
 ] as const;
 
 /** "How it works" in four steps. */
@@ -59,7 +59,7 @@ export const HOW_STEPS = [
   },
   {
     title: "Your app checks the stamp",
-    body: "One on-chain read, isStamped(wallet, appId), before you pay out. No API key, no account with us.",
+    body: "Before you pay out, you do one on-chain read: isStamped(wallet, appId). There's no API key and no account with us.",
   },
 ] as const;
 
@@ -96,7 +96,7 @@ export const MCP_TOOL_ROWS = [
   {
     tool: "draft_policy",
     does: "Turns BIN prefixes from a public BIN list and rules into a card list, its root and warnings. Signs nothing.",
-    ask: "Draft a card list for my airdrop: RuPay debit, no prepaid.",
+    ask: "Draft a card list for my app: RuPay debit, no prepaid.",
   },
   {
     tool: "prepare_register_app",

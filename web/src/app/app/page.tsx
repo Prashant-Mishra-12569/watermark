@@ -10,7 +10,7 @@ import { DownloadQr } from "./download-qr";
 export const metadata: Metadata = {
   title: "Get the app · Watermark",
   description:
-    "Watermark Tap: our free Android app checks your bank card with one tap. You need it once, to stamp your wallet.",
+    "Watermark Tap: our free Android app checks your bank card with one tap. You only need it once, to stamp your wallet.",
 };
 
 /*
@@ -23,11 +23,11 @@ const COPY = {
   eyebrow: "Watermark Tap",
   eyebrowTail: "Android",
   title: "Tap your card, *once*.",
-  sub: "Our free Android app checks your bank card with one tap. You need it once, to stamp your wallet.",
+  sub: "Our free Android app checks your bank card with one tap. You only need it once, to stamp your wallet.",
   download: "Download for Android (.apk)",
   back: "Back to the drop",
   missing: "The Android app is being published.",
-  missingTail: "Ask us at the Watermark table to tap on our phone.",
+  missingTail: "Find us at the Watermark table and tap your card on our phone.",
   qrCaption: "Scan with your Android phone",
   qrMissing: "The QR code appears here when the app is published.",
 } as const;
@@ -52,7 +52,7 @@ const READS: readonly { icon: LineIconName; text: string }[] = [
     icon: "card",
     text: "Your card's public certificates and a one-time signature. These include your card number.",
   },
-  { icon: "lock", text: "Locked on your phone. Only our server opens it, uses it once, then wipes it." },
+  { icon: "lock", text: "It's locked on your phone. Only our server can open it, and it uses it once and then wipes it." },
 ];
 
 const NEVER: readonly string[] = [

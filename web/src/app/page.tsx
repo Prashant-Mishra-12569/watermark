@@ -10,9 +10,10 @@ import { BuildersHero } from "./_builders/hero";
 import { How } from "./_builders/how";
 import { Privacy } from "./_builders/privacy";
 import { Proof } from "./_builders/proof";
+import { Uses } from "./_builders/uses";
 
 export const metadata: Metadata = {
-  title: "Watermark · Stop bots from farming your airdrop",
+  title: "Watermark · Keep bots out of your app",
   description: HERO.sub,
 };
 
@@ -29,6 +30,7 @@ export default function Home() {
   return (
     <main className="overflow-x-clip">
       <BuildersHero />
+      <Uses />
       <How />
       <Add liveLabel={policy?.label ?? LIVE_APP.label} />
       <AgentPrompt />

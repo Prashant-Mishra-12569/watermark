@@ -1,6 +1,7 @@
 # Prompts · Samanway · session 1: alt mempool workshop and relayer sessions
 
-- **Tool:** Claude Code (Claude Opus 5.5), in VS Code on the Mac
+- **Tools:** Claude Code (Claude Opus 5.5), in VS Code on the Mac, with prompts mostly dictated through Wispr Flow (voice
+  to text)
 - **When:** Friday 6 Nov 2026, about 01:30–05:00 IST
 - **Editing:** prompts are lightly edited for spelling and grammar, and the Hindi/Hinglish parts are translated into
   English. Long pastes (prize text, docs) are summarised in brackets. Later short follow-ups about running git

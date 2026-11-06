@@ -57,11 +57,11 @@ const LIVE_POLICY: ControlPolicy = {
 // ------------------------------------------------------------------ SITE_FINAL "Page 1", word for word
 
 test("hero: SITE_FINAL eyebrow, H1, sub and both pills", () => {
-  assert.equal(HERO.eyebrow, "Anti-bot for airdrops, mints and rewards");
-  assert.equal(HERO.title, "Stop bots from farming your *airdrop*.");
+  assert.equal(HERO.eyebrow, "Bot protection for any onchain app");
+  assert.equal(HERO.title, "Keep *bots* out of your app.");
   assert.equal(
     HERO.sub,
-    "Your users tap a real bank card on their phone. Only those wallets can claim. No KYC. No gas.",
+    "Your users tap their bank card on their phone once, and their wallet gets a stamp. Bots can make endless wallets, but they can't make bank cards, so they never get in. No KYC, and no gas fees for your users.",
   );
   assert.deepEqual(HERO.add, { label: "Add it to my app", href: "#add" });
   assert.deepEqual(HERO.drop, { label: "Try our drop", soonLabel: "Try our drop", href: "/pass" });
@@ -75,9 +75,9 @@ test("how it works: the headline and three steps", () => {
   assert.deepEqual(
     HOW_STEPS.map((s) => [s.title, s.body, s.icon]),
     [
-      ["You add one line", "In your contract, your server or your AI agent.", "code"],
-      ["Users tap their card", "Once, on our Android app. A private proof checks the card is real.", "tap"],
-      ["Bots get refused", "No real card, no claim. One card claims once.", "shield"],
+      ["You add one line", "Put one check in your contract, your server or your AI agent.", "code"],
+      ["Users tap their card", "They tap their bank card on our Android app once, and a private proof checks that it's real.", "tap"],
+      ["Bots get refused", "No real card means no stamp, and no stamp means no way in.", "shield"],
     ],
   );
 });
@@ -96,7 +96,7 @@ test("section headlines", () => {
 test("the bot test line uses /attack's own bot count", () => {
   assert.equal(
     botTestLead(BOT_COUNT),
-    `We send ${BOT_COUNT} bot wallets at our own drop. Watch every one get refused. Real requests, live.`,
+    `Press the button and we'll send ${BOT_COUNT} bot wallets at our own drop. You'll watch every one of them get turned away, and these are real requests.`,
   );
   assert.equal(BOT_COUNT, 5);
   assert.deepEqual(TEST_CTA, { label: "Run the bot test", href: "/attack" });
@@ -112,7 +112,7 @@ test("control facts read SITE_FINAL's lines with the live list's own numbers", (
       ["Which cards count", "4,208 RuPay bank debit ranges from India. No prepaid cards, because anyone can buy many."],
       ["Sponsor your users' fees", "They pay $0, up to 20 payments a day each."],
       ["Stamps last up to 3 months", "One card, one wallet per app."],
-      ["Nothing to store", "No KYC files. No card numbers."],
+      ["Nothing to store", "You never hold KYC files or card numbers."],
     ],
   );
   assert.equal(LIVE_POLICY.prefixCount, 4208);

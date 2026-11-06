@@ -272,19 +272,37 @@ anyone can buy those over the counter.
   and the card number. Here the card is used once, to prove it's real, and is never charged.
 - **Who pays gas, and what stops draining:** the relayer pays all gas (about 0.014 WBT per stamp at 5 gwei). No gas is
   spent before a valid proof, payments need a stamp, each stamp has a daily quota, and there are per-transaction and
-  daily budget caps ([relayer/README.md](relayer/README.md)).
+  daily budget caps ([relayer/README.md](relayer/README.md)). On testnet the relayer's WBT comes from the Whitechain
+  faucet; in production the business tops the relayer up.
 - **Feedback for the Whitechain team:** [WHITECHAIN_FEEDBACK.md](WHITECHAIN_FEEDBACK.md).
 
 ### Ethereum Foundation: Frame Transaction Alternative Mempool
-- **Admitted and mined:** [tx `0xcab8c9e2…`](https://explorer.altmempool.wtf/tx/0xcab8c9e2171a8048c8f5e12d4bb830c92cba7f458763d2c7ac8f23ab1faa8a93?node=https%3A%2F%2Faltmempool.forshtat.com%2Frpc),
-  devnet block 3,699. All 5 frames succeeded: deadline, sender check, paymaster approval, the user's call and the quota
-  count.
+- **Admitted and included:** [tx `0xcab8c9e2…`](https://explorer.altmempool.wtf/tx/0xcab8c9e2171a8048c8f5e12d4bb830c92cba7f458763d2c7ac8f23ab1faa8a93?node=https%3A%2F%2Faltmempool.forshtat.com%2Frpc),
+  devnet block 3,699 (receipt status 1, 24 of 24 admission checks passed). All 5 frames succeeded: deadline, sender
+  check, paymaster approval, the user's call and the quota count. The devnet explorer keeps history in memory, so a
+  saved copy of the record, receipt and page is in [docs/evidence/](docs/evidence).
 - **The idea:** a paymaster that sponsors gas only for wallets with a live stamp. It has to read the Registry's storage
   while validating, which the public mempool forbids. The alt mempool allows it because the paymaster is staked.
 - **The trade-off we measured:** the proof costs 2.57M gas to verify, too much for the validation budget. So the proof
   is checked once at stamp time, and the paymaster only reads the stored stamp.
 - **Design, attacks and trade-offs:** [docs/EF_ALTMEMPOOL.md](docs/EF_ALTMEMPOOL.md). Full design:
   [docs/EF_PAYMASTER_DESIGN.md](docs/EF_PAYMASTER_DESIGN.md). Sender code: [tools/ef-sender/](tools/ef-sender).
+
+---
+
+## CROPS
+
+- **C (censorship resistance):** stamps are checked by a public contract, and anyone can submit a valid proof. We run
+  the session signer and relayer today: if we go away or refuse someone, an app can register its own session signer
+  and relayer, and existing stamps keep working because they live on-chain.
+- **O (open source):** MIT licensed. The circuit, prover, contracts, app, relayer, SDK and MCP all build from this
+  repo alone, and the synthetic test card runs the whole flow without a real card.
+- **P (privacy):** the chain sees only a proof, a one-way card ID, the wallet and a month. Our prover sees card data
+  briefly in memory and wipes it. Our relayer sees the wallet. There are no analytics or trackers on the site or in
+  the app.
+- **S (security):** the card's key never leaves the chip, every tap signs a fresh session challenge, card data is
+  encrypted to the prover and bound to the session, and proofs use zero-knowledge mode. You trust our prover's wipe
+  and our session signer; proving on the phone removes the first.
 
 ---
 
@@ -316,8 +334,8 @@ The full privacy notes are in [docs/PRIVACY.md](docs/PRIVACY.md).
 - **RuPay only today.** Visa and Mastercard use different key formats. They plug into `VerifierRouter` as new profiles
   without a redeploy, but they are not live.
 - **A stamp can't be revoked early.** It lasts 1 to 3 months (we use 3) and can be renewed by tapping again.
-- **Hackathon setup.** Test networks only. The website, relayer and prover run from one laptop, and the Android app is
-  a sideloaded demo build. A real launch needs card network and legal review, and a licensed card-range list.
+- **Hackathon setup.** Test networks only. The website runs on Vercel and the relayer and prover on Railway, and the
+  Android app is a sideloaded demo build. A real launch needs card network and legal review, and a licensed card-range list.
 
 ---
 
@@ -339,8 +357,9 @@ The full privacy notes are in [docs/PRIVACY.md](docs/PRIVACY.md).
 | Live: RuPay bank debit (India, no prepaid), 4,208 ranges | `393344891601835728760966937624776276735512086066329273346256164761263100630` |
 | Test: synthetic test card only | `242622643093352524455632509511752146182158360637522126326090117364223963656` |
 
-**Alt mempool devnet (chain 1337):** Registry `0x183826030BB08bbdD4f4A8f4a7135C6a8E3De42C`, QuotaPaymaster
-`0x62183B1d118dae2F9C7dc8b42c7b71Cd27b67097`.
+**Alt mempool devnet (chain 1337, RPC `https://altmempool.forshtat.com`):** Registry
+`0x183826030BB08bbdD4f4A8f4a7135C6a8E3De42C`, QuotaPaymaster (staked) `0x62183B1d118dae2F9C7dc8b42c7b71Cd27b67097`. The
+devnet explorer has transaction pages only, so these are checked over RPC.
 
 Every address, deploy block and transaction is in [deployments/](deployments).
 

@@ -14,11 +14,11 @@ export const DOCS_URL = "https://usewatermark.xyz/watermark.txt";
 /** The verify page an unstamped user is sent to (the SDK's verifyLink and watermark_create_verify_link format). */
 export const VERIFY_URL = "https://usewatermark.xyz/verify?app=<YOUR_APP_ID>";
 
-export const AGENT_PROMPT = `Add Watermark anti-bot gating to this project. A Watermark stamp means a wallet was linked to one real bank card. Only stamped wallets may claim our airdrops, mints and rewards.
+export const AGENT_PROMPT = `Add Watermark anti-bot gating to this project. A Watermark stamp means a wallet was linked to one real bank card. Only stamped wallets may get what this app gives away or protects: airdrops, mints, rewards, faucet tokens, sponsored gas, votes or access.
 
 1. Read ${DOCS_URL} first. Use only the addresses, functions and tool names it gives. Don't invent any.
 
-2. Find every place this repo pays out: airdrop claims, mints, rewards, allowlists. Check whether they live in Solidity contracts, a TypeScript/JavaScript backend, or both.
+2. Find every place this repo gives something away or lets a wallet in: airdrop claims, mints, rewards, faucets, sponsored gas, votes, allowlists. Check whether they live in Solidity contracts, a TypeScript/JavaScript backend, or both.
 
 3. App id: <YOUR_APP_ID> below is a placeholder; keep it in one config constant. For real RuPay bank cards, set it to the live app id: ${LIVE_APP.appId}. Register our own app only if we want our own card list: draft it with watermark_draft_policy, then watermark_prepare_register_app (unsigned; I send it, and we must run our own session signer). Tell me which you chose and why.
 

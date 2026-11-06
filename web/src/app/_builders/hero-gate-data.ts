@@ -27,9 +27,9 @@ export const GATE_STAMP = {
 } as const;
 
 export const GATE = {
-  title: "Airdrop claims",
+  title: "Who gets in",
   example: "Example",
-  rule: "Only stamped wallets can claim.",
+  rule: "Only wallets with a stamp get through.",
   refused: "Refused · no stamp",
   claimed: `Claimed #${GATE_STAMP.edition} · stamped wallet`,
   stampAlt: `Genesis Drop stamp #${GATE_STAMP.edition} of ${GATE_STAMP.of}: a Mumbai postage stamp of the Bandra–Worli Sea Link`,
