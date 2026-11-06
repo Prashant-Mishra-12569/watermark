@@ -15,11 +15,15 @@ Toolchain: solc 0.8.30, `evm_version = prague`, optimizer 200 runs.
 ## Build and test
 
 ```sh
-forge install foundry-rs/forge-std   # once, if lib/forge-std is missing
+forge install foundry-rs/forge-std@v1.17.0 --no-git   # once; lib/ is gitignored (CI runs the same line)
 forge build --sizes
-forge test -vv                       # includes the real-proof stamp (test/RealProofStamp.t.sol)
+forge test -vv                  # everything, including the real-proof stamp and the Whitechain fork tests
+SKIP_FORK=true forge test       # offline, as CI runs it (no fork tests)
 forge test --gas-report
 ```
+
+The fork tests (`*.fork.t.sol`) fork Whitechain Sepolia read-only through `$WHITECHAIN_RPC` or the public RPC. Nothing
+is broadcast.
 
 ## Registry behaviour beyond F5
 
@@ -88,45 +92,93 @@ node contracts/script/gen-stamp-fixture.ts <commit> $(shasum -a 256 circuits/tar
 
 The deployer key is the encrypted Foundry keystore **`deployer`** (`cast wallet import deployer --interactive`). It
 never goes into `.env` or onto the command line. forge auto-loads a `.env` only from `contracts/`, and ours is in the
-repo root, so export it inside a subshell:
+repo root, so every command below exports it **inside a subshell** `( ... )`, so the keys in it don't stay in your
+terminal. Each `forge script` without `--broadcast` is a dry run: it simulates against the live chain and sends
+nothing.
+
+**1. Registry.** `Deploy.s.sol` deploys the verifier libraries (`ZKTranscriptLib`, `RelationsLib`), `HonkVerifier`
+and `WatermarkRegistry`. It then calls `setCaRoot` (from `policies/ca-keys.json`) and
+`registerApp(APP_SALT, rulesRoot of policies/$POLICY, SESSION_SIGNER_ADDRESS)`, and checks the result.
+`--verify` verifies every contract on Blockscout.
 
 ```sh
 cd contracts
-# dry run: simulates against the live chain, sends nothing
-( set -a; . ../.env; set +a; forge script script/Deploy.s.sol --rpc-url whitechain --account deployer )
-# real run: asks for the keystore password once
-( set -a; . ../.env; set +a; forge script script/Deploy.s.sol --rpc-url whitechain --account deployer --broadcast )
+( set -a; . ../.env; set +a; forge script script/Deploy.s.sol --rpc-url whitechain --account deployer )   # dry run
+( set -a; . ../.env; set +a; forge script script/Deploy.s.sol --rpc-url whitechain --account deployer --broadcast \
+    --verify --verifier blockscout --verifier-url https://explorer.testnet.whitechain.io/api/ )
 node script/deployment-json.ts 1874          # writes ../deployments/whitechain.json (F11)
 ```
 
-`Deploy.s.sol` reads these variables. An empty value counts as unset.
-
-| Variable | Default |
+| Variable (empty = unset) | Default |
 |---|---|
-| `SESSION_SIGNER_ADDRESS` | **required**: the relayer's session-signer address |
+| `SESSION_SIGNER_ADDRESS` | from `SESSION_SIGNER_KEY`; when both are set they must match |
 | `APP_SALT` | `0x00…00` (a new salt gives a new appId) |
 | `POLICY` | `test.json` (the file in `../policies` that supplies the rules root) |
 | `CA_ROOT` | `.caRoot` of `../policies/ca-keys.json` |
 | `RULES_ROOT` | `.rulesRoot` of `../policies/$POLICY` |
 
-It deploys the verifier libraries, `HonkVerifier`, then `WatermarkRegistry`, then calls `setCaRoot` and
-`registerApp`. After that it checks that the appId, the app, the caRoot and the owner all match. It was tested on a
-local anvil, and the registry runtime is 6,854 bytes.
+The script refuses, before sending anything:
+- a session signer that doesn't match `SESSION_SIGNER_KEY`;
+- one of the 10 public anvil/hardhat accounts on 1874 or 1337 (for example the dev signer `0xf39F…2266`);
+- the deployer itself as the session signer.
 
-To hand the owner role to another account later:
+An app's session signer can never change. A wrong one means a new `APP_SALT` and a new appId; the registry stays.
+
+**2. Sponsor.** First copy the new registry address into `REGISTRY_ADDRESS` in `.env`. `DeploySponsor.s.sol` takes
+the registry and appId from `deployments/whitechain.json`, and refuses a `REGISTRY_ADDRESS` that differs from it. The
+relayer comes from `RELAYER_ADDRESS` (checked against `RELAYER_PRIVATE_KEY`, or derived from it), and the quota from
+`QUOTA_PER_DAY` or `policies/$POLICY`.
 
 ```sh
-cast send $REGISTRY "transferOwnership(address)" <newOwner> --account deployer --rpc-url whitechain
-cast send $REGISTRY "acceptOwnership()" --account <newOwner's keystore> --rpc-url whitechain
+( set -a; . ../.env; set +a; forge script script/DeploySponsor.s.sol --rpc-url whitechain --account deployer )
+( set -a; . ../.env; set +a; forge script script/DeploySponsor.s.sol --rpc-url whitechain --account deployer \
+    --broadcast --verify --verifier blockscout --verifier-url https://explorer.testnet.whitechain.io/api/ )
 ```
 
-Verify on Blockscout:
+Put the printed address in `deployments/whitechain.json` (`"sponsor"`, `"txHashes.sponsor"`) and `SPONSOR_ADDRESS`
+in `.env`.
+
+**3. After the deploy.** The real appId is `keccak256(deployer, salt) >> 8`, not the dev `12345`, so:
+
+1. In `.env`, set `REGISTRY_ADDRESS`, `VERIFIER_ADDRESS`, `SPONSOR_ADDRESS`, `APP_IDS=<appId>` and
+   `NEXT_PUBLIC_APP_ID=<appId>`, using the decimal appId from `deployments/whitechain.json`.
+2. Set `ALLOWED_SESSION_SIGNERS` (prover) to `SESSION_SIGNER_ADDRESS`.
+3. Set `"appId"` in `policies/test.json` and commit it (F8). The prover answers `unknown app` for any other appId.
+   `node tools/zk/src/roots.ts --check` still passes, because the appId is not part of the rules root.
+4. Tell Prashant the appId and `SESSION_SIGNER_ADDRESS` for the Android build (F1).
+5. Restart the relayer, the prover and the web server. At startup the relayer warns if `apps(appId).sessionSigner` on
+   chain is not its own signer.
+6. Commit `deployments/whitechain.json` and put the explorer links in the top-level README.
+
+**Ownership** (optional). To hand the owner role (`setCaRoot`) to another account:
 
 ```sh
-forge verify-contract <addr> src/WatermarkRegistry.sol:WatermarkRegistry \
-  --constructor-args $(cast abi-encode "constructor(address)" <verifier>) \
-  --rpc-url whitechain --verifier blockscout --verifier-url https://explorer.testnet.whitechain.io/api/
+( set -a; . ../.env; set +a; cast send $REGISTRY_ADDRESS "transferOwnership(address)" <newOwner> \
+    --account deployer --rpc-url whitechain )
+( set -a; . ../.env; set +a; cast send $REGISTRY_ADDRESS "acceptOwnership()" --account <newOwner keystore> \
+    --rpc-url whitechain )
 ```
+
+**Manual verification** (fallback, if `--verify` failed). The library addresses are in
+`deployments/whitechain.json` (`"libraries"`):
+
+```sh
+( set -a; . ../.env; set +a
+  V="--rpc-url whitechain --verifier blockscout --verifier-url https://explorer.testnet.whitechain.io/api/"
+  forge verify-contract <ZKTranscriptLib> src/generated/Verifier.sol:ZKTranscriptLib $V
+  forge verify-contract <RelationsLib> src/generated/Verifier.sol:RelationsLib $V
+  forge verify-contract <verifier> src/generated/Verifier.sol:HonkVerifier $V \
+    --libraries src/generated/Verifier.sol:ZKTranscriptLib:<ZKTranscriptLib> \
+    --libraries src/generated/Verifier.sol:RelationsLib:<RelationsLib>
+  forge verify-contract <registry> src/WatermarkRegistry.sol:WatermarkRegistry $V \
+    --constructor-args $(cast abi-encode "constructor(address)" <verifier>)
+  forge verify-contract <sponsor> src/WatermarkSponsor.sol:WatermarkSponsor $V \
+    --constructor-args $(cast abi-encode "constructor(address,uint256,address,address,uint32)" \
+      <registry> <appId> 0xcedfB56113143d55b2358b8CFbB0dEB5Ad2f55a7 <relayer> 20) )
+```
+
+The devnet takes the same steps with `--rpc-url devnet` and `node script/deployment-json.ts 1337`. It has no sponsor,
+and Blockscout verification isn't available there.
 
 ## Known limits
 
@@ -139,3 +191,7 @@ forge verify-contract <addr> src/WatermarkRegistry.sol:WatermarkRegistry \
   registry checks UN = `sha256(nonce)[0..4]`.
 - **The registry keys nullifiers by their raw `bytes32`.** The real verifier refuses non-canonical aliases
   (`nullifier + r`).
+- **The sponsor's quota counts successful payments only.** A reverted relay rolls its quota back, so a hostile
+  ERC-1271 wallet that signs "valid" only inside `eth_call` can make a relayer pay for any number of failed relays
+  (`WatermarkSponsorFailedRelayTest`). The relayer's `POST /pay` must simulate with its real fee fields and refuse a
+  wallet after one or two reverted relays per day (relayer/README.md).

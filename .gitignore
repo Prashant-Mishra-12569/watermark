@@ -35,7 +35,11 @@ next-env.d.ts
 # Foundry
 contracts/out/
 contracts/cache/
+# Broadcast logs stay local: deployments/*.json (F11) carries the addresses and tx hashes, and the logs hold 13-digit
+# millisecond timestamps that the CI card-data guard rejects
 contracts/broadcast/
+# forge-std is installed by `forge install foundry-rs/forge-std@v1.17.0 --no-git` (locally and in CI), never committed
+contracts/lib/
 
 # Noir
 circuits/target/
@@ -62,6 +66,3 @@ Thumbs.db
 
 # Local-only policies (e.g. a real card BIN for dev testing): never commit
 policies/local*.json
-
-# forge-std is installed by CI and locally with: forge install foundry-rs/forge-std --no-git
-contracts/lib/

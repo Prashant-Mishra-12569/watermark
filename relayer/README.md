@@ -75,6 +75,12 @@ relayer clock that is **ahead** of the chain across the rollover: the relayer al
 in m. The simulation then refuses `ValidUntilMonthOutOfRange` (no gas spent) and the user taps again a minute later.
 With NTP this is a seconds-wide window once a month, so no change was made.
 
+**Startup check:** once it is listening, the relayer reads `apps(appId).sessionSigner` for every `APP_IDS` entry on
+every chain that has a registry. It prints a `WARNING:` line if that signer is not the address of
+`SESSION_SIGNER_KEY`, if the app is not registered, or if the read fails. Every stamp for such an app would fail with
+`WrongSessionSigner`. It also warns when the session signer is one of the public anvil accounts. These are warnings
+only: the relayer still starts (src/preflight.ts).
+
 ## Endpoints (F6)
 `POST /session` · `GET /session/:id` · `POST /stamp` · `POST /pay` · `GET /status/:wallet` · `GET /policy/:appId` · `GET /stats/:appId`
 
@@ -84,10 +90,20 @@ With NTP this is a seconds-wide window once a month, so no change was made.
 | 0 · No gas before proof | sessions are signed off-chain; `/session` is rate-limited per IP and queue-limited |
 | 1 · Stamp gate | a stamp tx is sent only after the proof verifies and the call simulates |
 | 2 · Payment gate | no stamp for this app → refused before any gas (checked off-chain, then on-chain) |
-| 3 · Daily quota | N sponsored txs per stamp per day (20 in the demo), counted in WatermarkSponsor |
+| 3 · Daily quota | N sponsored txs per stamp per day (20 in the demo), counted in WatermarkSponsor. Successful payments only: see below |
 | 4 · Per-tx gas cap | simulate first, refuse above `MAX_GAS_PER_STAMP` (stamps) or `MAX_GAS_PER_PAY` (payments) |
 | 5 · Budget cap | daily payment budget (`DAILY_BUDGET_WEI`) + a separate stamp budget (`STAMP_BUDGET_WEI`); pauses when hit |
 | 6 · One card, one wallet | nullifiers stop a card from stamping a second wallet in the same app |
+
+**`POST /pay` must also limit reverted relays (not built yet; review finding SPONSOR-1).** WatermarkSponsor rolls the
+quota back when USDT reverts, so layer 3 counts only payments that went through. A stamped ERC-1271 wallet can sign
+"valid" inside `eth_call` (for example only when `tx.gasprice == 0`) and "invalid" in the mined transaction. Each such
+relay then costs the relayer gas and uses no quota, and one wallet could use up the whole `DAILY_BUDGET_WEI` alone
+(contracts `WatermarkSponsorFailedRelayTest`, also against the real USDT on a fork). `/pay` must therefore:
+1. simulate and estimate with the same fee fields it will send (`maxFeePerGas` / `maxPriorityFeePerGas`), so
+   `tx.gasprice` is not 0 in the simulation;
+2. count on-chain-reverted relays per wallet per UTC day and refuse that wallet (`QUOTA_USED`) after 1–2 of them.
+   Point 1 alone is not enough, because a wallet can also key on the block number or the time.
 
 **Rules:**
 - Two keys from `.env`: the relayer key and the session signer key. Neither is ever committed.

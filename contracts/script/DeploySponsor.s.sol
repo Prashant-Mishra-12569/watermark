@@ -9,20 +9,25 @@ import {IWatermarkRegistry} from "../src/interfaces/IWatermarkRegistry.sol";
 /// appears here: forge signs with the account passed on the CLI (`--account deployer`, the encrypted keystore).
 ///
 /// Settings, highest priority first (each falls back to the next source):
-///   REGISTRY_ADDRESS  env, else "registry" in the deployment file (required)
+///   REGISTRY_ADDRESS  "registry" in the deployment file, else env (required). When both are set they must match,
+///                     because a stale .env value would bind the sponsor to an old registry for good
+///                     (ALLOW_REGISTRY_OVERRIDE=true lets the env value win).
 ///   APP_ID            env (decimal), else "appId" in the deployment file (required)
-///   RELAYER_ADDRESS   env, else "relayer" in the deployment file (required: the relayer hot wallet that calls
-///                     relayPayment; deployment-json.ts doesn't write it, so normally from env)
-///   QUOTA_PER_DAY     env, else "quotaPerDay" in ../policies/$POLICY (POLICY defaults to test.json), else 20
+///   RELAYER_ADDRESS   env, else "relayer" in the deployment file, else the address of RELAYER_PRIVATE_KEY (required:
+///                     the relayer hot wallet that calls relayPayment). When RELAYER_PRIVATE_KEY is set, the address
+///                     must be its address.
+///   QUOTA_PER_DAY     env, else "quotaPerDay" in ../policies/$POLICY (POLICY empty or unset = test.json), else 20
 ///   USDT_ADDRESS      env, else "usdt" in the deployment file, else 0xcedf…55a7 (Whitechain USDT)
+/// Empty values count as unset.
 /// The deployment file is ../deployments/<whitechain|devnet|local>.json for chain 1874 / 1337 / anything else, or
 /// ../deployments/$DEPLOYMENT_FILE. It is optional; when present its chainId must match the RPC's.
 /// On chain 1874 an APP_ID that isn't registered in the registry is refused (set ALLOW_UNREGISTERED_APP=true to override).
 ///
-/// forge only auto-loads .env from contracts/, so load the repo's .env yourself (it has RELAYER_ADDRESS etc.):
+/// forge only auto-loads .env from contracts/, so export the repo's .env in a subshell (the keys in it do not outlive
+/// the command):
 ///   cd contracts
-///   set -a; . ../.env; set +a
-///   forge script script/DeploySponsor.s.sol --rpc-url whitechain --account deployer --broadcast
+///   ( set -a; . ../.env; set +a; \
+///     forge script script/DeploySponsor.s.sol --rpc-url whitechain --account deployer --broadcast )
 /// Leave out --broadcast for a simulation first (it still asks for the keystore password). Then put the printed
 /// address in deployments/whitechain.json ("sponsor", "txHashes.sponsor") and SPONSOR_ADDRESS in .env.
 ///
@@ -76,24 +81,53 @@ contract DeploySponsor is Script {
     /// with `forge script script/DeploySponsor.s.sol --sig "loadConfig()"`.
     function loadConfig() public view returns (Config memory c) {
         string memory path = _deploymentPath();
+        Config memory file;
         if (vm.exists(path)) {
-            c = fromDeploymentJson(vm.readFile(path), block.chainid);
+            file = fromDeploymentJson(vm.readFile(path), block.chainid);
             c.deploymentFile = path;
         } else {
-            c.usdt = WHITECHAIN_USDT;
+            file.usdt = WHITECHAIN_USDT;
         }
 
-        c.registry = vm.envOr("REGISTRY_ADDRESS", c.registry);
-        c.appId = vm.envOr("APP_ID", c.appId);
-        c.relayer = vm.envOr("RELAYER_ADDRESS", c.relayer);
-        c.usdt = vm.envOr("USDT_ADDRESS", c.usdt);
-        c.quota = vm.envOr("QUOTA_PER_DAY", _policyQuota());
+        // vm.envOr returns the default for an unset or empty address / uint / bool.
+        c.registry = resolveRegistry(
+            vm.envOr("REGISTRY_ADDRESS", address(0)), file.registry, vm.envOr("ALLOW_REGISTRY_OVERRIDE", false)
+        );
+        c.appId = vm.envOr("APP_ID", file.appId);
+        // The key is read with envOr(uint256) and only passed to vm.addr, both of which forge redacts in traces.
+        c.relayer =
+            resolveRelayer(vm.envOr("RELAYER_ADDRESS", file.relayer), vm.envOr("RELAYER_PRIVATE_KEY", uint256(0)));
+        c.usdt = vm.envOr("USDT_ADDRESS", file.usdt);
+        // Only read the policy file when QUOTA_PER_DAY is unset (an envOr default would be evaluated anyway).
+        uint256 quota = vm.envOr("QUOTA_PER_DAY", uint256(0));
+        c.quota = quota != 0 ? quota : _policyQuota();
 
         require(c.registry != address(0), "DeploySponsor: set REGISTRY_ADDRESS (or registry in the deployment file)");
         require(c.appId != 0, "DeploySponsor: set APP_ID (or appId in the deployment file)");
         require(c.relayer != address(0), "DeploySponsor: set RELAYER_ADDRESS (the relayer hot wallet)");
         require(c.quota > 0 && c.quota <= type(uint32).max, "DeploySponsor: QUOTA_PER_DAY out of range");
         require(c.appId >> 248 == 0, "DeploySponsor: APP_ID must be below 2^248 (F5)");
+    }
+
+    /// @notice The registry to use: the deployment file's (fresh from deployment-json.ts) unless only env names one.
+    /// A different env value is refused unless `allowOverride`, so a stale REGISTRY_ADDRESS can't win silently.
+    function resolveRegistry(address fromEnv, address fromFile, bool allowOverride) public pure returns (address) {
+        if (fromEnv == address(0)) return fromFile;
+        if (fromFile == address(0) || fromFile == fromEnv || allowOverride) return fromEnv;
+        revert(
+            "DeploySponsor: REGISTRY_ADDRESS in .env differs from the deployment file; update .env (or set ALLOW_REGISTRY_OVERRIDE=true)"
+        );
+    }
+
+    /// @notice The relayer address, checked against RELAYER_PRIVATE_KEY when that is set (or derived from it).
+    function resolveRelayer(address configured, uint256 relayerKey) public pure returns (address) {
+        if (relayerKey == 0) return configured;
+        address fromKey = vm.addr(relayerKey);
+        require(
+            configured == address(0) || configured == fromKey,
+            "DeploySponsor: RELAYER_ADDRESS does not match RELAYER_PRIVATE_KEY"
+        );
+        return fromKey;
     }
 
     /// @notice The file layer alone, without env (so tests can feed it JSON). Missing keys and nulls read as
@@ -143,7 +177,8 @@ contract DeploySponsor is Script {
 
     /// @dev Reads ../policies/$POLICY .quotaPerDay, or DEFAULT_QUOTA when the file or key is missing.
     function _policyQuota() internal view returns (uint256) {
-        string memory policy = vm.envOr("POLICY", string("test.json"));
+        string memory policy = vm.envOr("POLICY", string(""));
+        if (bytes(policy).length == 0) policy = "test.json"; // an exported `POLICY=` line is "" here, not unset
         string memory path = string.concat(vm.projectRoot(), "/../policies/", policy);
         if (!vm.exists(path)) return DEFAULT_QUOTA;
         uint256 q = _jsonUint(vm.readFile(path), ".quotaPerDay");

@@ -148,6 +148,8 @@ const called = (fn: string) => run.transactions.find((t) => t.transactionType ==
 
 const verifierTx = created("HonkVerifier");
 const registryTx = created("WatermarkRegistry");
+// Optional VerifierRouter in front of the HonkVerifier (profile 0). When present it is what the registry calls.
+const routerTx = run.transactions.find((t) => t.transactionType.startsWith("CREATE") && t.contractName === "VerifierRouter");
 
 // Linked verifier libraries: "src/generated/Verifier.sol:ZKTranscriptLib:0x..."
 const libraries: Record<string, string> = {};
@@ -176,6 +178,16 @@ if (!appId && registerTx) {
 }
 if (!appId) fail("could not find appId (no run() return value and no AppRegistered log)");
 
+// Every app registered in this run (test app first, then the live app), from the registry's AppRegistered logs.
+const registerTxs = run.transactions.filter((t) => t.transactionType === "CALL" && t.function?.startsWith("registerApp"));
+const apps = registerTxs.map((t) => {
+  const log = receiptOf(t.hash)?.logs.find(
+    (l) => lower(l.address) === lower(registryTx.contractAddress) && l.topics[0] === APP_REGISTERED_TOPIC,
+  );
+  return { appId: log ? BigInt(log.topics[1]!).toString() : null, rulesRoot: t.arguments?.[1] ?? null, tx: t.hash };
+});
+const liveApp = apps[1] ?? null;
+
 const setCaRootTx = called("setCaRoot");
 const txHashes: Record<string, string> = {
   ...libraryTx,
@@ -184,11 +196,14 @@ const txHashes: Record<string, string> = {
 };
 if (setCaRootTx) txHashes.setCaRoot = setCaRootTx.hash;
 if (registerTx) txHashes.registerApp = registerTx.hash;
+if (liveApp) txHashes.registerLiveApp = liveApp.tx;
+if (routerTx) txHashes.router = routerTx.hash;
 
 const deployment = {
   chainId,
   registry: checksum(registryTx.contractAddress),
-  verifier: checksum(verifierTx.contractAddress),
+  verifier: checksum((routerTx ?? verifierTx).contractAddress),
+  profileVerifiers: routerTx ? { "0": checksum(verifierTx.contractAddress) } : undefined,
   sponsor: null,
   paymaster: null,
   usdt: chainId === 1874 ? WHITECHAIN_USDT : null,
@@ -197,6 +212,8 @@ const deployment = {
   deployer: checksum(registryTx.transaction.from),
   caRoot: setCaRootTx?.arguments?.[0] ?? null,
   rulesRoot: registerTx?.arguments?.[1] ?? null,
+  liveAppId: liveApp?.appId ?? null,
+  liveRulesRoot: liveApp?.rulesRoot ?? null,
   sessionSigner: checksum(registerTx?.arguments?.[2]),
   libraries,
   blockNumber: Number(BigInt(receiptOf(registryTx.hash)!.blockNumber)),

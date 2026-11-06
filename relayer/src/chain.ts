@@ -14,6 +14,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { altmempoolDevnet, sessionTypedData, whitechainSepolia, type StampStatus } from "@watermark/sdk";
 import { registryAbi, sponsorAbi } from "./abi.ts";
 import type { ChainConfig } from "./config.ts";
+import type { AppSignerReader } from "./preflight.ts";
 import { StampRejected, type ChainWriter, type StampCall } from "./stamp.ts";
 
 export interface ChainReader {
@@ -58,6 +59,21 @@ export function viemChainReader(): ChainReader {
           : 0;
       return { stamped: ok, expiresAt: Number(expiresAt), quotaLeft };
     },
+  };
+}
+
+/** apps(appId).sessionSigner on the configured registry (preflight.ts). */
+export function viemAppSignerReader(): AppSignerReader {
+  const client = publicClients();
+  return async (c, appId) => {
+    if (!c.registry) throw new Error("no registry");
+    const [, , sessionSigner] = await client(c).readContract({
+      address: c.registry,
+      abi: registryAbi,
+      functionName: "apps",
+      args: [appId],
+    });
+    return sessionSigner;
   };
 }
 
