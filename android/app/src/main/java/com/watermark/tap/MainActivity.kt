@@ -18,6 +18,7 @@ import com.watermark.tap.emv.OdaVerifier
 import com.watermark.tap.emv.TlvException
 import com.watermark.tap.net.ProveOutcome
 import com.watermark.tap.net.ProverClient
+import com.watermark.tap.net.Reachability
 import com.watermark.tap.net.RelayerClient
 import com.watermark.tap.policy.Policy
 import com.watermark.tap.session.Challenge
@@ -90,7 +91,7 @@ class MainActivity : ComponentActivity(), NfcAdapter.ReaderCallback {
                         } catch (e: VerifyLinkException) {
                             TapUiState.InvalidSession(e.message ?: "invalid session")
                         } catch (e: IOException) {
-                            TapUiState.Error("Can't reach the relayer. Check the phone is on the same Wi-Fi.")
+                            TapUiState.Error(Reachability.unreachable("relayer", link.relayerUrl))
                         }
                         show(next)
                     }
@@ -226,7 +227,7 @@ class MainActivity : ComponentActivity(), NfcAdapter.ReaderCallback {
                 }
             }
         } catch (e: IOException) {
-            TapUiState.Error("Can't reach the prover at ${link.proverUrl}. Check the phone is on the same Wi-Fi.")
+            TapUiState.Error(Reachability.unreachable("prover", link.proverUrl))
         }
         show(result)
     }
