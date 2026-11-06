@@ -8,6 +8,9 @@ import type { CaEntry, RuleEntry } from "@watermark/zk";
 export interface AppPolicy {
   appId: bigint;
   rules: RuleEntry[];
+  label: string;
+  environment: string;
+  rulesRoot: string;
 }
 
 export interface Config {
@@ -32,6 +35,9 @@ interface CaFile {
 
 interface PolicyFile {
   appId: string;
+  label?: string;
+  environment?: string;
+  rulesRoot?: string;
   leaves: { networkId: number; prefixLength: 6 | 8; prefix: string }[];
 }
 
@@ -52,7 +58,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, repoRoot = reso
   for (const file of (env.POLICY_FILES ?? "policies/test.json").split(",").map((s) => s.trim()).filter(Boolean)) {
     const p: PolicyFile = JSON.parse(readFileSync(resolve(repoRoot, file), "utf8"));
     if (!/^\d+$/.test(p.appId)) continue; // not registered yet
-    apps.set(p.appId, { appId: BigInt(p.appId), rules: p.leaves.map((l) => ({ ...l })) });
+    apps.set(p.appId, {
+      appId: BigInt(p.appId),
+      rules: p.leaves.map((l) => ({ networkId: l.networkId, prefixLength: l.prefixLength, prefix: l.prefix })),
+      label: p.label ?? "",
+      environment: p.environment ?? "test",
+      rulesRoot: p.rulesRoot ?? "",
+    });
   }
 
   return {

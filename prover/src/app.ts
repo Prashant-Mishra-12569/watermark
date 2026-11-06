@@ -80,6 +80,23 @@ export function createApp(deps: AppDeps) {
 
   app.get("/health", (c) => c.json({ ok: true, apps: [...config.apps.keys()], queue: queue.length }));
 
+  /**
+   * The app's filter, so the phone can refuse a card BEFORE sending anything (spec M step 6). Public data only.
+   * The phone checks the card's prefix against these leaves. The circuit and the contract enforce rulesRoot,
+   * so a wrong list here can't produce a false stamp.
+   */
+  app.get("/policy/:appId", (c) => {
+    const p = config.apps.get(c.req.param("appId"));
+    if (!p) return c.json({ error: "NOT_FOUND" }, 404);
+    return c.json({
+      appId: p.appId.toString(),
+      label: p.label,
+      environment: p.environment,
+      rulesRoot: p.rulesRoot,
+      leaves: p.rules.map((r) => ({ networkId: r.networkId, prefixLength: r.prefixLength, prefix: r.prefix })),
+    });
+  });
+
   app.post("/prove", async (c) => {
     const env = parseEnvelope(await c.req.json().catch(() => null));
     if (!env) return c.json({ error: "BAD_ENVELOPE" }, 400);

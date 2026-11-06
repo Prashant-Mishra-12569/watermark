@@ -33,7 +33,7 @@ const config = (rules = [{ networkId: 1, prefixLength: 6 as const, prefix: "9900
   sessionSigners: new Set([DEV_SESSION_SIGNER]),
   cas: [{ networkId: 1, modulus: fixture.caModulus }],
   caIndexByKey: new Map([[`A000000524:${fixture.caIndex}`, 0]]),
-  apps: new Map([["12345", { appId: 12345n, rules }]]),
+  apps: new Map([["12345", { appId: 12345n, rules, label: "Test", environment: "test", rulesRoot: "0x01" }]]),
   maxQueue: 3,
   demoMode: true,
 });
@@ -148,4 +148,14 @@ test("a card outside the app's filter ends in NOT_IN_POLICY and is never proved"
 test("garbage is refused without detail", async () => {
   const h = harness();
   assert.equal((await post(h.app, { v: 1 })).json.error, "BAD_ENVELOPE");
+});
+
+test("GET /policy/:appId serves the public filter, and 404 for unknown apps", async () => {
+  const h = harness();
+  const ok = await h.app.request("/policy/12345");
+  assert.equal(ok.status, 200);
+  const body = (await ok.json()) as { leaves: { prefix: string }[]; label: string };
+  assert.deepEqual(body.leaves.map((l) => l.prefix), ["990001"]);
+  assert.equal(body.label, "Test");
+  assert.equal((await h.app.request("/policy/999")).status, 404);
 });
