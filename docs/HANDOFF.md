@@ -2,6 +2,25 @@
 
 Temporary working note. We delete it before submission.
 
+## 0. Urgent: register the stricter live app (one transaction)
+
+The old live filter let in **732 prepaid card ranges** (gift, metro, payroll cards that anyone can buy over the counter
+with little KYC) plus 1,318 ranges with no category. One person could buy a pile of those and make many stamps. The new
+filter keeps only the 4,208 ranges the dataset marks as bank debit products (CLASSIC, PLATINUM, PMJDY, RUPAY SELECT,
+STANDARD). The SBI card is still in.
+
+Rules are fixed per appId, so this is a new app under salt `0x…02`. I already checked the appId on the chain:
+`computeAppId(deployer, 0x…02)` = `308663211604720878328034572238289142859725369530145873843287544799704764909`, not
+registered yet.
+
+```sh
+cast send 0x998934Efa31a6bE75945fDfAa126d3D6401F8Fd6 "registerApp(bytes32,bytes32,address)"   0x0000000000000000000000000000000000000000000000000000000000000002   0x0061cb51b3abde45582be5a854b6d75903e09472bce31b019339db95505bea59   0x9A0606E26646643604b5A334a261527065AaFdBB   --rpc-url https://rpc.testnet.whitechain.io --account <your deployer keystore>
+```
+
+Then: set `liveAppId` and `liveRulesRoot` in `deployments/whitechain.json`, add the new appId to `APP_IDS` (relayer)
+and `NEXT_PUBLIC_APP_ID` (web), and restart the prover so it serves the new `policies/live.json`. The phone fetches the
+filter from the prover, so no new APK is needed. Our first stamp stays valid under the old app.
+
 ## 1. Done on my side (branch `prashant/real-signer`, PR to `main`)
 
 | Area | What changed |
