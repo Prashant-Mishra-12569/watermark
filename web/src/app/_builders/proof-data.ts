@@ -20,7 +20,7 @@ import { ADDR, PREVIOUS_LIVE_LABEL, addressUrl, altmempoolTxUrl, type Hex } from
 export interface ProofReceipt {
   /** Stable key. */
   id: "stamp" | "payment" | "ef" | "sponsor" | "registry";
-  /** Where it lives, in plain words: "Whitechain test network". */
+  /** Where it lives, in plain words and short enough for a phone's card: "Whitechain testnet". */
   kicker: string;
   /** What happened, plain English. */
   title: string;
@@ -43,7 +43,7 @@ export interface ProofInput {
   verified: { registry: boolean; sponsor: boolean };
 }
 
-const WHITECHAIN = "Whitechain test network";
+const WHITECHAIN = "Whitechain testnet";
 const CONTRACT = "Contract on Whitechain";
 
 /**
@@ -80,7 +80,7 @@ export function buildProofReceipts(input: ProofInput): ProofReceipt[] {
     },
     {
       id: "ef",
-      kicker: "Ethereum test network",
+      kicker: "Ethereum testnet",
       title: "An app paid the fee for a stamped wallet",
       // docs/EF_ALTMEMPOOL.md: the paymaster paid the gas; the wallet's balance and nonce stayed 0.
       total: { label: "Fee the wallet paid", value: "0 ETH" },

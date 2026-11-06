@@ -5,15 +5,6 @@ import { HERO, heroDropLabel } from "./copy.ts";
 import { HeroGate } from "./hero-gate";
 import styles from "./hero.module.css";
 
-/** The ↓ in the "Add Watermark" pill: drawn, so it looks the same in every font. */
-function ArrowDown() {
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false" className="block size-[18px] shrink-0">
-      <path d="M8 3v10M3.5 8.5 8 13l4.5-4.5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 /**
  * SITE_FINAL "Page 1" section 1. The first screen is the hero and nothing else: our line drawing of Mumbai along its
  * bottom edge, drawing itself on load (fully drawn under reduced motion), with every landmark and the sea line under
@@ -36,11 +27,10 @@ export function BuildersHero() {
             </Headline>
             <p className={cx("text-pretty text-muted", styles.sub)}>{HERO.sub}</p>
             <div className={styles.ctas}>
-              <PillButton href={HERO.add.href} size="lg" arrow={false}>
-                <span className="inline-flex items-center gap-2.5">
-                  {HERO.add.label}
-                  <ArrowDown />
-                </span>
+              {/* The site's arrow rule (pill-button.tsx): a primary pill's arrow sits in a circle; ↓ because #add is
+                  further down this page. */}
+              <PillButton href={HERO.add.href} size="lg" arrowDir="down">
+                {HERO.add.label}
               </PillButton>
               <PillButton href={HERO.drop.href} variant="secondary" size="lg" arrow>
                 {heroDropLabel(PASS_LIVE)}

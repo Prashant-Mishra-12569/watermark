@@ -1,17 +1,20 @@
 /*
  * The hero's claim gate (hero-gate.tsx). Layout first, then one calm 6 s loop (GATE_CYCLE_MS in hero-gate-data.ts).
- * The four rows are always on screen: a wallet waits, a little faded, with a grey bar where its status will be.
+ * The four rows and their statuses are always on screen: a wallet not checked yet is simply faded (its last status
+ * reads very faintly), so the panel never looks like an empty loading box.
  *
- *   0.60 s  bot 1 is checked: it pushes against the gate, is knocked back, "Refused · no stamp"
+ *   0.60 s  bot 1 is checked: it pushes against the gate, is knocked back, "Refused · no stamp" comes up
  *   1.45 s  bot 2, the same
  *   2.30 s  bot 3, the same
- *   3.20 s  the stamped wallet gets through: the seal lands, "Claimed #042 · stamped wallet", and the stamp, lifted
- *           until now, lands too (one saffron ring around it)
- *   5.30 s  the statuses fade back to their grey bars, the stamp lifts again, and the loop starts over
+ *   3.20 s  the stamped wallet gets through: the seal is pressed on, "Claimed #042 · stamped wallet", and the stamp,
+ *           lifted until now, lands too (one saffron ring around it)
+ *   5.30 s  the rows fade back to waiting, the stamp lifts again, and the loop starts over
+ *
+ * The loop starts on its finished frame (a negative delay of 4.32 s, 72% of the loop): the first thing anyone sees
+ * is three refused and one claimed, held for a second, before the rows fade and are checked again.
  *
  * Every keyframe is inside prefers-reduced-motion: no-preference, so with reduced motion (and before the CSS runs)
- * the resting styles are the final frame: three refused, one claimed, the stamp at rest, no grey bars. Hover pauses
- * it. Transform and opacity only, plus the stamp's shadow.
+ * the resting styles are that same final frame. Hover pauses it. Transform and opacity only, plus the stamp's shadow.
  */
 
 .gate {
@@ -112,23 +115,6 @@
   line-height: 17px;
 }
 
-/* The grey bar on a wallet that is not checked yet (motion only; see the loop). */
-.wait {
-  display: none;
-  position: absolute;
-  left: 0;
-  top: 24px;
-  width: 62%;
-  height: 7px;
-  border-radius: 999px;
-  background: rgb(0 0 0 / 0.11);
-}
-
-.pass .wait {
-  width: 78%;
-  background: rgb(0 0 0 / 0.09);
-}
-
 /* A short (zoomed) laptop screen: the same feed, a little tighter, so Mumbai keeps more of the first screen. */
 @media (min-width: 900px) and (max-height: 640px) {
   .feed {
@@ -158,6 +144,14 @@
   }
 }
 
+/* Beside the hero copy, the stamp's tilt (and its lift in the loop) would poke past the container's right edge; this
+   pulls its turned corner back onto the edge the header's pill ends on. */
+@media (min-width: 900px) {
+  .prize {
+    margin-inline-end: calc(var(--stamp-w) * 0.075);
+  }
+}
+
 .stamp {
   display: block;
   width: 100%;
@@ -182,54 +176,42 @@
 /* ------------------------------------------------------------------------------------------------ the loop */
 
 @media (prefers-reduced-motion: no-preference) {
-  .wait {
-    display: block;
+  .gate {
+    --gate-delay: -4.32s;
   }
 
   .row[data-step="0"] {
-    animation: gate-bot-0 6s ease-out infinite both;
+    animation: gate-bot-0 6s ease-out var(--gate-delay) infinite both;
   }
   .row[data-step="0"] .status {
-    animation: gate-label-0 6s ease-out infinite both;
-  }
-  .row[data-step="0"] .wait {
-    animation: gate-wait-0 6s ease-out infinite both;
+    animation: gate-label-0 6s ease-out var(--gate-delay) infinite both;
   }
   .row[data-step="1"] {
-    animation: gate-bot-1 6s ease-out infinite both;
+    animation: gate-bot-1 6s ease-out var(--gate-delay) infinite both;
   }
   .row[data-step="1"] .status {
-    animation: gate-label-1 6s ease-out infinite both;
-  }
-  .row[data-step="1"] .wait {
-    animation: gate-wait-1 6s ease-out infinite both;
+    animation: gate-label-1 6s ease-out var(--gate-delay) infinite both;
   }
   .row[data-step="2"] {
-    animation: gate-bot-2 6s ease-out infinite both;
+    animation: gate-bot-2 6s ease-out var(--gate-delay) infinite both;
   }
   .row[data-step="2"] .status {
-    animation: gate-label-2 6s ease-out infinite both;
-  }
-  .row[data-step="2"] .wait {
-    animation: gate-wait-2 6s ease-out infinite both;
+    animation: gate-label-2 6s ease-out var(--gate-delay) infinite both;
   }
   .row[data-step="3"] {
-    animation: gate-pass 6s ease-out infinite both;
+    animation: gate-pass 6s ease-out var(--gate-delay) infinite both;
   }
   .row[data-step="3"] .status {
-    animation: gate-label-3 6s ease-out infinite both;
-  }
-  .row[data-step="3"] .wait {
-    animation: gate-wait-3 6s ease-out infinite both;
+    animation: gate-label-3 6s ease-out var(--gate-delay) infinite both;
   }
   .seal {
-    animation: gate-seal 6s ease-out infinite both;
+    animation: gate-seal 6s ease-out var(--gate-delay) infinite both;
   }
   .prize {
-    animation: gate-prize 6s ease-in-out infinite both;
+    animation: gate-prize 6s ease-in-out var(--gate-delay) infinite both;
   }
   .prize::after {
-    animation: gate-ring 6s ease-out infinite both;
+    animation: gate-ring 6s ease-out var(--gate-delay) infinite both;
   }
 
   .gate:hover *,
@@ -313,12 +295,13 @@
   }
 }
 
-/* "Refused · no stamp" shows the moment the bot hits the gate, in place of its grey bar. */
+/* The status line never disappears: while its wallet waits it reads very faintly (the row is faded too), and it comes
+   up, with a small lift, the moment the wallet hits the gate. */
 @keyframes gate-label-0 {
   0%,
   10% {
-    opacity: 0;
-    transform: translateY(3px);
+    opacity: 0.35;
+    transform: translateY(2px);
   }
   12.5%,
   88% {
@@ -327,15 +310,15 @@
   }
   94%,
   100% {
-    opacity: 0;
-    transform: none;
+    opacity: 0.35;
+    transform: translateY(2px);
   }
 }
 @keyframes gate-label-1 {
   0%,
   24.2% {
-    opacity: 0;
-    transform: translateY(3px);
+    opacity: 0.35;
+    transform: translateY(2px);
   }
   26.7%,
   88% {
@@ -344,15 +327,15 @@
   }
   94%,
   100% {
-    opacity: 0;
-    transform: none;
+    opacity: 0.35;
+    transform: translateY(2px);
   }
 }
 @keyframes gate-label-2 {
   0%,
   38.3% {
-    opacity: 0;
-    transform: translateY(3px);
+    opacity: 0.35;
+    transform: translateY(2px);
   }
   40.8%,
   88% {
@@ -361,66 +344,8 @@
   }
   94%,
   100% {
-    opacity: 0;
-    transform: none;
-  }
-}
-
-/* The grey bars: there until the status shows, back when it fades at the end of the loop. */
-@keyframes gate-wait-0 {
-  0%,
-  10% {
-    opacity: 1;
-  }
-  11.5%,
-  89% {
-    opacity: 0;
-  }
-  96%,
-  100% {
-    opacity: 1;
-  }
-}
-@keyframes gate-wait-1 {
-  0%,
-  24.2% {
-    opacity: 1;
-  }
-  25.7%,
-  89% {
-    opacity: 0;
-  }
-  96%,
-  100% {
-    opacity: 1;
-  }
-}
-@keyframes gate-wait-2 {
-  0%,
-  38.3% {
-    opacity: 1;
-  }
-  39.8%,
-  89% {
-    opacity: 0;
-  }
-  96%,
-  100% {
-    opacity: 1;
-  }
-}
-@keyframes gate-wait-3 {
-  0%,
-  55.8% {
-    opacity: 1;
-  }
-  57.3%,
-  89% {
-    opacity: 0;
-  }
-  96%,
-  100% {
-    opacity: 1;
+    opacity: 0.35;
+    transform: translateY(2px);
   }
 }
 
@@ -449,8 +374,8 @@
 @keyframes gate-label-3 {
   0%,
   55.8% {
-    opacity: 0;
-    transform: translateY(3px);
+    opacity: 0.35;
+    transform: translateY(2px);
   }
   59.2%,
   88% {
@@ -459,14 +384,20 @@
   }
   94%,
   100% {
-    opacity: 0;
-    transform: none;
+    opacity: 0.35;
+    transform: translateY(2px);
   }
 }
 
-/* The seal is pressed onto the row: big and turned, then flat at its resting -12deg. */
+/* The seal waits as a faint print, lifts off as the stamped wallet reaches the gate, and is pressed on: big and
+   turned, then flat at its resting -12deg. */
 @keyframes gate-seal {
   0%,
+  49.2% {
+    opacity: 0.3;
+    transform: rotate(-12deg);
+  }
+  53%,
   55.8% {
     opacity: 0;
     transform: scale(1.8) rotate(-34deg);
@@ -480,9 +411,9 @@
     opacity: 1;
     transform: rotate(-12deg);
   }
-  94%,
+  95%,
   100% {
-    opacity: 0;
+    opacity: 0.3;
     transform: rotate(-12deg);
   }
 }
@@ -505,6 +436,7 @@
   }
 }
 
+/* One saffron ring as the stamp lands; gone again before the loop's starting frame (72%). */
 @keyframes gate-ring {
   0%,
   59% {
@@ -515,7 +447,7 @@
     opacity: 0.85;
     transform: none;
   }
-  78%,
+  71%,
   100% {
     opacity: 0;
     transform: scale(1.05);

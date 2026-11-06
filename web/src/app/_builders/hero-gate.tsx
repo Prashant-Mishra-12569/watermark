@@ -45,10 +45,10 @@ function WalletMark() {
  * own Genesis Drop stamp #042 (a static file from web/public/assets/stamps), a tilted collectible that lands when the
  * stamped wallet claims it.
  *
- * Server component, CSS only (hero-gate.module.css): one calm 6 s loop that pauses on hover. The four rows are
- * always on screen (a wallet not yet checked shows a grey bar where its status goes), so the panel is never an empty
- * box. Under prefers-reduced-motion nothing moves and the final frame (three refused, one claimed) simply shows. The
- * rows are always in the DOM, so a screen reader reads that final frame as a plain list.
+ * Server component, CSS only (hero-gate.module.css): one calm 6 s loop that pauses on hover and starts on its
+ * finished frame. The four rows and their statuses are always on screen (a wallet not yet checked is only faded), so
+ * the panel is never an empty box. Under prefers-reduced-motion nothing moves and the final frame (three refused, one
+ * claimed) simply shows. The rows are always in the DOM, so a screen reader reads that final frame as a plain list.
  */
 export function HeroGate({ className }: { className?: string }) {
   return (
@@ -96,8 +96,6 @@ export function HeroGate({ className }: { className?: string }) {
                     {GATE.refused}
                   </span>
                 )}
-                {/* While the example plays, a grey bar holds the status line until this wallet is checked. */}
-                <span aria-hidden="true" className={styles.wait} />
               </span>
             </li>
           ))}
