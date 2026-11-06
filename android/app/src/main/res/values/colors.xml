@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Watermark brand, same as usewatermark.xyz. Saffron is the one accent: seal, progress, small highlights. -->
+    <color name="wm_white">#FFFFFFFF</color>
+    <color name="wm_ink">#FF0A0A0A</color>
+    <color name="wm_muted">#FF6B6B6B</color>
+    <color name="wm_surface">#FFF5F5F3</color>
+    <color name="wm_line">#FFEAEAEA</color>
+    <color name="wm_saffron">#FFFF6B1A</color>
+    <color name="wm_ok">#FF15803D</color>
+    <color name="wm_error">#FFCE2C31</color>
+</resources>

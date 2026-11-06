@@ -57,9 +57,24 @@ balances, public URLs) passed 72/73; the only miss was `www` DNS still propagati
    it's a false alarm on any machine but yours, because `circuits/target/watermark.json` contains absolute file paths.
    Please make `prover/src/circuit-check.ts` hash only the JSON's `bytecode` field (and record that hash in the
    fixture). Until then `ALLOW_CIRCUIT_MISMATCH=1` starts it.
-2. **Build the APK with the new screens.** The UI was written without an Android SDK on the Mac, so it was not compiled
-   here: if anything fails, fix the UI files only. Install it and do one full tap against the **live** site
-   (https://usewatermark.xyz/verify → QR → tap).
+2. **Build the APK with the new screens (you build it; Samanway doesn't).** The UI is in
+   `android/app/src/main/java/com/watermark/tap/ui/**` (theme/, components/, screens/, `WatermarkAppPreviews.kt`) plus
+   `res/drawable/wm_logo.xml`, `res/drawable/wm_skyline.xml`, `res/values/colors.xml`, `res/values/themes.xml` and
+   `res/values-v27/themes.xml`. Your logic files are untouched and `WatermarkApp(state)` keeps its signature. It was
+   compile-checked on a Mac toolchain (`:app:compileDebugKotlin` and `:app:assembleDebug` succeeded) but **never run
+   on a phone**.
+   - Build the **`demo`** variant for users (`./gradlew :app:assembleDemo`): it trusts only the real session signer
+     (`0x9A06…FdBB`). Don't hand out the plain debug build: it also trusts the public dev signer.
+   - Look at all screens without a card: open `ui/WatermarkAppPreviews.kt` in Split view (18 previews).
+   - Then one full real tap against the **live** site (https://usewatermark.xyz/verify → QR → tap) and check the order:
+     Consent → Reading → Checking → Sending → Proving → Stamped; "View on explorer" opens the browser; with NFC off,
+     "Open NFC settings" works; on Android 15 the status-bar icons are dark on white; with "Remove animations" on,
+     the stamp seal appears without moving.
+   - Notes from the redesign: Consent has no button (reader mode is always on, so the tap itself starts reading);
+     `WaitingForCard` and `VerifiedOnPhone` are designed but MainActivity never sets them today; `ProvedNotStamped`
+     says honestly that no relayer put the proof on-chain; there's no RefusalReason for "same card, other wallet"
+     (unknown prover codes map to BAD_CARD); targetSdk 35 forces edge-to-edge, hence the new white-window themes and
+     `safeDrawingPadding()`.
 3. **Send the APK to Samanway directly** (WhatsApp/Drive). `*.apk` is gitignored. He places it at
    `web/public/download/watermark-tap.apk`, and /app shows the download button and QR by itself.
 4. **Must-refuse screenshots** with the new screens: same card + new wallet, expired QR, card outside the list.

@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.WatermarkTap" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- White window with dark status bar icons, so the white Compose UI reads well (also on Android 15 edge-to-edge) -->
+    <style name="Theme.WatermarkTap" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/wm_white</item>
+        <item name="android:statusBarColor">@color/wm_white</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
 </resources>
