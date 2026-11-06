@@ -23,7 +23,7 @@ export function Privacy() {
         <SwipeRow
           label="Privacy and limits"
           dotsClassName="sm:hidden"
-          className="-mx-4 mt-8 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto overscroll-x-contain px-4 py-2 [scrollbar-width:none] sm:hidden [&::-webkit-scrollbar]:hidden"
+          className="-mx-4 mt-8 flex items-start snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto overscroll-x-contain px-4 py-2 [scrollbar-width:none] sm:hidden [&::-webkit-scrollbar]:hidden"
         >
           {PRIVACY_ROWS.map((row, i) => (
             <li key={row.label} className="flex w-[78%] max-w-[320px] shrink-0 snap-start flex-col rounded-card bg-surface p-6">
