@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" width="1200" height="700" role="img" aria-labelledby="t d">
+  <title id="t">Watermark system map</title>
+  <desc id="d">The bank card and the website feed the Watermark Tap app. The app sends encrypted card data to the prover, the prover sends a proof to the relayer, and the relayer stamps the wallet in WatermarkRegistry on Whitechain. The Sponsor, the Genesis Pass and any app, SDK or AI agent read the stamp. On the alt mempool devnet a quota paymaster reads stamps from its own registry.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0L10 5L0 10z" fill="#0a0a0a"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="700" rx="24" fill="#ffffff"/>
+  <g font-family="Helvetica, Arial, sans-serif">
+    <text x="40" y="52" font-size="22" font-weight="700" fill="#0a0a0a">System map</text>
+    <text x="40" y="78" font-size="14" fill="#6b6b6b">Our servers can be replaced by an app's own. The contracts and every stamp check work without them.</text>
+
+    <!-- zones -->
+    <rect x="40" y="104" width="320" height="456" rx="20" fill="#f5f5f3"/>
+    <text x="60" y="134" font-size="12" font-weight="700" fill="#6b6b6b" letter-spacing="1.2">YOUR PHONE</text>
+    <rect x="400" y="104" width="340" height="456" rx="20" fill="#f5f5f3"/>
+    <text x="420" y="134" font-size="12" font-weight="700" fill="#6b6b6b" letter-spacing="1.2">OUR SERVERS (REPLACEABLE)</text>
+    <rect x="780" y="104" width="380" height="456" rx="20" fill="#fff1e8"/>
+    <text x="800" y="134" font-size="12" font-weight="700" fill="#8a5a00" letter-spacing="1.2">WHITECHAIN SEPOLIA</text>
+
+    <!-- phone zone -->
+    <rect x="60" y="156" width="130" height="64" rx="14" fill="#fff" stroke="#0a0a0a" stroke-width="1.5"/>
+    <text x="125" y="186" font-size="15" font-weight="700" fill="#0a0a0a" text-anchor="middle">Bank card</text>
+    <text x="125" y="206" font-size="12" fill="#6b6b6b" text-anchor="middle">EMV chip</text>
+    <rect x="210" y="156" width="130" height="64" rx="14" fill="#fff" stroke="#0a0a0a" stroke-width="1.5"/>
+    <text x="275" y="186" font-size="15" font-weight="700" fill="#0a0a0a" text-anchor="middle">Website</text>
+    <text x="275" y="206" font-size="12" fill="#6b6b6b" text-anchor="middle">shows the QR</text>
+
+    <rect x="60" y="300" width="280" height="96" rx="16" fill="#0a0a0a"/>
+    <text x="80" y="334" font-size="17" font-weight="700" fill="#fff">Watermark Tap</text>
+    <text x="80" y="358" font-size="13" fill="#b5b5b5">Android app: reads the card,</text>
+    <text x="80" y="378" font-size="13" fill="#b5b5b5">checks it, encrypts the data</text>
+
+    <!-- servers zone -->
+    <rect x="440" y="300" width="260" height="96" rx="16" fill="#fff" stroke="#eaeaea" stroke-width="1.5"/>
+    <text x="460" y="334" font-size="17" font-weight="700" fill="#0a0a0a">Prover</text>
+    <text x="460" y="358" font-size="13" fill="#6b6b6b">Noir + Barretenberg proof,</text>
+    <text x="460" y="378" font-size="13" fill="#6b6b6b">card data wiped after</text>
+    <rect x="440" y="444" width="260" height="96" rx="16" fill="#fff" stroke="#eaeaea" stroke-width="1.5"/>
+    <text x="460" y="478" font-size="17" font-weight="700" fill="#0a0a0a">Relayer</text>
+    <text x="460" y="502" font-size="13" fill="#6b6b6b">signs sessions, sends the</text>
+    <text x="460" y="522" font-size="13" fill="#6b6b6b">stamp and pays the gas</text>
+
+    <!-- chain zone -->
+    <rect x="800" y="156" width="160" height="80" rx="14" fill="#fff" stroke="#0a0a0a" stroke-width="1.5"/>
+    <text x="880" y="190" font-size="15" font-weight="700" fill="#0a0a0a" text-anchor="middle">Sponsor</text>
+    <text x="880" y="212" font-size="12" fill="#6b6b6b" text-anchor="middle">gas-free USDT</text>
+    <rect x="980" y="156" width="160" height="80" rx="14" fill="#fff" stroke="#0a0a0a" stroke-width="1.5"/>
+    <text x="1060" y="190" font-size="15" font-weight="700" fill="#0a0a0a" text-anchor="middle">Genesis Pass</text>
+    <text x="1060" y="212" font-size="12" fill="#6b6b6b" text-anchor="middle">on-chain NFT art</text>
+
+    <rect x="800" y="300" width="340" height="96" rx="16" fill="#0a0a0a"/>
+    <text x="820" y="334" font-size="17" font-weight="700" fill="#fff">WatermarkRegistry</text>
+    <text x="820" y="358" font-size="13" fill="#b5b5b5">VerifierRouter + HonkVerifier check</text>
+    <text x="820" y="378" font-size="13" fill="#ff6b1a">isStamped(wallet, appId)</text>
+
+    <rect x="800" y="444" width="340" height="96" rx="16" fill="#fff" stroke="#0a0a0a" stroke-width="1.5"/>
+    <text x="820" y="478" font-size="17" font-weight="700" fill="#0a0a0a">Any app, SDK or AI agent</text>
+    <text x="820" y="502" font-size="13" fill="#6b6b6b">one call, no API key,</text>
+    <text x="820" y="522" font-size="13" fill="#6b6b6b">or 12 tools over MCP</text>
+
+    <!-- devnet band -->
+    <rect x="40" y="584" width="1120" height="84" rx="20" fill="#f5f5f3"/>
+    <text x="60" y="614" font-size="12" font-weight="700" fill="#6b6b6b" letter-spacing="1.2">ALT MEMPOOL DEVNET (EIP-8141)</text>
+    <rect x="420" y="598" width="250" height="56" rx="14" fill="#fff" stroke="#0a0a0a" stroke-width="1.5"/>
+    <text x="545" y="632" font-size="15" font-weight="700" fill="#0a0a0a" text-anchor="middle">QuotaPaymaster</text>
+    <rect x="800" y="598" width="250" height="56" rx="14" fill="#fff" stroke="#0a0a0a" stroke-width="1.5"/>
+    <text x="925" y="632" font-size="15" font-weight="700" fill="#0a0a0a" text-anchor="middle">Devnet Registry</text>
+    <text x="60" y="642" font-size="13" fill="#6b6b6b">Sponsors gas only for stamped wallets</text>
+
+    <!-- arrows -->
+    <g stroke="#0a0a0a" stroke-width="2" fill="none" marker-end="url(#a)">
+      <line x1="125" y1="222" x2="125" y2="296"/>
+      <line x1="275" y1="222" x2="275" y2="296"/>
+      <line x1="342" y1="348" x2="436" y2="348"/>
+      <line x1="570" y1="398" x2="570" y2="440"/>
+      <path d="M702 492 H750 V348 H796"/>
+      <line x1="880" y1="238" x2="880" y2="296"/>
+      <line x1="1060" y1="238" x2="1060" y2="296"/>
+      <line x1="970" y1="442" x2="970" y2="400"/>
+      <line x1="672" y1="626" x2="796" y2="626"/>
+    </g>
+    <g font-size="12" fill="#0a0a0a">
+      <text x="133" y="264">NFC tap</text>
+      <text x="283" y="264">QR</text>
+      <text x="350" y="338">encrypted</text>
+      <text x="578" y="424">proof</text>
+      <text x="742" y="440" transform="rotate(-90 742 440)">stamp()</text>
+      <text x="888" y="272">isStamped?</text>
+      <text x="1068" y="272">isStamped?</text>
+      <text x="978" y="426">isStamped?</text>
+      <text x="690" y="618">reads stamps</text>
+    </g>
+  </g>
+</svg>
