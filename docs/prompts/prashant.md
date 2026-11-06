@@ -512,3 +512,28 @@ Result:
   APK signing certificate, the live-app stamp, the Genesis Pass claim, test counts, font credits).
 - Found for Samanway: the live relayer and prover still serve the old salt-2 app with the prepaid-inclusive filter,
   and the business wallet has 19 test USDT, about 9 drop users at 2 USDT each.
+
+## 02:00
+
+**69.**
+> Freshen up the whole GitHub repo. Write a proper, very guided README from the judges' point of view: clean, simple
+> words, technical where needed, with flowcharts that explain the tech simply and answer the questions judges might
+> ask. Commit everything and clean the repo: keep only what's needed now, nothing spare. Research how recent ETHGlobal
+> winners structure their READMEs (as an example only, don't copy, don't mention other projects). Go beyond airdrops:
+> show use cases in apps people use today, for example how Uniswap could apply Watermark. Add the GitHub repo
+> details such as the website link, and a detailed, guided MCP section, and make sure the MCP works for agents and
+> developers. Make the product look valuable and professional. Check ETHGlobal's repo and README requirements (no demo
+> video yet).
+
+Result:
+- Research: ETHGlobal asks for a public repo that shows what was built during the event, and separates new work
+  from reused work. Strong READMEs open with the pitch, live links and proof, then how it works, the stack,
+  deployments, partner use and setup.
+- Ran the real stdio MCP server against the live chain (12 tools, live answers). Rewrote mcp/README.md as a guided
+  setup for Claude Code, Cursor and Claude Desktop, and added a project .mcp.json.
+- Rewrote README.md: an "in 30 seconds" summary with on-chain proof, sequence and architecture diagrams, what a
+  stamp proves and doesn't, use cases (including a Uniswap v4 hook sketch), developer paths, the circuit and the
+  contracts, partner tracks, privacy, honest limits, addresses, setup, the repo map and disclosures. Checked all 47
+  internal and 20 external links.
+- Cleaned up: removed the temporary handoff, moved Samanway's prompt log next to mine, and added the app screens row
+  to AI_USAGE.md.
