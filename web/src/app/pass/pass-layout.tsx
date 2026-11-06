@@ -96,7 +96,7 @@ export function PassIntro() {
 }
 
 /** The stage's caption before anyone has claimed: the big stamp is #042, an example. */
-export const PREVIEW_CAPTION = "Example: NFT #042. Each NFT is drawn on-chain.";
+export const PREVIEW_CAPTION = "Example: #042. The art is drawn fully on-chain.";
 
 /** Chip dots stay black; green only for a real result ("✓ Claimed"). */
 export type StageChip = { text: string; tone?: "ok" | "saffron" | "ink" };
@@ -311,28 +311,31 @@ export function PassQuestions() {
         Good to know
       </h2>
       <div className="flex flex-col gap-3">
-        <Disclosure summary="Why one per bank card?">
+        <Disclosure summary="Why one per card?">
           <p className="text-muted">
-            Your card can verify one wallet for this drop, and each wallet can claim once. So one card gets one NFT. A
-            bot with a thousand wallets and no card gets none. We check a bank card, not who you are.
+            One card stamps one wallet, and each wallet claims once. Bots have no card, so they get nothing. We check a
+            bank card, not who you are.
           </p>
         </Disclosure>
         <Disclosure summary="Why a test payment?">
           <p className="text-muted">
-            It shows the other half of Watermark: a shop can take USDT and you pay no fee. You just sign. We pay the
-            fee. It is test USDT on a test network.
+            It shows the other half of Watermark: you pay in USDT, and we pay the fee. It&apos;s test money on a test
+            network.
           </p>
         </Disclosure>
         <Disclosure summary="Is my card number stored?">
-          <p className="text-muted">No. We never store your card number, and it never goes on-chain.</p>
+          <p className="text-muted">
+            No. Our server sees your card data for a moment to make the proof, then wipes it. Your card number never
+            goes on-chain.
+          </p>
         </Disclosure>
         <Disclosure summary="Can I give the NFT away?">
-          <p className="text-muted">Yes. Send it to any wallet, like any NFT. The limit is on claiming, not on holding.</p>
+          <p className="text-muted">Yes. Send it to any wallet. The limit is on claiming, not on holding.</p>
         </Disclosure>
         <Disclosure summary="Is this real money?">
-          <p className="text-muted">No. The drop runs on Whitechain Sepolia, a test network. No real money moves.</p>
+          <p className="text-muted">No. It runs on Whitechain Sepolia, a test network.</p>
         </Disclosure>
-        <Disclosure summary="Details: how the NFT contract checks the stamp">
+        <Disclosure summary="For builders: how the contract checks the stamp">
           <div className="flex min-w-0 flex-col gap-4">
             <p className="text-muted">The NFT contract checks the wallet&apos;s stamp on-chain before it mints:</p>
             <CodeBlock label="WatermarkGenesisPass.sol" code={PASS_GATE_CODE} />

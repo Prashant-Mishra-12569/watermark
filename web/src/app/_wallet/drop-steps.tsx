@@ -8,8 +8,8 @@ export const DROP_HUB = "/pass";
 
 /** The three steps of the Genesis Drop, named as the /pass checklist names them (SITE_FINAL "Page 2"). */
 export const DROP_STEPS: readonly { n: DropStep; title: string }[] = [
-  { n: 1, title: "Verify with your card" },
-  { n: 2, title: "One free test payment" },
+  { n: 1, title: "Tap your card" },
+  { n: 2, title: "Send a free payment" },
   { n: 3, title: "Claim your NFT" },
 ];
 

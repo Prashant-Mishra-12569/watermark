@@ -136,8 +136,8 @@ export const PASS_COPY = {
   eyebrowTail: "protected by Watermark",
   /** The H1, with *real* as the serif italic word (Headline renders it). */
   title: "A free NFT for *real* cardholders.",
-  sub: "We're launching Watermark with 100 free NFTs. No fee to pay: we cover it. To stop bots from taking them, you verify once with your bank card.",
-  facts: ["Free", "No fee", "Only 100 will ever exist", "One per bank card"],
+  sub: "100 free Mumbai stamp NFTs. Tap your bank card once to claim one. You pay no fees.",
+  facts: ["Free", "No fees", "Only 100", "One per bank card"],
   left: (remaining: number) => `${remaining} left`,
   /** Shown in the counter's place while the live count can't be read (never a placeholder number). */
   supplyFallback: "Only 100 will ever exist.",
@@ -145,41 +145,41 @@ export const PASS_COPY = {
   notConfiguredButton: "Verify my wallet",
   /** The wallet choice on /pass (WalletGate title / sub), worded for the drop. */
   walletTitle: "Where should we send your NFT?",
-  walletSub: "Your stamp and your NFT go to the wallet you pick. You never pay a fee.",
+  walletSub: "Your stamp and your NFT go to the wallet you pick. You pay no fees.",
   loading: "Checking your wallet…",
   unreachable: (seconds: number) => `Can't reach our server. Trying again in ${seconds}s.`,
   /** The checklist heading, with *three* as the serif italic word. */
   stepsTitle: "Claim it in *three* steps.",
-  step1Title: "Verify with your card",
-  step1Body: "Tap your RuPay bank card on the Watermark phone app, once. Your wallet gets a stamp. Your card number is never stored.",
-  step1Button: "Verify with my card",
+  step1Title: "Tap your card",
+  step1Body: "Tap your RuPay debit card on the Watermark phone app. Your wallet gets a stamp. We never store your card number.",
+  step1Button: "Tap my card",
   step1Done: (date: string) => (date ? `Verified. Your stamp lasts until ${date}.` : "Verified."),
-  step1Hint: "Already verified this card with another wallet? Use that wallet. One card, one NFT.",
-  step2Title: "Send one free test payment",
+  step1Hint: "Used this card with another wallet? Use that wallet. One card, one NFT.",
+  step2Title: "Send a free test payment",
   /** Says why the step is there, in the step itself (the "Why a test payment?" answer stays below). */
-  step2Body: "Send one test USDT payment. You only sign, and we pay the fee. It shows your stamp unlocks payments with no fees.",
-  step2Button: "Make the payment",
+  step2Body: "Send one test USDT payment. You sign. We pay the fee.",
+  step2Button: "Send the payment",
   step2Unknown: "Can't check payments right now. You can still try to claim.",
-  step2Done: "Paid, with $0 in fees.",
+  step2Done: "Paid. Your fee: $0.",
   step3Title: "Claim your NFT",
-  step3Body: "We mint it to your wallet. You sign nothing and pay nothing.",
+  step3Body: "We send it to your wallet. You sign nothing. You pay nothing.",
   step3Locked: "Finish steps 1 and 2 first.",
-  step3Button: "Claim my NFT. It's free.",
-  claiming: "Minting your NFT… about 10 seconds. You sign nothing. We pay the fee.",
+  step3Button: "Claim my NFT",
+  claiming: "Minting your NFT. About 10 seconds.",
   /** The success headline, with *yours* as the serif italic word. */
   success: (tokenId: string) => `NFT #${tokenId} is *yours*.`,
-  successLine: "It's in your wallet now. You paid $0.",
+  successLine: "It's in your wallet. You paid $0.",
   burner: "Your NFT lives in this browser's wallet. Don't clear site data or use private mode.",
   alreadyClaimed: (tokenId: string | null) =>
     tokenId ? `This wallet already has NFT #${tokenId}.` : "This wallet already has its NFT.",
-  soldOut: "All 100 NFTs are claimed. You can still verify your wallet.",
+  soldOut: "All 100 are claimed. You can still stamp your wallet.",
   /** The closing note: why a bank card, and the way to the builders page. */
-  noteTitle: "Why the *card*?",
-  noteBody: "Wallets are free to make, so bots make thousands. Bank cards aren't.",
-  noteBody2: "This drop is protected by Watermark, the same check any company can add.",
-  noteLink: "See how it works",
+  noteTitle: "Why a *card*?",
+  noteBody: "Wallets are free, so bots make thousands. Bank cards are not.",
+  noteBody2: "Any company can add this same check to its own drop.",
+  noteLink: "Add it to your app",
   gated:
-    "Step 1 is checked on-chain by the NFT contract. Step 2 is checked by our relayer from the Sponsor's PaymentRelayed events, not on-chain.",
+    "The NFT contract checks step 1 on-chain. Step 2 is checked off-chain: our relayer reads the Sponsor's PaymentRelayed events.",
 } as const;
 
 /** "How we gated this": the lines of WatermarkGenesisPass.mint that check the stamp (the test checks them against the .sol). */
@@ -206,9 +206,9 @@ export function passErrorCopy(code: RelayerErrorCode, tokenId: string | null = n
     case "ALREADY_CLAIMED":
       return { text: PASS_COPY.alreadyClaimed(tokenId) };
     case "NOT_STAMPED":
-      return { text: "This wallet isn't verified yet. Verify with your card first. It takes 2 minutes." };
+      return { text: "This wallet has no stamp yet. Tap your card first. It takes 2 minutes." };
     case "NO_PAYMENT":
-      return { text: "We can't see your free payment yet. If you just paid, wait 30 seconds and try again." };
+      return { text: "We can't see your payment yet. Just paid? Wait 30 seconds and try again." };
     case "SOLD_OUT":
       return { text: PASS_COPY.soldOut };
     case "RATE_LIMIT":

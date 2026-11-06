@@ -149,7 +149,7 @@ export function PayFlow({
         ? "Sending it now. We pay the fee."
         : own
           ? `You'll sign in ${active.name}. Nothing is sent until you confirm.`
-          : "This browser signs for you. We pay the network fee.";
+          : "This browser signs for you. We pay the fee.";
 
   return (
     // Phones: one column (heading, what to do now, the wallet, small print). md: the heading across, then the wallet
@@ -489,8 +489,8 @@ export function PayFlow({
         )}
         <p className="max-w-[44ch] text-pretty text-sm text-muted">
           {own
-            ? "Test USDT on a test network. No real money moves. You only sign."
-            : "Test USDT on a test network. No real money moves. No seed phrase, no fee."}
+            ? "Test USDT on a test network. You only sign."
+            : "Test USDT on a test network. No seed phrase, no fee."}
         </p>
       </div>
     </div>

@@ -59,8 +59,8 @@ test("wallet chooser: /verify and the pass walk use DESIGN_V2's two options, the
   assert.equal(pay.burnerFirst, true);
   assert.equal(pay.burner.button, walletGateCopy("verify").burner.button);
   assert.equal(pay.burner.button, walletGateCopy("pass").burner.button);
-  // /pay's main path says "network fee", not "gas", and "stamped", not "verified".
-  assert.match(pay.sub, /network fee/);
+  // /pay's main path says "fees", not "gas", and "stamped", not "verified".
+  assert.match(pay.sub, /no fees/);
   assert.doesNotMatch(`${pay.title} ${pay.sub} ${pay.own.body} ${pay.burner.body}`, /\bgas\b|verified/i);
   // The button label fits a narrow card: no truncation at 1440px's two-card layout.
   assert.ok(pay.burner.button.length <= 20);
@@ -124,9 +124,9 @@ test("/verify copy is DESIGN_V2's", () => {
   assert.equal(TAPPED_NOTHING_HAPPENED.summary, "Tapped but nothing happened?");
   assert.equal(
     TAPPED_NOTHING_HAPPENED.body,
-    "Only RuPay cards work today. If this card already stamped another wallet, use that wallet. If the phone lost internet, tap again.",
+    "Only RuPay cards work today. Used this card on another wallet? Use that wallet. Phone lost internet? Tap again.",
   );
-  assert.match(TAPPED_NOTHING_HAPPENED.note, /only sees a stamp arrive/);
+  assert.match(TAPPED_NOTHING_HAPPENED.note, /sees a stamp arrive, but not why/);
   assert.equal(VERIFY_RECEIPT.you, "Tapped a card, signed nothing, paid $0.");
   assert.equal(VERIFY_RECEIPT.relayer, "Put it on-chain and paid the fee.");
   assert.equal(verifiedUntilCopy("31 January 2027"), "Valid until 31 January 2027.");

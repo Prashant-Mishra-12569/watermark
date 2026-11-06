@@ -122,7 +122,7 @@ export function How() {
   return (
     <section id="how" aria-labelledby="how-title" className={BAND}>
       <div className={WRAP}>
-        <SectionHead id="how" eyebrow="How it works" title={HOW_TITLE} />
+        <SectionHead id="how" eyebrow="Three steps" title={HOW_TITLE} />
 
         {/* One simple card per step at every size: step label, title, line, then the picture at the bottom.
             Three across from 900px (two shared rows: words, pictures), stacked below that. */}

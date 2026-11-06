@@ -110,16 +110,16 @@ function keepOnChain(text: ReactNode): ReactNode {
 
 /** Step 1's words (SITE_FINAL "Page 2": "1 Verify with your card"). The QR's own steps stay in QR_STEPS. */
 export const VERIFY_COPY = {
-  title: "Verify with your *card*.",
+  title: "Tap your *card*.",
   stamped: "Your wallet is *stamped*.",
   /** Under the h1 while the wallet is chosen (the QR screen then says what to do). */
   intro:
-    "Tap your bank card on the Watermark phone app, once. Your wallet gets a stamp bots can't fake. Your card number never goes on-chain, and you pay no fee.",
+    "Tap your bank card on the Watermark phone app. Your wallet gets a stamp bots can't fake. You pay no fees.",
   /** The wallet question on the drop walk (?next=pass): the stamp and the NFT go to the same wallet. */
   passQuestion: "Where should we keep your NFT?",
-  passQuestionSub: "Your stamp and your NFT go to the wallet you pick. You never pay a fee.",
+  passQuestionSub: "Your stamp and your NFT go to the wallet you pick. You pay no fees.",
   /** After the stamp, on the drop's walk: step 2 (/pay?next=pass). */
-  next: "Continue to step 2",
+  next: "Go to step 2",
   /** After the stamp, off the walk: the same free payment, without the drop's step words. */
-  nextPlain: "Try a payment with no fee",
+  nextPlain: "Try a free payment",
 } as const;

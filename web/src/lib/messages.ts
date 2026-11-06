@@ -329,7 +329,7 @@ export function walletGateCopy(purpose: WalletPurpose): WalletGateCopy {
     case "pass":
       return {
         title: "Where should we keep your pass?",
-        sub: "Your stamp and your pass go to the wallet you pick. You never pay a fee.",
+        sub: "Your stamp and your pass go to the wallet you pick. You pay no fees.",
         own: { ...V2_OWN },
         burner: { ...V2_BURNER },
         burnerFirstOnTouch: true,
@@ -340,7 +340,7 @@ export function walletGateCopy(purpose: WalletPurpose): WalletGateCopy {
       // step 1 showed it.
       return {
         title: "Which wallet will you pay from?",
-        sub: "Pick the wallet you stamped. You never pay a network fee.",
+        sub: "Pick the wallet you stamped. You pay no fees.",
         own: { title: V2_OWN.title, body: "MetaMask or similar. You sign each payment. Nothing is sent until you do." },
         burner: { title: V2_BURNER.title, body: "The wallet this browser keeps for you. Nothing to install.", button: V2_BURNER.button },
         burnerFirstOnTouch: true,
@@ -349,7 +349,7 @@ export function walletGateCopy(purpose: WalletPurpose): WalletGateCopy {
     case "verify":
       return {
         title: "Where should we keep your stamp?",
-        sub: "Your stamp goes to the wallet you pick. You never pay a fee.",
+        sub: "Your stamp goes to the wallet you pick.",
         own: { ...V2_OWN },
         burner: { ...V2_BURNER },
         burnerFirstOnTouch: true,
@@ -414,9 +414,9 @@ export const QR_STEPS = {
 
 export const TAPPED_NOTHING_HAPPENED = {
   summary: "Tapped but nothing happened?",
-  body: "Only RuPay cards work today. If this card already stamped another wallet, use that wallet. If the phone lost internet, tap again.",
+  body: "Only RuPay cards work today. Used this card on another wallet? Use that wallet. Phone lost internet? Tap again.",
   /** This page only sees a stamp arrive, never why one didn't: say so. */
-  note: "Prepaid cards don't count. This page only sees a stamp arrive, so it can't tell why one didn't.",
+  note: "Prepaid cards don't count. This page sees a stamp arrive, but not why one didn't.",
 } as const;
 
 /** DESIGN_V2 "/verify" receipt: "You: tapped a card, signed nothing, paid $0." · "Us: put it on-chain and paid the fee." */
