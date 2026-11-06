@@ -1,8 +1,86 @@
-# Handoff: Prashant → Samanway (Fri 6 Nov, updated 18:40 IST)
+# Handoff: Samanway → Prashant (Sat 7 Nov, 00:40 IST)
+
+Temporary working note. We delete it before submission. Prashant's earlier note is kept below.
+
+## 1. Live now
+| What | Link |
+|---|---|
+| Website (new design: Builders home + Genesis Drop) | https://usewatermark.xyz |
+| Genesis Drop: claim the NFT | https://usewatermark.xyz/pass |
+| Get the Android app (the download turns on when the APK is placed) | https://usewatermark.xyz/app |
+| Bot test | https://usewatermark.xyz/attack |
+| Docs for people and AI agents (same file) | https://usewatermark.xyz/watermark.txt · https://usewatermark.xyz/llms.txt |
+| Relayer API | https://api.usewatermark.xyz |
+| Prover (the phone talks to it) | https://prover.usewatermark.xyz |
+
+Hosting: one Cloudflare named tunnel (`watermark`) from Samanway's Mac. `usewatermark.xyz` and `www` → :3000 (web),
+`api.` → :8788 (relayer), `prover.` → :8787 (prover). Domain registered at Hostinger, DNS on Cloudflare. **The Mac must
+stay on, awake and online during judging.** QR codes now point the phone to the permanent `prover.usewatermark.xyz`
+(no more trycloudflare links).
+
+## 2. Deployed on Whitechain Sepolia (1874), all source-verified on Blockscout
+| Contract | Address | Note |
+|---|---|---|
+| Live app (salt `0x…03`) | appId `393344891601835728760966937624776276735512086066329273346256164761263100630` | your stricter list: 4,208 bank-debit ranges, no prepaid. Registered in tx `0xce55c3b6…`. Salt `0x…02` was already taken by our private test app ("demo app 2", old 6,258 list), so your section 0 command would have reverted. |
+| WatermarkSponsor (live app) | `0x21b6ae18a412afb84a09263939c5e787d374939a` | 20 sponsored payments per wallet per day |
+| WatermarkGenesisPass | `0x12DdF2A4C698A3271F21fEA07559467b6C8AdcB0` | 100 NFTs, stamp-gated, one per wallet, minter = relayer; the relayer also checks one gas-free payment (PaymentRelayed) |
+| WatermarkPassRenderer | `0x32D1C048C81Cc60d9c21078B85C2f95132D0Fe72` | draws all 100 stamps on-chain; byte-identical to `contracts/test/fixtures/pass-svg/` |
+| Previous live app + first sponsor | see `previousLive` in `deployments/whitechain.json` | first real-card stamp and first payment happened there |
+
+Proof, end to end: real-card stamp `0xd7e01665…`; gas-free USDT from a MetaMask wallet with 0 WBT on the live app
+`0xb848b7c8…`; EF admitted frame tx `0xcab8c9e2…`. A full health check (contracts, transactions, servers, settings,
+balances, public URLs) passed 72/73; the only miss was `www` DNS still propagating.
+
+## 3. What's new in the product
+- **Website, two pages.** Home = the service for companies: hero with a hand-drawn Mumbai skyline, a live "Airdrop
+  claims" feed and the stamp NFT; How it works; Add it in one line (Solidity / SDK / MCP); **"Let your AI agent add it"**
+  (a copyable prompt for Claude Code / Cursor that reads watermark.txt and adds the gate); Try to farm it (bot test +
+  "Is this wallet stamped?"); You decide who counts; See it yourself (receipts); Privacy. Page 2 = the **Genesis Drop**
+  (/pass): verify with your card → one free test payment → claim; after a claim a full-screen reveal + "Share on X".
+  /verify and /pay are the drop's steps. A **Connect wallet** button in the header (EIP-6963: MetaMask, Rainbow, Rabby,
+  Coinbase, or the in-browser wallet).
+- **NFT art:** "Watermark Genesis Pass", Mumbai postage stamps, 5 landmarks × 20 (Gateway of India, Rajabai Clock
+  Tower, Bandra-Worli Sea Link, CST, Marine Drive), ₹0 face value, "FEE PAID" postmark, a hidden watermark in the paper.
+  Fully on-chain. Generator: `contracts/script/pass-art/generator.mjs`.
+- **Logo: "One tap"** (a tilted bank card with a hand-drawn W and three tap lines). Favicon, app icons and the share
+  image (OG/Twitter, 1200x630) are in the site. The full brand kit (every size, X/Instagram/LinkedIn images) is a folder
+  on Samanway's Mac; ask him for it (not in git).
+- **Tap app screens redesigned** (Samanway's UI side only): `android/app/src/main/java/com/watermark/tap/ui/**` plus
+  new `res/drawable` and `res/values` files. Same entry point `WatermarkApp(state)`, your logic files untouched. One
+  idea per screen, a 4-step bar (Check · Tap · Prove · Stamped), and on every screen an honest line about what that step
+  uses (chip certificates read → encrypted on the phone → used once by the prover and wiped → nothing stored → nothing
+  about the card on-chain; no money, no PIN).
+- **X handle** used in the share text: `@usewatermark`.
+
+## 4. What you need to do (in order)
+1. **Pull main** after Samanway's PRs are merged. If the prover refuses to start with "compiled circuit does not match":
+   it's a false alarm on any machine but yours, because `circuits/target/watermark.json` contains absolute file paths.
+   Please make `prover/src/circuit-check.ts` hash only the JSON's `bytecode` field (and record that hash in the
+   fixture). Until then `ALLOW_CIRCUIT_MISMATCH=1` starts it.
+2. **Build the APK with the new screens.** The UI was written without an Android SDK on the Mac, so it was not compiled
+   here: if anything fails, fix the UI files only. Install it and do one full tap against the **live** site
+   (https://usewatermark.xyz/verify → QR → tap).
+3. **Send the APK to Samanway directly** (WhatsApp/Drive). `*.apk` is gitignored. He places it at
+   `web/public/download/watermark-tap.apk`, and /app shows the download button and QR by itself.
+4. **Must-refuse screenshots** with the new screens: same card + new wallet, expired QR, card outside the list.
+5. **AI usage:** Samanway sends his part and `docs/prompts/samanway.md`; you merge them into `docs/AI_USAGE.md`.
+6. **README:** add the live links (site, drop, app, watermark.txt) and the Genesis Pass + renderer addresses; the
+   payment tx `0xb848…` is already there.
+7. **Video** (2–4 min, real voice, ≥720p): Samanway drafts the script around the live site.
+8. **Delete this file** before submitting (target 08:00).
+
+## 5. Honest limits to keep saying
+The app is sideloaded (not on the Play Store yet). RuPay cards from India only; Visa/Mastercard planned. Testnets only.
+Everything is hosted on one Mac through a tunnel. The prover sees the card data in memory while proving, then wipes it;
+the site, app and docs say exactly that.
+
+---
+
+# Earlier note: Prashant → Samanway (Fri 6 Nov, updated 18:40 IST)
 
 Temporary working note. We delete it before submission.
 
-## 0. Urgent: register the stricter live app (one transaction)
+## 0. ~~Urgent: register the stricter live app~~ Done at salt 0x…03 (see section 2 above)
 
 The old live filter let in **732 prepaid card ranges** (gift, metro, payroll cards that anyone can buy over the counter
 with little KYC) plus 1,318 ranges with no category. One person could buy a pile of those and make many stamps. The new
