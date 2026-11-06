@@ -16,7 +16,7 @@ Built at ETHGlobal Mumbai 2026 by Prashant Mishra and Samanway Baranwal.
 | The same circuit compiled on both team laptops, and the proof accepted by the committed Solidity verifier | ✅ |
 | **On-chain stamp on Whitechain Sepolia from the real card**: proof verified by `WatermarkRegistry`, gas paid by the relayer, user paid 0 | ✅ [tx `0xd7e01665…`](https://explorer.testnet.whitechain.io/tx/0xd7e0166584dbb3b404d2b81308b5b69c94fa52b4d2d0da6a66759a52bb86bc07), block 12,368,812, 2,855,911 gas |
 | **EIP-8141 alt mempool**: a stamped wallet's frame tx sponsored by our staked quota paymaster, admitted and mined (5 frames, user paid 0 wei) | ✅ [tx `0xcab8c9e2…`](https://explorer.altmempool.wtf/tx/0xcab8c9e2171a8048c8f5e12d4bb830c92cba7f458763d2c7ac8f23ab1faa8a93?node=https%3A%2F%2Faltmempool.forshtat.com%2Frpc) (devnet block 3,699) |
-| **Gasless USDT payment** from the stamped wallet through `WatermarkSponsor`: 1 USDT paid, gas paid by the relayer. The payer wallet holds 0 WBT and has never sent a transaction itself | ✅ [tx `0x298d3d17…`](https://explorer.testnet.whitechain.io/tx/0x298d3d178794b988aee4286db9591e6b9a8c1d2ad5008b69fd231460c7477c69), block 12,373,497, 121,571 gas |
+| **Gasless USDT payment** through `WatermarkSponsor` on the live app: a MetaMask wallet that holds 0 WBT and has never sent a transaction signs; the relayer sends it and pays the gas; 1 USDT reaches the shop | ✅ [tx `0xb848b7c8…`](https://explorer.testnet.whitechain.io/tx/0xb848b7c8c589335d17ab1570f0cb1765325a1d065e58a2f9447e9d333e376879), block 12,381,397. First one, under the earlier live app: [tx `0x298d3d17…`](https://explorer.testnet.whitechain.io/tx/0x298d3d178794b988aee4286db9591e6b9a8c1d2ad5008b69fd231460c7477c69), block 12,373,497, 121,571 gas |
 
 | Metric | Value |
 |---|---|
@@ -86,9 +86,10 @@ Each part has its own README: [circuits](circuits/README.md), [prover](prover/RE
 - [x] Contracts deployed and verified on Whitechain Sepolia (1874): [WatermarkRegistry](https://explorer.testnet.whitechain.io/address/0x998934Efa31a6bE75945fDfAa126d3D6401F8Fd6),
   [VerifierRouter](https://explorer.testnet.whitechain.io/address/0xc2E883a53aC54CBc9564882a77ab3723E1373A5C). All addresses: [deployments/whitechain.json](deployments/whitechain.json)
 - [x] First real-card stamp: [tx `0xd7e01665…`](https://explorer.testnet.whitechain.io/tx/0xd7e0166584dbb3b404d2b81308b5b69c94fa52b4d2d0da6a66759a52bb86bc07)
-- [x] USDT payment (`0xcedfB56113143d55b2358b8CFbB0dEB5Ad2f55a7`) settled in the main flow: [tx `0x298d3d17…`](https://explorer.testnet.whitechain.io/tx/0x298d3d178794b988aee4286db9591e6b9a8c1d2ad5008b69fd231460c7477c69)
-  (1 USDT from the stamped wallet; the relayer `0xf95E…a9Ba` sent the transaction and paid the gas)
-- [ ] The payer flow has zero visible crypto steps
+- [x] `WatermarkSponsor` deployed and verified: [0x21b6…939a](https://explorer.testnet.whitechain.io/address/0x21b6ae18a412afb84a09263939c5e787d374939a) (live app). The first one, for the earlier live app, is verified too: [0xAbD7…D7BA](https://explorer.testnet.whitechain.io/address/0xAbD7327f6E6b884aEf395B80De073B8aDd0aD7BA)
+- [x] USDT payment (`0xcedfB56113143d55b2358b8CFbB0dEB5Ad2f55a7`) settled in the main flow: [tx `0xb848b7c8…`](https://explorer.testnet.whitechain.io/tx/0xb848b7c8c589335d17ab1570f0cb1765325a1d065e58a2f9447e9d333e376879) (live app, MetaMask payer with 0 WBT). The first one, under the earlier live app: [tx `0x298d3d17…`](https://explorer.testnet.whitechain.io/tx/0x298d3d178794b988aee4286db9591e6b9a8c1d2ad5008b69fd231460c7477c69)
+  (1 USDT from the stamped wallet each time; the relayer `0xf95E…a9Ba` sent the transaction and paid the gas)
+- [x] The payer never needs gas or WBT. With the in-browser wallet there is no crypto step at all; with MetaMask it is one signature, with no network fee
 - **Why on-chain stablecoin settlement:** the money and the proof that the payer is a real cardholder live in the same
   place. The Sponsor contract checks the stamp and moves the USDT in one transaction, so nobody has to trust our
   server's word that a payment was allowed. It settles in seconds, works the same for anyone in any country, needs no
