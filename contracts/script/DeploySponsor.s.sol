@@ -12,7 +12,8 @@ import {IWatermarkRegistry} from "../src/interfaces/IWatermarkRegistry.sol";
 ///   REGISTRY_ADDRESS  "registry" in the deployment file, else env (required). When both are set they must match,
 ///                     because a stale .env value would bind the sponsor to an old registry for good
 ///                     (ALLOW_REGISTRY_OVERRIDE=true lets the env value win).
-///   APP_ID            env (decimal), else "appId" in the deployment file (required)
+///   APP_ID            env (decimal), else "liveAppId" in the deployment file, else its "appId" (required). The live
+///                     app wins over the test app, so a redeploy without APP_ID still serves the real card taps.
 ///   RELAYER_ADDRESS   env, else "relayer" in the deployment file, else the address of RELAYER_PRIVATE_KEY (required:
 ///                     the relayer hot wallet that calls relayPayment). When RELAYER_PRIVATE_KEY is set, the address
 ///                     must be its address.
@@ -131,12 +132,14 @@ contract DeploySponsor is Script {
     }
 
     /// @notice The file layer alone, without env (so tests can feed it JSON). Missing keys and nulls read as
-    /// zero; usdt falls back to Whitechain USDT. A "chainId" in the file must equal `chainId`.
+    /// zero; usdt falls back to Whitechain USDT. appId is "liveAppId" when the file has one, else "appId". A "chainId"
+    /// in the file must equal `chainId`.
     function fromDeploymentJson(string memory json, uint256 chainId) public view returns (Config memory c) {
         uint256 fileChain = _jsonUint(json, ".chainId");
         require(fileChain == 0 || fileChain == chainId, "DeploySponsor: deployment file is for another chain");
         c.registry = _jsonAddress(json, ".registry");
-        c.appId = _jsonUint(json, ".appId");
+        c.appId = _jsonUint(json, ".liveAppId");
+        if (c.appId == 0) c.appId = _jsonUint(json, ".appId");
         c.relayer = _jsonAddress(json, ".relayer");
         c.usdt = _jsonAddress(json, ".usdt");
         if (c.usdt == address(0)) c.usdt = WHITECHAIN_USDT;
