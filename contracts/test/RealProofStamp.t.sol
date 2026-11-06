@@ -322,3 +322,227 @@ contract RealProofStampTest is Test {
         );
     }
 }
+
+/// @notice Adversarial tests with the REAL synthetic-card proof (test/fixtures/synthetic-stamp.json, synthetic card
+/// only) and the committed HonkVerifier.
+///
+/// - test_publicSessionSigner_* shows why Deploy.s.sol refuses a public session signer on 1874 / 1337 (review
+///   finding DEPLOY-1): anyone who sees a victim's stamp in flight re-signs the victim's nonce for their own wallet and
+///   front-runs it. The proof does not name the wallet; only the session signature does.
+/// - test_attackRefused_* are attacks from the adversarial review that FAILED (the contracts held).
+contract RealProofAttacksTest is Test {
+    string internal constant FIXTURE = "test/fixtures/synthetic-stamp.json";
+    address internal constant APP_OWNER = address(0xA11CE);
+    bytes32 internal constant NONCE = 0x1111111111111111111111111111111111111111111111111111111111111111;
+    uint32 internal constant VALID_UNTIL = 325;
+    uint256 internal constant NOW = 1_793_968_496; // 2026-11-06T12:34:56Z, month 322
+    uint64 internal constant END_OF_FEB_2027 = 1_803_859_199;
+    // Public anvil #0 key = sdk DEV_SESSION_SIGNER (0xf39F...). Never a real key.
+    uint256 internal constant PUBLIC_DEV_SIGNER_KEY =
+        0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
+    uint256 internal constant PRIVATE_SIGNER_KEY = 0x5E55105; // a key only the relayer knows (test value)
+
+    HonkVerifier honk;
+    bytes proof;
+    bytes32[] pis;
+    bytes32 caRoot;
+    bytes32 rulesRoot;
+    bytes32 nullifier;
+
+    address victim = makeAddr("victim wallet");
+    address attacker = makeAddr("attacker wallet");
+    address relayer = makeAddr("relayer");
+
+    function setUp() public {
+        vm.warp(NOW);
+        string memory json = vm.readFile(FIXTURE);
+        proof = vm.parseJsonBytes(json, ".proof");
+        pis = vm.parseJsonBytes32Array(json, ".publicInputs");
+        caRoot = vm.parseJsonBytes32(json, ".caRoot");
+        rulesRoot = vm.parseJsonBytes32(json, ".rulesRoot");
+        nullifier = vm.parseJsonBytes32(json, ".nullifier");
+        honk = new HonkVerifier();
+    }
+
+    // ------------------------------------------------------------------ helpers
+
+    function _registry(uint256 signerKey) internal returns (WatermarkRegistry reg, uint256 appId) {
+        reg = new WatermarkRegistry(IVerifier(address(honk)));
+        reg.setCaRoot(caRoot);
+        vm.prank(APP_OWNER);
+        appId = reg.registerApp(bytes32(0), rulesRoot, vm.addr(signerKey));
+    }
+
+    function _session(WatermarkRegistry reg, uint256 appId, address wallet)
+        internal
+        view
+        returns (IWatermarkRegistry.Session memory)
+    {
+        return IWatermarkRegistry.Session({
+            wallet: wallet,
+            appId: appId,
+            nonce: NONCE,
+            expiresAt: uint64(block.timestamp + 600),
+            validUntilMonth: VALID_UNTIL,
+            chainId: block.chainid,
+            registry: address(reg)
+        });
+    }
+
+    function _sign(uint256 pk, WatermarkRegistry reg, IWatermarkRegistry.Session memory s)
+        internal
+        view
+        returns (bytes memory)
+    {
+        (uint8 v, bytes32 r, bytes32 ss) = vm.sign(pk, reg.hashSession(s));
+        return abi.encodePacked(r, ss, v);
+    }
+
+    function _copy(bytes32[] memory a) internal pure returns (bytes32[] memory b) {
+        b = new bytes32[](a.length);
+        for (uint256 i; i < a.length; ++i) {
+            b[i] = a[i];
+        }
+    }
+
+    function _stampExpectRevert(
+        WatermarkRegistry reg,
+        IWatermarkRegistry.Session memory s,
+        bytes memory sig,
+        bytes memory p,
+        bytes32[] memory pi,
+        bytes memory err
+    ) internal {
+        vm.expectRevert(err);
+        reg.stamp(s, sig, p, pi);
+    }
+
+    // ------------------------------------------------------------------ why the session signer must stay private
+
+    /// The relayer's session signer is the public dev key (what Deploy.s.sol now refuses on 1874 / 1337). The victim taps; the relayer
+    /// broadcasts stamp(victimSession, proof). An attacker copies proof + public inputs from the pending tx, signs a
+    /// session for ITS OWN wallet with the same nonce using the public key, and lands first.
+    function test_publicSessionSigner_letsAFrontRunnerStealTheTap() public {
+        (WatermarkRegistry reg, uint256 appId) = _registry(PUBLIC_DEV_SIGNER_KEY);
+        bytes32[] memory pi = _copy(pis);
+
+        IWatermarkRegistry.Session memory victimSession = _session(reg, appId, victim);
+        bytes memory victimSig = _sign(PUBLIC_DEV_SIGNER_KEY, reg, victimSession); // the honest relayer
+
+        // Front-run: same nonce (so the same UN), attacker's wallet, signed with the public key.
+        IWatermarkRegistry.Session memory stolen = _session(reg, appId, attacker);
+        bytes memory attackerSig = _sign(PUBLIC_DEV_SIGNER_KEY, reg, stolen);
+        vm.prank(attacker);
+        reg.stamp(stolen, attackerSig, proof, pi);
+
+        (bool ok, uint64 exp) = reg.isStamped(attacker, appId);
+        assertTrue(ok, "attacker's wallet stamped with the victim's card");
+        assertEq(exp, END_OF_FEB_2027);
+        assertEq(reg.nullifierWallet(appId, nullifier), attacker, "victim's card now bound to the attacker");
+
+        // The victim's own transaction now fails, and this card can never stamp the victim for this app.
+        vm.prank(relayer);
+        _stampExpectRevert(
+            reg,
+            victimSession,
+            victimSig,
+            proof,
+            pi,
+            abi.encodeWithSelector(WatermarkRegistry.NullifierBoundToOtherWallet.selector, nullifier, attacker)
+        );
+    }
+
+    /// Control for the test above: with a key only the relayer holds, the same front-run is refused at check 3.
+    function test_attackRefused_privateSessionSigner_frontRunWithSelfSignedSessionRefused() public {
+        (WatermarkRegistry reg, uint256 appId) = _registry(PRIVATE_SIGNER_KEY);
+        bytes32[] memory pi = _copy(pis);
+        IWatermarkRegistry.Session memory stolen = _session(reg, appId, attacker);
+        bytes memory attackerSig = _sign(PUBLIC_DEV_SIGNER_KEY, reg, stolen);
+        _stampExpectRevert(
+            reg,
+            stolen,
+            attackerSig,
+            proof,
+            pi,
+            abi.encodeWithSelector(
+                WatermarkRegistry.WrongSessionSigner.selector,
+                vm.addr(PUBLIC_DEV_SIGNER_KEY),
+                vm.addr(PRIVATE_SIGNER_KEY)
+            )
+        );
+        assertEq(reg.nullifierWallet(appId, nullifier), address(0));
+    }
+
+    // ------------------------------------------------------------------ attacks that held
+
+    /// XL-4 try/catch: a griefer who copies the relayer's pending stamp and resubmits it with a gas limit too low for
+    /// the verifier gets InvalidProof, and the WHOLE call reverts: the session is not burned, the nullifier is not
+    /// bound, so the relayer's own transaction still succeeds afterwards.
+    function test_attackRefused_lowGasResubmission_cannotBurnSessionOrBindNullifier() public {
+        (WatermarkRegistry reg, uint256 appId) = _registry(PRIVATE_SIGNER_KEY);
+        bytes32[] memory pi = _copy(pis);
+        IWatermarkRegistry.Session memory s = _session(reg, appId, victim);
+        bytes memory sig = _sign(PRIVATE_SIGNER_KEY, reg, s);
+        bytes memory p = proof;
+
+        vm.prank(attacker);
+        vm.expectRevert(WatermarkRegistry.InvalidProof.selector);
+        reg.stamp{gas: 1_500_000}(s, sig, p, pi);
+
+        assertFalse(reg.sessionUsed(reg.hashSession(s)), "session not burned");
+        assertEq(reg.nullifierWallet(appId, nullifier), address(0), "nullifier not bound");
+
+        vm.prank(relayer);
+        reg.stamp(s, sig, p, pi);
+        (bool ok,) = reg.isStamped(victim, appId);
+        assertTrue(ok);
+        assertEq(reg.nullifierWallet(appId, nullifier), victim);
+    }
+
+    /// Nullifier theft by re-encoding: every public input that is not pinned to on-chain state is the nullifier, and
+    /// its aliases (n + k*r) are refused by the verifier (ValueGeFieldOrder -> InvalidProof). Covered for n + r in
+    /// RealProofStamp; here every alias that fits in 256 bits, plus the field-reduced forms of the pinned inputs.
+    function test_attackRefused_everyNullifierAliasAndReducedPinnedInputRefused() public {
+        uint256 r = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
+        (WatermarkRegistry reg, uint256 appId) = _registry(PRIVATE_SIGNER_KEY);
+        IWatermarkRegistry.Session memory s = _session(reg, appId, attacker);
+        bytes memory sig = _sign(PRIVATE_SIGNER_KEY, reg, s);
+        bytes memory p = proof;
+        uint256 n = uint256(nullifier);
+        uint256 aliases = (type(uint256).max - n) / r; // n + k*r still fits in 256 bits for k <= aliases
+        assertGe(aliases, 4);
+        for (uint256 k = 1; k <= aliases; ++k) {
+            bytes32[] memory pi = _copy(pis);
+            pi[4] = bytes32(n + k * r);
+            vm.expectRevert(WatermarkRegistry.InvalidProof.selector);
+            reg.stamp(s, sig, p, pi);
+        }
+        // caRoot / rulesRoot / appId / un / month are compared to on-chain values first: an alias never reaches the
+        // verifier (CaRootMismatch etc.), so there is nothing to steal there.
+        bytes32[] memory pi2 = _copy(pis);
+        pi2[0] = bytes32(uint256(caRoot) + r);
+        vm.expectRevert(abi.encodeWithSelector(WatermarkRegistry.CaRootMismatch.selector, pi2[0], caRoot));
+        reg.stamp(s, sig, p, pi2);
+        assertEq(reg.nullifierWallet(appId, nullifier), address(0));
+    }
+
+    /// Same appId on a second registry (same owner + salt => same appId everywhere): a session and proof made for
+    /// registry 1 cannot be replayed on registry 2, and vice versa.
+    function test_attackRefused_sameAppIdOtherRegistry_sessionNotReplayable() public {
+        (WatermarkRegistry reg1, uint256 appId1) = _registry(PRIVATE_SIGNER_KEY);
+        (WatermarkRegistry reg2, uint256 appId2) = _registry(PRIVATE_SIGNER_KEY);
+        assertEq(appId1, appId2);
+        bytes32[] memory pi = _copy(pis);
+        IWatermarkRegistry.Session memory s = _session(reg1, appId1, victim);
+        bytes memory sig = _sign(PRIVATE_SIGNER_KEY, reg1, s);
+        bytes memory p = proof;
+        _stampExpectRevert(
+            reg2, s, sig, p, pi, abi.encodeWithSelector(WatermarkRegistry.WrongRegistry.selector, address(reg1))
+        );
+        // Session rewritten to name reg2 but carrying reg1's signature: the digest changes, so the signer does too.
+        s.registry = address(reg2);
+        vm.expectRevert(); // WrongSessionSigner(<random recovered address>, signer)
+        reg2.stamp(s, sig, p, pi);
+        assertEq(reg2.nullifierWallet(appId2, nullifier), address(0));
+    }
+}

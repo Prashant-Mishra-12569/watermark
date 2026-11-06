@@ -5,6 +5,7 @@ import {Test, Vm, console2} from "forge-std/Test.sol";
 import {WatermarkSponsor} from "../src/WatermarkSponsor.sol";
 import {MockRegistry} from "./mocks/MockRegistry.sol";
 import {Mock1271Wallet} from "./mocks/Mock1271Wallet.sol";
+import {SimulationOnlyWallet} from "./mocks/SimulationOnlyWallet.sol";
 
 interface IWhitechainUSDT {
     function name() external view returns (string memory);
@@ -396,5 +397,37 @@ contract WatermarkSponsorForkTest is Test {
         if (w1 > maxSeen) maxSeen = w1;
         if (fresh > maxSeen) maxSeen = fresh;
         assertLt(maxSeen, 300_000 * 3 / 4, "relayPayment gas too close to MAX_GAS_PER_PAY");
+    }
+
+    /// KNOWN LIMITATION (review finding SPONSOR-1) with the real USDT, which takes the ERC-1271 path for a contract
+    /// `from`: a wallet that signs "valid" only at tx.gasprice 0 passes every simulation, reverts in every priced
+    /// transaction, and uses no quota. The relayer's POST /pay must limit reverted relays itself (relayer/README.md).
+    function test_fork_knownLimitation_simulationOnlyWalletUsesNoQuota() public forkOnly {
+        SimulationOnlyWallet hostile = new SimulationOnlyWallet();
+        _fund(address(hostile), 100e6);
+        registry.setStamp(address(hostile), APP_ID, uint64(block.timestamp + 90 days));
+        bytes memory sig = new bytes(65); // ignored by the wallet; 65 bytes so no length check trips first
+        for (uint256 i; i < 3 * uint256(QUOTA); ++i) {
+            WatermarkSponsor.PaymentIntent memory intent = WatermarkSponsor.PaymentIntent({
+                from: address(hostile),
+                to: shop,
+                value: 1e6,
+                validAfter: block.timestamp - 1,
+                validBefore: block.timestamp + 1 hours,
+                nonce: keccak256(abi.encode("grief", i))
+            });
+            uint256 snap = vm.snapshotState();
+            vm.txGasPrice(0); // eth_call / eth_estimateGas without a gas price
+            vm.prank(relayer);
+            sponsor.relayPayment(intent, sig);
+            vm.revertToState(snap);
+
+            vm.txGasPrice(5 gwei); // the mined transaction
+            vm.prank(relayer);
+            (bool ok,) = address(sponsor).call(abi.encodeCall(WatermarkSponsor.relayPayment, (intent, sig)));
+            assertFalse(ok, "real USDT refuses the 1271 signature in the priced transaction");
+        }
+        assertEq(sponsor.usedToday(address(hostile)), 0, "every relay paid by the relayer, none counted");
+        assertEq(IWhitechainUSDT(USDT_ADDR).balanceOf(address(hostile)), 100e6);
     }
 }
