@@ -58,7 +58,7 @@ export function HeroGate({ className }: { className?: string }) {
           <span id="hero-gate-title" className="text-[15px] font-semibold leading-5 tracking-[-0.01em]">
             {GATE.title}
           </span>
-          <span className="rounded-full border border-line px-2 py-px text-[11px] font-medium leading-4 text-muted">
+          <span className="rounded-full border border-line px-2 py-px text-xs font-medium leading-4 text-muted">
             {GATE.example}
           </span>
         </p>
