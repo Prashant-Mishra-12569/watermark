@@ -15,8 +15,10 @@ export interface PillButtonProps {
   href?: string;
   /** Force new-tab behaviour on or off (default: true for http(s) hrefs). */
   external?: boolean;
-  /** Draw the ↗. Default: on for primary and inverse, off for secondary. */
+  /** Draw the arrow. Default: on for primary and inverse (in a circle), off for secondary (bare when on). */
   arrow?: boolean;
+  /** Which arrow: ↗ (another page, the default) or ↓ (a section further down this page, e.g. "Add Watermark ↓"). */
+  arrowDir?: "up-right" | "down";
   /** 40% opacity and not clickable. A disabled link renders as a <span aria-disabled>. */
   disabled?: boolean;
   /** Sets aria-busy (e.g. while a request runs). Does not disable on its own. */
@@ -55,15 +57,26 @@ export function ArrowUpRight({ className }: { className?: string }) {
   );
 }
 
+/** The ↓ for an in-page jump, drawn like ArrowUpRight. */
+export function ArrowDown({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false" className={cx("block shrink-0", className)}>
+      <path d="M8 3v10M3.5 8.5 8 13l4.5-4.5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 /** "Claim your free pass ↗" → "Claim your free pass": the circle draws the arrow, so a copied label doesn't double it. */
 function stripArrow(children: ReactNode): ReactNode {
-  return typeof children === "string" ? children.replace(/\s*[↗→]\s*$/u, "") : children;
+  return typeof children === "string" ? children.replace(/\s*[↗→↓]\s*$/u, "") : children;
 }
 
 /**
  * The site's button: primary is a black pill with a white circle holding ↗ (dopepay's "Get The App ↗"); secondary a
- * white pill with a hairline border; inverse a white pill for the dark card. Link or button, same look. Server-safe
- * (no "use client"): pass onClick only from a client component.
+ * white pill with a hairline border; inverse a white pill for the dark card. Link or button, same look. One arrow rule
+ * everywhere: a primary (or inverse) pill that goes somewhere carries its arrow in a circle, a secondary pill a bare
+ * arrow; ↗ for another page, ↓ (arrowDir="down") for a section further down the same page. Server-safe (no
+ * "use client"): pass onClick only from a client component.
  */
 export function PillButton({
   children,
@@ -72,6 +85,7 @@ export function PillButton({
   href,
   external,
   arrow,
+  arrowDir = "up-right",
   disabled = false,
   busy,
   type = "button",
@@ -96,6 +110,7 @@ export function PillButton({
   );
   const isExternal = external ?? (href !== undefined && /^https?:\/\//i.test(href));
 
+  const Arrow = arrowDir === "down" ? ArrowDown : ArrowUpRight;
   const content = (
     <>
       <span className="min-w-0 truncate">{showArrow ? stripArrow(children) : children}</span>
@@ -103,15 +118,16 @@ export function PillButton({
         <span
           aria-hidden="true"
           className={cx(
-            "grid shrink-0 place-items-center rounded-full transition-transform duration-200 motion-safe:group-hover/pill:rotate-45",
+            "grid shrink-0 place-items-center rounded-full transition-transform duration-200",
+            arrowDir === "down" ? "motion-safe:group-hover/pill:translate-y-0.5" : "motion-safe:group-hover/pill:rotate-45",
             s.circle,
             v.circle,
           )}
         >
-          <ArrowUpRight className={s.icon} />
+          <Arrow className={s.icon} />
         </span>
       )}
-      {showArrow && !circled && <ArrowUpRight className={s.icon} />}
+      {showArrow && !circled && <Arrow className={s.icon} />}
       {isExternal && href && <span className="sr-only"> (opens in a new tab)</span>}
     </>
   );
