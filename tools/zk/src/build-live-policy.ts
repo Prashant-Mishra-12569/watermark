@@ -1,5 +1,10 @@
 /**
- * Builds policies/live.json from a public BIN dataset: every Indian RuPay DEBIT BIN, as "listed" leaves.
+ * Builds policies/live.json from a public BIN dataset: every Indian RuPay DEBIT BIN with a known, non-prepaid
+ * product category, as "listed" leaves.
+ *
+ * Prepaid cards (gift, transit, payroll) are sold over the counter with little or no KYC, so one person can buy many.
+ * Ranges the dataset marks PREPAID are dropped, and so are ranges with no category at all, because we can't tell
+ * whether they are prepaid.
  * Source: github.com/mostafa19950/bin-list-data (CC BY 4.0, a lite version of BinLookup.io data). Unofficial,
  * possibly outdated: a listed leaf is unproven until a real card passes.
  *
@@ -46,6 +51,7 @@ const [iBin, iBrand, iType, iCat, iCountry] = ["BIN", "Brand", "Type", "Category
 
 // Only data, never code: each row is validated before it becomes a leaf.
 const prefixes = new Map<string, string>();
+const skipped = { prepaid: 0, unknown: 0 };
 for (const line of lines.slice(1)) {
   const r = splitCsv(line);
   const bin = r[iBin!] ?? "";
@@ -53,7 +59,10 @@ for (const line of lines.slice(1)) {
   if ((r[iBrand!] ?? "").toUpperCase() !== "RUPAY") continue; // RuPay-signed; JCB/RuPay co-brands need a JCB key
   if ((r[iType!] ?? "").toUpperCase() !== "DEBIT") continue;
   if ((r[iCountry!] ?? "").toUpperCase() !== "IN") continue;
-  prefixes.set(bin, (r[iCat!] ?? "").trim());
+  const category = (r[iCat!] ?? "").trim();
+  if (!category) { skipped.unknown++; continue; } // can't tell if it's prepaid, so leave it out
+  if (/PREPAID/i.test(category)) { skipped.prepaid++; continue; } // bought over the counter, no bank account behind it
+  prefixes.set(bin, category);
 }
 
 const sorted = [...prefixes.keys()].sort();
@@ -65,13 +74,15 @@ const repo = resolve(import.meta.dirname, "../../..");
 const file = join(repo, "policies/live.json");
 const old = JSON.parse(readFileSync(file, "utf8"));
 const policy = {
-  label: "RuPay debit (India)",
+  label: "RuPay bank debit (India, no prepaid)",
   environment: "live",
-  appId: old.appId ?? "",
+  appId: process.env.LIVE_APP_ID ?? old.appId ?? "",
   source: SOURCE,
   license: LICENSE,
   note:
-    "Every 6-digit Indian RuPay DEBIT BIN in the public dataset above. Unofficial and possibly outdated, so every leaf is " +
+    "Every 6-digit Indian RuPay DEBIT BIN in the public dataset above that has a known product category, except " +
+    "prepaid ones (gift, transit, payroll), which can be bought over the counter. BINs with no category are left out " +
+    "too. Unofficial and possibly outdated, so every leaf is " +
     "'listed' (unproven). No prefix is chosen because of a team member's card. The network is proven by the RuPay CA " +
     "key in the circuit; bank and card type come only from this list.",
   leafDefaults: { network: "RUPAY", networkId: 1, prefixLength: 6, type: "debit", status: "listed" },
@@ -81,4 +92,7 @@ const policy = {
   stampMonths: old.stampMonths ?? 3,
 };
 writeFileSync(file, JSON.stringify(policy, null, 1) + "\n");
-console.log(`live.json: ${sorted.length} RuPay debit prefixes (max ${max}). Now run: node src/roots.ts`);
+console.log(
+  `live.json: ${sorted.length} RuPay bank debit prefixes (max ${max}); left out ${skipped.prepaid} prepaid and ` +
+    `${skipped.unknown} uncategorised. Now run: node src/roots.ts`,
+);

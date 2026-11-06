@@ -316,6 +316,9 @@ Deployment file schema:
 ---
 
 ## Changelog
+- **1.2 (2026-11-06):** the live policy drops prepaid BINs (732) and BINs with no category (1,318), leaving 4,208.
+  Prepaid cards can be bought over the counter with little KYC, so they would let one person make many stamps. Rules are
+  immutable per appId, so this is a new live app (salt `0x…02`); the old one is superseded.
 - **1.1 (2026-11-06):** rules tree depth 12 → 13 (8,192 leaves), so the live policy can hold every public Indian
   RuPay debit BIN (6,258). One more Poseidon2 per proof; new Verifier.sol (agreed before the first deploy).
 - **1.0 (2026-11-06):** first version, from build spec v3 section F. Changes from the spec:

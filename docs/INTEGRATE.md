@@ -19,7 +19,8 @@ random-looking nullifier and the stamp's expiry.
 |---|---|
 | `WatermarkRegistry` | [`0x998934Efa31a6bE75945fDfAa126d3D6401F8Fd6`](https://explorer.testnet.whitechain.io/address/0x998934Efa31a6bE75945fDfAa126d3D6401F8Fd6) (verified) |
 | `VerifierRouter` | [`0xc2E883a53aC54CBc9564882a77ab3723E1373A5C`](https://explorer.testnet.whitechain.io/address/0xc2E883a53aC54CBc9564882a77ab3723E1373A5C) (verified) |
-| Live app: **RuPay debit (India)**, 6,258 public BIN prefixes | `245737539065175059008558421319713289281964530398934598066600266060113564106` |
+| Live app: **RuPay bank debit (India, no prepaid)**, 4,208 public BIN prefixes | `308663211604720878328034572238289142859725369530145873843287544799704764909` *(being registered; check with `watermark_app_info`)* |
+| Old live app, superseded: it also accepted prepaid card ranges | `245737539065175059008558421319713289281964530398934598066600266060113564106` |
 | Test app: synthetic test card only | `242622643093352524455632509511752146182158360637522126326090117364223963656` |
 | Deploy block (event history starts here) | `12335610` |
 
@@ -48,7 +49,7 @@ A wallet such as Ledger Live, an exchange or a dapp backend checks a user's addr
 import { check, checkMany } from "@watermark/sdk";
 
 const registry = "0x998934Efa31a6bE75945fDfAa126d3D6401F8Fd6";
-const appId = "245737539065175059008558421319713289281964530398934598066600266060113564106";
+const appId = "308663211604720878328034572238289142859725369530145873843287544799704764909";
 
 const { stamped, expiresAt } = await check(userAddress, appId, { registry });
 if (!stamped) showGetStampedButton(); // links to the /verify page (verifyLink)

@@ -146,10 +146,12 @@ Carte Bleue (ETHGlobal Lisbon 2026), zkEMV (ZK Hack Berlin 2025), GOAT RAMP (ETH
 
 **Public data:** the RuPay network CA public key 05 comes from the public CAPK list in
 [mmors-1/nfc10](https://github.com/mmors-1/nfc10). We checked it against its published SHA-1 checksum.
-The live filter's 6,258 Indian RuPay debit BINs come from
+The live filter's 4,208 Indian RuPay bank debit BINs come from
 [mostafa19950/bin-list-data](https://github.com/mostafa19950/bin-list-data) (a lite version of BinLookup.io data),
 licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). It's unofficial and possibly outdated, so
-every one of those leaves is marked `listed`, not `tested`.
+every one of those leaves is marked `listed`, not `tested`. We leave out prepaid ranges (gift, transit and payroll
+cards, which anyone can buy over the counter) and ranges the dataset gives no category, because we can't tell if they
+are prepaid.
 
 ## License
 [MIT](LICENSE)

@@ -45,10 +45,11 @@ POLICY_FILES=policies/test.json,policies/live.json
 ```
 ```sh
 pnpm --filter @watermark/prover start     # prints its LAN URL for the QR
-pnpm --filter @watermark/prover test      # 8 API tests (no real proving)
+pnpm --filter @watermark/prover test      # 12 API + startup-check tests (no real proving)
 node ../tools/zk/src/prove-fixture.ts     # real in-memory proof of the test card, with timing
 ```
 
 ## Measured
 In-memory proof of the synthetic test card (witness + prove + verify): **9.4 s** on the Windows laptop (bb.js WASM).
-The same circuit takes 3.0 s with the native `bb` CLI. TODO: measure on the Mac.
+The same circuit takes 3.0 s with the native `bb` CLI on Windows, and 1.4–2.6 s on the MacBook that runs the demo prover
+(2.6 s for the first real-card stamp).
