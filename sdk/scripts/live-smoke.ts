@@ -27,10 +27,15 @@ for (const app of deployedApps("whitechain")) {
   expect(audit.matches, `${app.environment} app: on-chain rulesRoot ${info.rulesRoot.slice(0, 12)}… == published "${audit.published?.label}" (${audit.published?.leaves} leaves)`);
 }
 
-const live = d.liveAppId;
-if (live) {
-  const h = await stampHistory(live, {});
-  expect(h.total >= 1, `live app history: ${h.total} stamp(s), ${h.uniqueWallets} wallet(s), ${h.active} live now, blocks ${h.fromBlock}→${h.toBlock}`);
+// The current live app can be new and still empty, so its history is shown, not required. The first real-card stamp
+// was made under the previous live app, so that one must have at least one stamp.
+const previous = (d as { previousLive?: { liveAppId?: string } }).previousLive?.liveAppId;
+for (const [name, id, required] of [["live", d.liveAppId, false], ["previous live", previous, true]] as const) {
+  if (!id) continue;
+  const h = await stampHistory(id, {});
+  const line = `${name} app history: ${h.total} stamp(s), ${h.uniqueWallets} wallet(s), ${h.active} live now, blocks ${h.fromBlock}→${h.toBlock}`;
+  if (required) expect(h.total >= 1, line);
+  else console.log(`INFO  ${line}`);
   for (const s of h.stamps.slice(0, 3)) console.log(`      ${s.wallet} until ${new Date(s.expiresAt * 1000).toISOString().slice(0, 10)} tx ${s.tx}`);
 }
 
