@@ -1,0 +1,27 @@
+{
+  "name": "@watermark/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Watermark MCP server: read-only stamp checks and policy drafting for apps and AI agents (spec P)",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "watermark-mcp": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "node src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test \"src/**/*.test.ts\""
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "@watermark/sdk": "workspace:*",
+    "@watermark/zk": "workspace:*",
+    "viem": "^2.57.16",
+    "zod": "^4.6.7"
+  }
+}
