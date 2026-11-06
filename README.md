@@ -14,7 +14,9 @@ Built at ETHGlobal Mumbai 2026 by Prashant Mishra and Samanway Baranwal.
 | Real **SBI RuPay debit** card → NFC read in our Android app → full certificate chain checked on the phone | ✅ works on a real card |
 | Phone → encrypted envelope → prover → **zero-knowledge proof of the whole EMV chain**, BIN filter and nullifier → verified | ✅ works on a real card (dev policy, prover on a laptop) |
 | The same circuit compiled on both team laptops, and the proof accepted by the committed Solidity verifier | ✅ |
-| On-chain stamp, gasless USDT payment, alt mempool paymaster | ⏳ in progress |
+| **On-chain stamp on Whitechain Sepolia from the real card**: proof verified by `WatermarkRegistry`, gas paid by the relayer, user paid 0 | ✅ [tx `0xd7e01665…`](https://explorer.testnet.whitechain.io/tx/0xd7e0166584dbb3b404d2b81308b5b69c94fa52b4d2d0da6a66759a52bb86bc07), block 12,368,812, 2,855,911 gas |
+| **EIP-8141 alt mempool**: a stamped wallet's frame tx sponsored by our staked quota paymaster, admitted and mined (5 frames, user paid 0 wei) | ✅ [tx `0xcab8c9e2…`](https://explorer.altmempool.wtf/tx/0xcab8c9e2171a8048c8f5e12d4bb830c92cba7f458763d2c7ac8f23ab1faa8a93?node=https%3A%2F%2Faltmempool.forshtat.com%2Frpc) (devnet block 3,699) |
+| Gasless USDT payment (`/pay`) | ⏳ in progress |
 
 | Metric | Value |
 |---|---|
@@ -22,7 +24,7 @@ Built at ETHGlobal Mumbai 2026 by Prashant Mishra and Samanway Baranwal.
 | Proving time | **1.4 s** on a MacBook (native `bb`), 3.0 s Windows CLI, 9.4 s Windows in-memory (bb.js WASM) |
 | Proof / public inputs | 9,536 bytes / 6 field elements |
 | On-chain verification | **2.57M gas** to verify, about 2.9M for a full stamp. Verifier contract 18,578 bytes |
-| Tests | 60 TypeScript + 22 Android unit tests + 10 Noir tests. Negative cases: replay, tamper, wrong CA, wrong network, BIN not in filter, reused nullifier, expired card, moved ciphertext |
+| Tests | 152 TypeScript + 28 Android unit tests + 10 Noir tests. Negative cases: replay, tamper, wrong CA, wrong network, BIN not in filter, reused nullifier, expired card, moved ciphertext |
 
 ## The problem
 A new wallet is free and takes one second to create, so bots create thousands. Gasless apps get their gas budget
@@ -81,7 +83,9 @@ Each part has its own README: [circuits](circuits/README.md), [prover](prover/RE
 ## Tracks
 
 ### Whitechain · Scale: Payments Nobody Notices
-- [ ] Contracts deployed and verified on Whitechain Sepolia (1874): _links TBD_
+- [x] Contracts deployed and verified on Whitechain Sepolia (1874): [WatermarkRegistry](https://explorer.testnet.whitechain.io/address/0x998934Efa31a6bE75945fDfAa126d3D6401F8Fd6),
+  [VerifierRouter](https://explorer.testnet.whitechain.io/address/0xc2E883a53aC54CBc9564882a77ab3723E1373A5C). All addresses: [deployments/whitechain.json](deployments/whitechain.json)
+- [x] First real-card stamp: [tx `0xd7e01665…`](https://explorer.testnet.whitechain.io/tx/0xd7e0166584dbb3b404d2b81308b5b69c94fa52b4d2d0da6a66759a52bb86bc07)
 - [ ] USDT payment (`0xcedfB56113143d55b2358b8CFbB0dEB5Ad2f55a7`) settled in the main flow: _explorer link TBD_
 - [ ] The payer flow has zero visible crypto steps
 - **Why on-chain stablecoin settlement:** _TBD_
@@ -96,7 +100,8 @@ Each part has its own README: [circuits](circuits/README.md), [prover](prover/RE
 - Feedback: [WHITECHAIN_FEEDBACK.md](WHITECHAIN_FEEDBACK.md)
 
 ### Ethereum Foundation · Frame Transaction Alternative Mempool
-- [ ] Admitted transaction on the devnet explorer: _link TBD_
+- [x] Admitted transaction on the devnet explorer: [tx `0xcab8c9e2…`](https://explorer.altmempool.wtf/tx/0xcab8c9e2171a8048c8f5e12d4bb830c92cba7f458763d2c7ac8f23ab1faa8a93?node=https%3A%2F%2Faltmempool.forshtat.com%2Frpc), mined in block 3,699, all 5 frames
+  successful; the paymaster paid and the user's wallet has never held ETH
 - Design and trade-offs: [docs/EF_ALTMEMPOOL.md](docs/EF_ALTMEMPOOL.md)
 
 ## CROPS
@@ -114,7 +119,10 @@ Each part has its own README: [circuits](circuits/README.md), [prover](prover/RE
 ## Current limitations
 - Our prover sees card data briefly. It's never on-chain, and on-device proving is the fix.
 - One card, not one person. A tap has no PIN, so a stolen or borrowed card also passes.
-- Only RuPay has been verified on real cards. Visa and Mastercard are *untested*.
+- Only RuPay works today. Visa and Mastercard are *planned, not live*: their filters can be written, but no Visa or
+  Mastercard card can be proven yet. Each needs its own circuit profile, which plugs into `VerifierRouter` without a redeploy.
+- A stamp lasts until the end of a month 1 to 3 months ahead (our relayer uses 3), and never past the card's own
+  certificate expiry. Re-tapping the same card with the same wallet renews it. A stamp can't be revoked early.
 - Testnet only. A real launch needs PCI and legal review and a licensed BIN source.
 
 The full list is in [docs/PRIVACY.md](docs/PRIVACY.md).
