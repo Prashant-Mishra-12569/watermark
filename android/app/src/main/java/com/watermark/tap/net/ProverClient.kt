@@ -1,5 +1,7 @@
 package com.watermark.tap.net
 
+import com.watermark.tap.policy.Policy
+
 /** Prover API (interfaces F3). Responses never contain card data. */
 sealed interface ProveOutcome {
     data class Stamped(val txHash: String) : ProveOutcome
@@ -11,6 +13,12 @@ sealed interface ProveOutcome {
 }
 
 class ProverClient(private val baseUrl: String) {
+
+    /** GET /policy/:appId: the app's public filter, or null if the prover doesn't serve this app. */
+    fun policy(appId: String): Policy? {
+        val r = Http.get("$baseUrl/policy/$appId")
+        return if (r.code == 200) Policy.parse(r.body) else null
+    }
 
     /** POST /prove. Returns the jobId, or a refusal code. */
     fun submit(envelopeJson: String): Pair<String?, String?> {

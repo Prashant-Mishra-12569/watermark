@@ -19,6 +19,7 @@ import com.watermark.tap.emv.TlvException
 import com.watermark.tap.net.ProveOutcome
 import com.watermark.tap.net.ProverClient
 import com.watermark.tap.net.RelayerClient
+import com.watermark.tap.policy.Policy
 import com.watermark.tap.session.Challenge
 import com.watermark.tap.session.SUPPORTED_CHAINS
 import com.watermark.tap.session.SessionVerifier
@@ -38,6 +39,10 @@ class MainActivity : ComponentActivity(), NfcAdapter.ReaderCallback {
     /** The verified session the next tap belongs to. Null means taps are ignored. */
     @Volatile
     private var session: VerifyLink.Full? = null
+
+    /** The app's filter for the current session, from the prover's GET /policy/:appId. Null = not loaded. */
+    @Volatile
+    private var policy: Policy? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -108,7 +113,8 @@ class MainActivity : ComponentActivity(), NfcAdapter.ReaderCallback {
         val adapter = nfc
         if (adapter == null || !adapter.isEnabled) return TapUiState.Refused(RefusalReason.NFC_OFF)
         session = link
-        // TODO(F8): fetch GET /policy/:appId for the real app name, filter label and what the stamp reveals.
+        policy = null
+        loadPolicy(link)
         return TapUiState.Consent(
             appName = "Watermark",
             filterLabel = "Policy for app ${link.appId.toString().take(8)}…",
@@ -144,9 +150,10 @@ class MainActivity : ComponentActivity(), NfcAdapter.ReaderCallback {
                     val checked = OdaVerifier.verify(card, ca.modulus)
                     if (checked.validThroughMonth < link.validUntilMonth) {
                         TapUiState.Refused(RefusalReason.EXPIRES_TOO_SOON)
+                    } else if (!passesLocalFilter(card.rid, checked.pan)) {
+                        // Spec M step 6: refused on the phone, so this card's data is never sent anywhere
+                        TapUiState.Refused(RefusalReason.NOT_IN_POLICY)
                     } else {
-                        // TODO(F8): fetch GET /policy/:appId and check the filter here too, so a refused card
-                        // never leaves the phone. Until then the prover enforces it (NOT_IN_POLICY).
                         val key = proverKey()
                         if (key == null) {
                             TapUiState.Error("This build has no prover key (prover/keys/prover_pub.pem).")
@@ -171,6 +178,35 @@ class MainActivity : ComponentActivity(), NfcAdapter.ReaderCallback {
             runCatching { iso.close() }
         }
         show(result)
+    }
+
+    /** Loads the filter so the consent screen can say what this app allows, and the tap can be checked locally. */
+    private fun loadPolicy(link: VerifyLink.Full) {
+        thread(name = "policy") {
+            val loaded = runCatching { ProverClient(link.proverUrl).policy(link.appId.toString()) }.getOrNull() ?: return@thread
+            if (session !== link) return@thread // a newer link replaced this one
+            policy = loaded
+            runOnUiThread {
+                val current = state.value
+                if (current is TapUiState.Consent && session === link) {
+                    state.value = current.copy(
+                        filterLabel = loaded.summary,
+                        revealsText = "Your wallet will show it was linked to a real bank card that passed this filter: " +
+                            "${loaded.label.ifBlank { "this app's filter" }}. Nothing else about the card.",
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * The card's prefix must be in the app's filter, with the network of the key that signed it.
+     * If the filter couldn't be loaded, the prover still enforces it, and so do the circuit and the contract.
+     */
+    private fun passesLocalFilter(rid: String, pan: String): Boolean {
+        val p = policy ?: return true
+        val network = Policy.networkIdForRid(rid) ?: return false
+        return p.allows(network, pan)
     }
 
     /** POST /prove, then poll the job (interfaces F3). Only ciphertext ever leaves the phone. */
