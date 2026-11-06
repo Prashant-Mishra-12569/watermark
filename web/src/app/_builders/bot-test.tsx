@@ -1,5 +1,5 @@
 import { BotFarm } from "@/app/_art";
-import { PillButton } from "@/app/_site";
+import { PillButton, SwipeRow, cx } from "@/app/_site";
 import { CHAIN_ID, LIVE_APP, TEST_APP } from "@/lib/site.ts";
 import { BOT_COUNT } from "../attack/bots.ts";
 import { TEST_CTA, TEST_TITLE, botTestLead } from "./copy.ts";
@@ -28,8 +28,18 @@ export function BotTest() {
           }
         />
 
-        <div className="mt-12 grid grid-cols-1 gap-4 sm:mt-16 sm:gap-6 min-[56.25rem]:grid-cols-12">
-          <div className="flex min-w-0 items-center justify-center rounded-card bg-surface p-3 min-[420px]:p-5 sm:p-8 min-[56.25rem]:col-span-6 min-[56.25rem]:p-6 lg:p-8">
+        {/* Under 900px two panels you swipe, the wallet checker first (the part you can use), then the bot farm.
+            From 900px: side by side, art left, checker right. */}
+        <SwipeRow
+          as="div"
+          label="Bot test"
+          dotsClassName="min-[56.25rem]:hidden"
+          className={cx(
+            "-mx-4 mt-8 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto overscroll-x-contain px-4 py-3 [scrollbar-width:none] sm:-mx-6 sm:mt-12 sm:scroll-px-6 sm:gap-4 sm:px-6 [&::-webkit-scrollbar]:hidden",
+            "min-[56.25rem]:mx-0 min-[56.25rem]:mt-16 min-[56.25rem]:grid min-[56.25rem]:snap-none min-[56.25rem]:grid-cols-12 min-[56.25rem]:gap-6 min-[56.25rem]:overflow-visible min-[56.25rem]:px-0 min-[56.25rem]:py-0",
+          )}
+        >
+          <div className="flex w-[86%] max-w-[420px] min-w-0 shrink-0 snap-start items-center justify-center rounded-card bg-surface p-3 min-[420px]:p-5 sm:w-[64%] sm:p-8 min-[56.25rem]:col-span-6 min-[56.25rem]:w-auto min-[56.25rem]:max-w-none min-[56.25rem]:p-6 lg:p-8">
             {/* Never wider than it is in the two-column layout: on a tablet it does not grow into a wall of wallets. */}
             <div className="w-full max-w-[540px] rounded-inner bg-white px-4 pb-6 pt-4 ring-1 ring-black/[0.04] sm:px-8 sm:pb-10 sm:pt-6 min-[56.25rem]:px-6 min-[56.25rem]:pb-8 lg:px-8 lg:pb-10">
               {/* Mock art, so it says so (SITE_FINAL "Words": "Example" on mock data), like the hero's panel. */}
@@ -42,15 +52,15 @@ export function BotTest() {
             </div>
           </div>
 
-          <div className="min-w-0 min-[56.25rem]:col-span-6">
+          <div className="order-first w-[86%] max-w-[420px] min-w-0 shrink-0 snap-start sm:w-[64%] min-[56.25rem]:order-none min-[56.25rem]:col-span-6 min-[56.25rem]:w-auto min-[56.25rem]:max-w-none">
             <WalletChecker
               liveAppId={LIVE_APP.appId}
               testAppId={TEST_APP.appId}
               chainId={String(CHAIN_ID)}
-              className="min-[56.25rem]:flex min-[56.25rem]:h-full min-[56.25rem]:flex-col min-[56.25rem]:justify-center"
+              className="h-full min-[56.25rem]:flex min-[56.25rem]:flex-col min-[56.25rem]:justify-center"
             />
           </div>
-        </div>
+        </SwipeRow>
       </div>
     </section>
   );

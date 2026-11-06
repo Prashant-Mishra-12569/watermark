@@ -1,5 +1,5 @@
 import { LineIcon } from "@/app/_art";
-import { ExternalLink } from "@/app/_site";
+import { ExternalLink, SwipeRow } from "@/app/_site";
 import { DOCS } from "@/lib/site.ts";
 import { GOOD_TO_KNOW, PRIVACY_EYEBROW, PRIVACY_ROWS, PRIVACY_TITLE, PRIVACY_TRUST } from "./copy.ts";
 import { SectionHead, WRAP } from "./kit";
@@ -18,7 +18,45 @@ export function Privacy() {
       <div className={WRAP}>
         <SectionHead id="privacy" eyebrow={PRIVACY_EYEBROW} title={PRIVACY_TITLE} />
 
-        <div className="mt-12 grid grid-cols-1 gap-4 sm:mt-16 sm:gap-6 lg:grid-cols-12">
+        {/* Phones: one card per point in a row you swipe (what we see, keep and put on-chain, the trust note, the
+            limits), instead of a long stacked panel. From 640px: the two panels below. */}
+        <SwipeRow
+          label="Privacy and limits"
+          dotsClassName="sm:hidden"
+          className="-mx-4 mt-8 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto overscroll-x-contain px-4 py-2 [scrollbar-width:none] sm:hidden [&::-webkit-scrollbar]:hidden"
+        >
+          {PRIVACY_ROWS.map((row, i) => (
+            <li key={row.label} className="flex w-[78%] max-w-[320px] shrink-0 snap-start flex-col rounded-card bg-surface p-6">
+              <span
+                aria-hidden="true"
+                className="grid size-11 place-items-center rounded-full bg-white text-ink ring-1 ring-black/[0.05]"
+              >
+                <LineIcon name={ROW_ICON[i] ?? "lock"} size={22} />
+              </span>
+              <h3 className="mt-5 text-xl font-semibold tracking-[-0.02em]">{row.label}</h3>
+              <p className="mt-2 text-pretty leading-relaxed text-muted">{row.text}</p>
+            </li>
+          ))}
+          <li className="flex w-[78%] max-w-[320px] shrink-0 snap-start flex-col justify-between rounded-card bg-ink p-6 text-white">
+            <p className="text-pretty text-lg leading-relaxed">{PRIVACY_TRUST}</p>
+            <ExternalLink href={DOCS.privacy} className="mt-6 text-base font-medium text-white">
+              Read our privacy notes
+            </ExternalLink>
+          </li>
+          <li className="flex w-[78%] max-w-[320px] shrink-0 snap-start flex-col rounded-card border border-line bg-white p-6">
+            <h3 className="text-xl font-semibold tracking-[-0.02em]">Good to know</h3>
+            <ul className="mt-4 space-y-3">
+              {GOOD_TO_KNOW.map((line) => (
+                <li key={line} className="flex gap-3 text-pretty text-[15px] leading-relaxed">
+                  <span aria-hidden="true" className="mt-[0.6em] size-1.5 shrink-0 rounded-full bg-ink" />
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
+          </li>
+        </SwipeRow>
+
+        <div className="mt-12 hidden grid-cols-1 gap-4 sm:mt-16 sm:grid sm:gap-6 lg:grid-cols-12">
           <div className="min-w-0 rounded-card bg-surface p-6 sm:p-8 lg:col-span-7">
             <h3 className="text-[22px] font-semibold leading-[1.15] tracking-[-0.025em] sm:text-2xl">
               What we see, store and put on-chain

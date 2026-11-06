@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { LineIcon } from "@/app/_art";
-import { CodeBlock, CopyText, ExternalLink, StatusChip } from "@/app/_site";
+import { CodeBlock, CopyText, ExternalLink, StatusChip, SwipeRow } from "@/app/_site";
 import { BLOCKSCOUT_VERIFIED } from "@/lib/evidence.ts";
 import { ADDR, CHAIN_ID, DEPLOY_BLOCK, DOCS, LIVE_APP, addressUrl } from "@/lib/site.ts";
 import { AddTabs, type AddTab } from "./add-tabs";
@@ -53,8 +53,9 @@ function SolidityPanel() {
       <div className="mt-6">
         <OneLine />
       </div>
-      <p className="mb-3 mt-8 text-sm font-medium text-muted">{ADD_BLOCKS.solidity.pasteOnce}</p>
-      <CodeBlock code={SOLIDITY_GATE} label={ADD_BLOCKS.solidity.label} />
+      <p className="mb-3 mt-6 text-sm font-medium text-muted sm:mt-8">{ADD_BLOCKS.solidity.pasteOnce}</p>
+      {/* Phones: the code scrolls inside a shorter block; Copy still takes all of it. */}
+      <CodeBlock code={SOLIDITY_GATE} label={ADD_BLOCKS.solidity.label} className="max-sm:[&_pre]:max-h-56 max-sm:[&_pre]:overflow-auto" />
     </>
   );
 }
@@ -66,7 +67,7 @@ function SdkPanel() {
         <p>{ADD_BLOCKS.sdk.body}</p>
         <p className="mt-3 text-sm">{ADD_BLOCKS.sdk.note}</p>
       </Lead>
-      <CodeBlock code={TYPESCRIPT_CHECK} label={ADD_BLOCKS.sdk.label} className="mt-6" />
+      <CodeBlock code={TYPESCRIPT_CHECK} label={ADD_BLOCKS.sdk.label} className="mt-6 max-sm:[&_pre]:max-h-56 max-sm:[&_pre]:overflow-auto" />
     </>
   );
 }
@@ -145,7 +146,7 @@ const TABS: readonly AddTab[] = [
  */
 function LiveRow({ label, hint, value, extra }: { label: string; hint: string; value: string; extra?: ReactNode }) {
   return (
-    <div className="grid min-w-0 gap-1.5 border-t border-line py-4 first:border-t-0 sm:py-5 sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-6 lg:grid-cols-[12rem_minmax(0,1fr)] lg:gap-8">
+    <div className="grid w-[80%] max-w-[320px] min-w-0 shrink-0 snap-start content-start gap-2 rounded-inner bg-white p-4 ring-1 ring-black/[0.04] sm:w-auto sm:max-w-none sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-6 sm:rounded-none sm:border-t sm:border-line sm:bg-transparent sm:p-0 sm:py-5 sm:ring-0 sm:first:border-t-0 lg:grid-cols-[12rem_minmax(0,1fr)] lg:gap-8">
       <dt className="min-w-0">
         <span className="font-semibold">{label}</span>
         <span className="block text-sm text-muted">{hint}</span>
@@ -176,7 +177,13 @@ export function Add({ liveLabel }: { liveLabel: string }) {
               <ExternalLink href={DOCS.mcp}>MCP setup</ExternalLink>
             </p>
           </div>
-          <dl className="mt-5 rounded-inner bg-white px-4 ring-1 ring-black/[0.04] sm:px-7">
+          {/* Phones: one tile per value in a row you swipe; from 640px the white table with one row each. */}
+          <SwipeRow
+            as="dl"
+            label="Live on Whitechain Sepolia"
+            dotsClassName="sm:hidden"
+            className="-mx-5 mt-5 flex snap-x snap-mandatory scroll-px-5 gap-3 overflow-x-auto overscroll-x-contain px-5 py-1 [scrollbar-width:none] sm:mx-0 sm:block sm:overflow-visible sm:rounded-inner sm:bg-white sm:px-7 sm:py-0 sm:ring-1 sm:ring-black/[0.04] [&::-webkit-scrollbar]:hidden"
+          >
             <LiveRow label="Chain ID" hint="Whitechain Sepolia" value={String(CHAIN_ID)} />
             <LiveRow
               label="Registry"
@@ -193,7 +200,7 @@ export function Add({ liveLabel }: { liveLabel: string }) {
             />
             <LiveRow label="Live appId" hint={liveLabel} value={LIVE_APP.appId} />
             <LiveRow label="Deploy block" hint="Event history starts here" value={String(DEPLOY_BLOCK)} />
-          </dl>
+          </SwipeRow>
         </div>
       </div>
     </section>
