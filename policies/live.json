@@ -2,8 +2,54 @@
   "label": "SBI RuPay debit",
   "environment": "live",
   "appId": "",
-  "leaves": [],
-  "rulesRoot": "0x0d07f6e7a8a0e9199d6d92801fff867002ff5b4808962f9da2ba5ce1bdd26a73",
+  "leaves": [
+    {
+      "network": "RUPAY",
+      "networkId": 1,
+      "prefixLength": 6,
+      "prefix": "652374",
+      "bank": "SBI",
+      "type": "debit",
+      "variant": "RuPay Gold Debit",
+      "status": "listed",
+      "source": "https://www.desidime.com/discussions/all-sbi-salary-account-all-premium-rupay-debit-card-codes-and-card-variant-details"
+    },
+    {
+      "network": "RUPAY",
+      "networkId": 1,
+      "prefixLength": 6,
+      "prefix": "652375",
+      "bank": "SBI",
+      "type": "debit",
+      "variant": "RuPay Diamond Debit",
+      "status": "listed",
+      "source": "https://www.desidime.com/discussions/all-sbi-salary-account-all-premium-rupay-debit-card-codes-and-card-variant-details"
+    },
+    {
+      "network": "RUPAY",
+      "networkId": 1,
+      "prefixLength": 6,
+      "prefix": "652410",
+      "bank": "SBI",
+      "type": "debit",
+      "variant": "RuPay Platinum / Rhodium Select Debit",
+      "status": "listed",
+      "source": "https://www.desidime.com/discussions/all-sbi-salary-account-all-premium-rupay-debit-card-codes-and-card-variant-details"
+    },
+    {
+      "network": "RUPAY",
+      "networkId": 1,
+      "prefixLength": 6,
+      "prefix": "652418",
+      "bank": "SBI",
+      "type": "debit",
+      "variant": "Wealth RuPay Select",
+      "status": "listed",
+      "source": "https://www.desidime.com/discussions/all-sbi-salary-account-all-premium-rupay-debit-card-codes-and-card-variant-details"
+    }
+  ],
+  "rulesRoot": "0x0232b7f81eba93c5d05db78bcd77bfc3c8e81f652ef71c0034aaeeb4f8f24b46",
   "quotaPerDay": 20,
-  "stampMonths": 3
+  "stampMonths": 3,
+  "note": "Prefixes are from a public, community-sourced list (not official SBI or NPCI data). status \"listed\" means unproven by a real card. No prefix here is tied to a team member card."
 }
