@@ -1,5 +1,7 @@
 # Watermark
 
+*Real people leave a mark.*
+
 > Watermark lets an app accept only wallets backed by a real bank card. A user taps the card on our Android app
 > once, a zero-knowledge proof is checked on-chain, and the wallet gets a "stamp". Your contract, backend or AI agent
 > checks the stamp before an airdrop, mint or reward pays out.

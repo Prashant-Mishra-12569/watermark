@@ -2,7 +2,7 @@
   <img src="web/public/brand/lockup.png" alt="Watermark" width="360">
 </p>
 
-<h3 align="center">Bots can't hold plastic.</h3>
+<h3 align="center">Real people leave a mark.</h3>
 
 <p align="center">
   Tap your bank card on your phone once. Your wallet gets a private, on-chain stamp that proves it is backed by a real

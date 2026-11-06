@@ -1,7 +1,7 @@
 {
   "name": "watermark",
   "private": true,
-  "description": "Tap a bank card, get a private real-card stamp for your wallet. Bots can't hold plastic.",
+  "description": "Real people leave a mark. Tap a bank card, get a private real-card stamp for your wallet.",
   "license": "MIT",
   "packageManager": "pnpm@10.34.9",
   "engines": {

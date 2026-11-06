@@ -39,6 +39,9 @@ export function SiteFooter() {
           <Link href="/" aria-label="Watermark home" className="inline-flex rounded-full">
             <Logo />
           </Link>
+          <p className="mt-5 text-lg font-medium tracking-[-0.01em]">
+            Real people leave a <em className={EM_CLASS}>mark</em>.
+          </p>
           <p className="mt-6 max-w-[16ch] text-[clamp(30px,4.2vw,48px)] font-semibold leading-[1.06] tracking-[-0.03em] text-balance sm:mt-8">
             Built in <em className={EM_CLASS}>Mumbai</em> at ETHGlobal 2026
           </p>
