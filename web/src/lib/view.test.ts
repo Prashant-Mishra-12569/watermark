@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { chainName, explorerAddressUrl, formatCountdown, formatStampExpiry, secondsLeft, truncateMiddle, walletLast4 } from "./view.ts";
+import { chainName, explorerAddressUrl, explorerTxUrl, formatCountdown, formatStampExpiry, secondsLeft, shortAddress, truncateMiddle, walletLast4 } from "./view.ts";
 import {
   localSessionDeadline,
   MIN_AUTO_REFRESH_MS,
@@ -94,4 +94,10 @@ test("every error code has calm copy", () => {
   assert.match(sessionErrorCopy("NETWORK", ctx).hint, /CORS_ORIGINS/);
   assert.match(sessionErrorCopy("CHAIN_NOT_READY", ctx).title, /Whitechain Sepolia/);
   assert.match(statusNoteCopy("CHAIN_UNAVAILABLE"), /still works/);
+});
+
+test("tx explorer links and short addresses for the Paid view", () => {
+  const tx = `0x${"ab".repeat(32)}`;
+  assert.equal(explorerTxUrl("1874", tx), `https://explorer.testnet.whitechain.io/tx/${tx}`);
+  assert.equal(shortAddress("0x7E5F4552091A69125d5DfCb7b8C2659029395Bdf"), "0x7E5F…5Bdf");
 });

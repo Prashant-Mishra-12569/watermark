@@ -29,7 +29,13 @@ export default function Home() {
         >
           Verify a wallet
         </Link>
-        <span className="text-sm text-muted">More demo steps (gasless pay, bot attack) are coming soon.</span>
+        <Link
+          href="/pay"
+          className="inline-flex min-h-12 items-center rounded-lg border border-line bg-surface px-6 text-lg font-semibold hover:opacity-90"
+        >
+          Pay
+        </Link>
+        <span className="text-sm text-muted">Verified wallets pay a shop in USDT. The relayer pays the gas.</span>
       </div>
 
       <p className="border-t border-line pt-6 text-sm text-muted">

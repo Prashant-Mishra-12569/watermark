@@ -55,3 +55,14 @@ export function formatStampExpiry(expiresAt: number): string {
 export function truncateMiddle(s: string, head = 32, tail = 12): string {
   return s.length <= head + tail + 1 ? s : `${s.slice(0, head)}…${s.slice(-tail)}`;
 }
+
+/** Explorer page for a transaction on the configured chain. */
+export function explorerTxUrl(chainId: ChainIdString, txHash: string): string {
+  const base = chainFor(chainId).blockExplorers.default.url.replace(/\/+$/, "");
+  return `${base}/tx/${txHash}`;
+}
+
+/** "0xf95E…a9Ba" for showing who sent a transaction. */
+export function shortAddress(address: string): string {
+  return address.length > 12 ? `${address.slice(0, 6)}…${address.slice(-4)}` : address;
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
 import { buildFallbackLink } from "@watermark/sdk";
@@ -33,6 +34,11 @@ export function VerifyFlow({ config, onNewWallet }: { config: WebConfig; onNewWa
   const now = useNow(!stamp);
   const [shortQr, setShortQr] = useState(false);
   const chain = chainName(config.chainId);
+  // /pay finds the same wallet by appId: keep a ?app= override.
+  const payHref =
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("app")
+      ? `/pay?app=${encodeURIComponent(config.appId)}`
+      : "/pay";
 
   // Counted on this device's clock from when the session arrived (see localSessionDeadline).
   const left = session ? secondsUntil(session.deadlineMs, now) : 0;
@@ -121,6 +127,14 @@ export function VerifyFlow({ config, onNewWallet }: { config: WebConfig; onNewWa
           {stamp ? (
             <div className="space-y-2 rounded-xl bg-ok-bg px-4 py-3 text-ok">
               <p className="text-3xl font-bold">Verified ✓</p>
+              {config.chainId === "1874" && (
+                <Link
+                  href={payHref}
+                  className="inline-flex min-h-11 items-center rounded-lg bg-accent px-4 font-semibold text-accent-text hover:opacity-90"
+                >
+                  Pay a shop with this wallet (no gas)
+                </Link>
+              )}
               {stamp.expiresAt > 0 && (
                 <p className="text-sm">Stamp valid until {formatStampExpiry(stamp.expiresAt)}.</p>
               )}
