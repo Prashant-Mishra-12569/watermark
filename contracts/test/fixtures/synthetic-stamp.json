@@ -2,6 +2,7 @@
   "description": "Real UltraHonk proof of the SYNTHETIC test card (tools/testcard/fixtures/rupay-768.json, made-up keys). Safe to commit. Regenerate with contracts/script/gen-stamp-fixture.ts after any circuit or verifier change.",
   "sourceCommit": "ca6b060",
   "circuitSha256": "2b35087544ab43c1c5859ee17f672ba2304726c734ea12ed183c3383143d38dc",
+  "circuitBytecodeSha256": "4174acfaa64bd4d3f1af09afcb9150b5647bc6ce331253b9af76e43a8494c2bb",
   "nargoVersion": "1.0.0",
   "bbjsVersion": "6.0.0",
   "appOwner": "0x00000000000000000000000000000000000A11cE",
