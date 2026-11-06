@@ -59,3 +59,6 @@ Thumbs.db
 .vscode/
 .idea/
 *.log
+
+# Local-only policies (e.g. a real card BIN for dev testing): never commit
+policies/local*.json

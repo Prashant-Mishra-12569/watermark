@@ -30,8 +30,15 @@ sealed interface TapUiState {
     /** Stopped on the phone: nothing was sent. */
     data class Refused(val reason: RefusalReason) : TapUiState
 
+    /** Loading a session by ID (short QR link). */
+    data object LoadingSession : TapUiState
+
     data object Sending : TapUiState
     data class Proving(val jobId: String) : TapUiState
+
+    /** The zero-knowledge proof verified, but no relayer is connected yet to put it on-chain (dev setup). */
+    data object ProvedNotStamped : TapUiState
+
     data class Stamped(val txHash: String, val explorerUrl: String) : TapUiState
     data class Error(val message: String) : TapUiState
 }
@@ -45,4 +52,5 @@ enum class RefusalReason(val message: String) {
     NFC_LOST("The card moved away. Hold it still and try again."),
     NFC_OFF("Turn on NFC to tap your card."),
     NO_SESSION("Scan the QR code on the website first. Nothing was read from the card."),
+    SESSION_USED("This QR code was already used. Scan a new one from the website."),
 }
