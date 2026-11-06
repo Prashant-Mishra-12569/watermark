@@ -1,5 +1,6 @@
 /** HTTP routes (interfaces F6). Request bodies are never logged. */
 import { Hono, type Context } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import { bytesToHex, getAddress, isAddress, type Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -14,10 +15,13 @@ import {
 import type { Config } from "./config.ts";
 import { RateLimiter, SessionStore } from "./limits.ts";
 import type { ChainReader } from "./chain.ts";
+import { MAX_STAMP_BODY_BYTES, parseStampRequest, StampService, type ChainWriter } from "./stamp.ts";
 
 export interface AppDeps {
   config: Config;
   chain: ChainReader;
+  /** Pays gas for POST /stamp. null/absent = /stamp answers 503 RELAYER_NOT_CONFIGURED. */
+  writer?: ChainWriter | null;
   /** Client IP for rate limiting. Never trust X-Forwarded-For: there is no proxy in front. */
   clientIp: (c: Context) => string;
   nowMs?: () => number;
@@ -36,6 +40,22 @@ export function createApp(deps: AppDeps) {
   const signer = privateKeyToAccount(config.sessionSignerKey);
   const limiter = new RateLimiter(config.sessionsPerMinutePerIp, nowMs);
   const store = new SessionStore(config.maxOpenSessions, () => Math.floor(nowMs() / 1000));
+  const stampLimiter = new RateLimiter(config.stamp.perMinutePerIp, nowMs);
+  const stamps = deps.writer
+    ? new StampService(
+        {
+          appIds: config.appIds,
+          chains: config.chains,
+          sessionSigner: signer.address,
+          budgetWei: config.stamp.budgetWei,
+          maxGas: config.stamp.maxGas,
+          maxQueue: config.stamp.maxQueue,
+          receiptTimeoutMs: config.stamp.receiptTimeoutMs,
+        },
+        deps.writer,
+        nowMs,
+      )
+    : null;
 
   const refuse = (reason: string, wallet?: string) => {
     if (!config.demoMode) console.warn(`refused ${reason}${wallet ? ` ${shortWallet(wallet)}` : ""}`);
@@ -50,7 +70,7 @@ export function createApp(deps: AppDeps) {
     });
   }
 
-  app.get("/health", (c) => c.json({ ok: true, sessionSigner: signer.address }));
+  app.get("/health", (c) => c.json({ ok: true, sessionSigner: signer.address, relayer: deps.writer?.address ?? null }));
 
   /** F6: POST /session { wallet, appId, chainId } → { session, sig, qr, sessionId }. No gas. */
   app.post("/session", async (c) => {
@@ -96,6 +116,38 @@ export function createApp(deps: AppDeps) {
     return c.json(s);
   });
 
+  /**
+   * F6: POST /stamp { session, sig, proof, publicInputs } → { txHash }. Simulates first: a refused stamp spends no gas.
+   * Called by the prover once a proof verifies (spec K layer 1). See stamp.ts for the flow and every refusal.
+   */
+  app.post(
+    "/stamp",
+    bodyLimit({ maxSize: MAX_STAMP_BODY_BYTES, onError: (c) => c.json({ error: "BAD_REQUEST", message: "body too large" }, 413) }),
+    async (c) => {
+      if (!stamps) return c.json({ error: "RELAYER_NOT_CONFIGURED" }, 503);
+      if (!stampLimiter.allow(deps.clientIp(c))) {
+        refuse("RATE_LIMIT");
+        return c.json({ error: "RATE_LIMIT" }, 429);
+      }
+      const body = await c.req.json().catch(() => null);
+      const parsed = parseStampRequest(body);
+      if ("error" in parsed) {
+        refuse("BAD_REQUEST");
+        return c.json({ error: "BAD_REQUEST", message: parsed.error }, 400);
+      }
+      const wallet = parsed.session.wallet;
+      try {
+        const out = await stamps.handle(parsed);
+        if (out.logReason) refuse(out.logReason, wallet);
+        else if (!config.demoMode) console.log(`stamped ${shortWallet(wallet)}`);
+        return c.json(out.body, out.status);
+      } catch {
+        refuse("INTERNAL", wallet);
+        return c.json({ error: "INTERNAL" }, 500);
+      }
+    },
+  );
+
   /** F6: GET /status/:wallet?app=<appId>&chain=<chainId> → { stamped, expiresAt, quotaLeft }. Reads the chain. */
   app.get("/status/:wallet", async (c) => {
     const wallet = c.req.param("wallet");
@@ -127,6 +179,9 @@ function parseSessionRequest(
   if (!body || typeof body !== "object") return { error: "body must be JSON" };
   const b = body as Record<string, unknown>;
   if (typeof b.wallet !== "string" || !isAddress(b.wallet)) return { error: "wallet must be an address" };
+  // The registry refuses a stamp for address(0) (ZeroWallet: it is also its "unbound nullifier" marker), so a session
+  // for it could never be used. Refused here, before anything is signed.
+  if (BigInt(b.wallet) === 0n) return { error: "wallet must not be the zero address" };
   if (!isUint248(b.appId)) return { error: "appId must be a 248-bit decimal string" };
   if (typeof b.chainId !== "string" || !/^\d+$/.test(b.chainId)) return { error: "chainId must be a decimal string" };
   const chainId = Number(b.chainId);
