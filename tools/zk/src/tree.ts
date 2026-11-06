@@ -2,7 +2,7 @@
 import { fromBytes, poseidon2 } from "./hash.ts";
 
 export const CA_TREE_DEPTH = 6;
-export const RULES_TREE_DEPTH = 12;
+export const RULES_TREE_DEPTH = 13;
 export const NETWORK_ID = { RUPAY: 1, VISA: 2, MASTERCARD: 3 } as const;
 
 /** pack(x) = [len(x), 31-byte big-endian chunks of x left-padded to a multiple of 31]. */

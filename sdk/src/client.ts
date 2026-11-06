@@ -11,7 +11,7 @@ import { NETWORK_ID, type Network, type Policy, type PolicyLeaf } from "./types.
 export type ChainName = "whitechain" | "devnet";
 
 export const MAX_CHECK_MANY = 200;
-export const RULES_TREE_CAPACITY = 4096; // depth 12
+export const RULES_TREE_CAPACITY = 8192; // depth 13 (interfaces F4)
 
 /** The two viem calls the SDK needs. A viem PublicClient satisfies it; tests pass a mock. */
 export interface StampReader {
@@ -200,7 +200,7 @@ export function draftPolicy(input: DraftPolicyInput): DraftPolicy {
   }
 
   if (leaves.length === 0) warnings.push("Empty filter: no card can pass this policy.");
-  if (leaves.length > RULES_TREE_CAPACITY) throw new Error(`at most ${RULES_TREE_CAPACITY} leaves (tree depth 12)`);
+  if (leaves.length > RULES_TREE_CAPACITY) throw new Error(`at most ${RULES_TREE_CAPACITY} leaves (tree depth 13)`);
   const untested = leaves.filter((l) => l.status !== "tested").length;
   if (untested) warnings.push(`${untested} leaf/leaves are "listed" (from a BIN list), not tested with a real card.`);
   if (leaves.some((l) => l.network !== "RUPAY")) {

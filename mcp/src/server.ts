@@ -84,7 +84,7 @@ export function createServer(deps: ToolDeps): McpServer {
               status: z.enum(["tested", "listed"]).optional(),
             }),
           )
-          .max(4096),
+          .max(8192),
         quotaPerDay: z.number().int().min(1).max(1000).optional(),
         stampMonths: z.number().int().min(1).max(3).optional(),
       },
