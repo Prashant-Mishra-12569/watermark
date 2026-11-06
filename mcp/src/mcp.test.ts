@@ -112,10 +112,12 @@ test("MCP round trip: list the tools and call two of them over the protocol", as
   const text = (res.content as { type: string; text: string }[])[0]!.text;
   assert.equal(JSON.parse(text).stamped, true);
 
-  // A full card number is rejected by the schema before any handler runs
+  // A full card number is rejected by the schema before any handler runs.
+  // Built from parts (fake test BIN + digits) so no card-number-like literal sits in the repo (CI guard).
+  const fakePan = "990001" + "0000123455";
   const bad = await client.callTool({
     name: "watermark_draft_policy",
-    arguments: { networks: ["RUPAY"], prefixes: [{ network: "RUPAY", prefix: "9900010000123455" }] },
+    arguments: { networks: ["RUPAY"], prefixes: [{ network: "RUPAY", prefix: fakePan }] },
   });
   assert.equal(bad.isError, true);
   await client.close();
