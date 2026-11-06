@@ -421,7 +421,7 @@ cd android && ./gradlew testDebugUnitTest assembleDemo
 No real card is needed to develop. A **synthetic test card** ([tools/testcard](tools/testcard)) with made-up keys runs
 the whole pipeline, from card data to proof to on-chain stamp.
 
-**Tests:** 394 TypeScript, 316 Foundry, 28 Android and 10 Noir. They include the attacks we care about: a replayed
+**Tests:** 399 TypeScript, 316 Foundry, 28 Android and 10 Noir. They include the attacks we care about: a replayed
 session, tampered card data, a fake card network key, a card outside the rules, prepaid ranges in the live rules, a
 reused card on a second wallet, an expired card, encrypted data moved to another session, and a prover running the
 wrong circuit.

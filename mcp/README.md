@@ -43,7 +43,8 @@ Add this to `~/.cursor/mcp.json` (or `.cursor/mcp.json` in your project):
   "mcpServers": {
     "watermark": {
       "command": "node",
-      "args": ["/absolute/path/to/watermark/mcp/src/index.ts"]
+      "args": ["/absolute/path/to/watermark/mcp/src/index.ts"],
+      "env": { "WHITECHAIN_RPC": "https://rpc.ankr.com/whitechain_testnet" }
     }
   }
 }
