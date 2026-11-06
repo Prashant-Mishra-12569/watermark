@@ -21,6 +21,7 @@ random-looking nullifier and the stamp's expiry.
 | `VerifierRouter` | [`0xc2E883a53aC54CBc9564882a77ab3723E1373A5C`](https://explorer.testnet.whitechain.io/address/0xc2E883a53aC54CBc9564882a77ab3723E1373A5C) (verified) |
 | Live app: **RuPay bank debit (India, no prepaid)**, 4,208 public BIN prefixes | `393344891601835728760966937624776276735512086066329273346256164761263100630` |
 | Old live app, superseded: it also accepted prepaid card ranges | `245737539065175059008558421319713289281964530398934598066600266060113564106` |
+| Unused app (salt 2), registered by mistake with the old filter that also accepts prepaid cards. Don't use it | `308663211604720878328034572238289142859725369530145873843287544799704764909` |
 | Test app: synthetic test card only | `242622643093352524455632509511752146182158360637522126326090117364223963656` |
 | Deploy block (event history starts here) | `12335610` |
 
