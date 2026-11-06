@@ -4,7 +4,7 @@
  * stdout carries the MCP protocol, so diagnostics go to stderr only.
  */
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { getPolicy, registryFor } from "@watermark/sdk/node";
+import { deployedApps, loadDeployment, policyForApp, registryFor } from "@watermark/sdk/node";
 import { fieldHex, initHash, rulesTree } from "@watermark/zk";
 import { createServer } from "./server.ts";
 
@@ -12,13 +12,17 @@ let hashReady: Promise<void> | undefined;
 
 const server = createServer({
   registryFor: (chain) => registryFor(chain),
-  getPolicy: (appId) => getPolicy(appId),
+  getPolicy: (appId) => policyForApp(appId),
   rulesRoot: async (leaves) => {
     hashReady ??= initHash();
     await hashReady;
     return fieldHex(rulesTree(leaves.map((l) => ({ networkId: l.networkId, prefixLength: l.prefixLength, prefix: l.prefix }))).root);
   },
   rpcUrl: (chain) => (chain === "whitechain" ? process.env.WHITECHAIN_RPC : process.env.ALTMEMPOOL_EXEC_RPC) || undefined,
+  // eth_getLogs needs an RPC that allows bounded ranges; the SDK defaults to Whitechain's official one
+  logsRpcUrl: () => process.env.WATERMARK_LOGS_RPC || undefined,
+  deployBlock: (chain) => loadDeployment(chain)?.blockNumber,
+  deployedApps: (chain) => deployedApps(chain),
 });
 
 await server.connect(new StdioServerTransport());

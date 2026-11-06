@@ -3,7 +3,17 @@
  * A stamp means "this wallet was linked to one real bank card that passed this app's filter".
  * It is not identity, KYC, age, balance or one-person-one-vote.
  */
-import { createPublicClient, getAddress, http, isAddress, type Address, type Hex } from "viem";
+import {
+  createPublicClient,
+  encodeAbiParameters,
+  encodeFunctionData,
+  getAddress,
+  http,
+  isAddress,
+  keccak256,
+  type Address,
+  type Hex,
+} from "viem";
 import { altmempoolDevnet, whitechainSepolia } from "./chains.ts";
 import { WATERMARK_REGISTRY_ABI } from "./registry.ts";
 import { NETWORK_ID, type Network, type Policy, type PolicyLeaf } from "./types.ts";
@@ -11,6 +21,33 @@ import { NETWORK_ID, type Network, type Policy, type PolicyLeaf } from "./types.
 export type ChainName = "whitechain" | "devnet";
 
 export const MAX_CHECK_MANY = 200;
+
+/** Honest status of non-RuPay cards (see supportedCards). */
+export const VISA_MASTERCARD_NOT_LIVE =
+  "Visa and Mastercard: planned, not live. These filters can be drafted and registered, but no card can be proven " +
+  "for them yet: each network needs its own circuit profile, plugged in through the VerifierRouter. Today only " +
+  "RuPay debit cards (CA 1984 / bank 1408 / card 768-bit keys, exponent 3) can stamp.";
+
+export interface CardSupport {
+  network: "RUPAY" | "VISA" | "MASTERCARD";
+  status: "live" | "planned";
+  detail: string;
+}
+
+/** What can be proven today. Honest by design: "planned" means no proof can be made yet. */
+export function supportedCards(): CardSupport[] {
+  return [
+    {
+      network: "RUPAY",
+      status: "live",
+      detail:
+        "RuPay debit cards whose chip uses the RuPay CA key 05 with the 1984/1408/768-bit, exponent-3 key profile " +
+        "(fast DDA at GET PROCESSING OPTIONS). Verified on real RuPay cards. Other RuPay key sizes need another profile.",
+    },
+    { network: "VISA", status: "planned", detail: VISA_MASTERCARD_NOT_LIVE },
+    { network: "MASTERCARD", status: "planned", detail: VISA_MASTERCARD_NOT_LIVE },
+  ];
+}
 export const RULES_TREE_CAPACITY = 8192; // depth 13 (interfaces F4)
 
 /** The two viem calls the SDK needs. A viem PublicClient satisfies it; tests pass a mock. */
@@ -132,15 +169,246 @@ export async function checkMany(
   return out;
 }
 
-/** Link that sends a user to the website's /verify page for this app and wallet. */
-export function verifyLink(appId: string | bigint, wallet: string, siteUrl: string): string {
+/**
+ * Link that sends a user to the website's /verify page for this app (web/src/app/verify reads ?app= and ?chain=).
+ * The page stamps its own browser wallet and shows its last 4 characters, so the user compares that with their
+ * phone. `wallet` is validated (for callers that track it) but is not sent: the page never takes a wallet from the URL.
+ */
+export function verifyLink(
+  appId: string | bigint,
+  wallet: string | null,
+  siteUrl: string,
+  chain: ChainName = "whitechain",
+): string {
+  if (wallet !== null) parseWallet(wallet);
   const base = new URL(siteUrl);
   if (base.protocol !== "https:" && base.protocol !== "http:") throw new Error("siteUrl must be http(s)");
   const u = new URL("verify", base.href.endsWith("/") ? base.href : `${base.href}/`);
   u.searchParams.set("app", parseAppId(appId).toString());
-  u.searchParams.set("wallet", parseWallet(wallet));
+  if (chain === "devnet") u.searchParams.set("chain", String(altmempoolDevnet.id));
   return u.toString();
 }
+
+/** What the B2B functions below need from viem. A PublicClient satisfies it; tests pass a mock. */
+export interface ChainReader {
+  readContract(args: {
+    address: Address;
+    abi: typeof WATERMARK_REGISTRY_ABI;
+    functionName: string;
+    args?: readonly unknown[];
+  }): Promise<unknown>;
+  getContractEvents(args: {
+    address: Address;
+    abi: typeof WATERMARK_REGISTRY_ABI;
+    eventName: "Stamped";
+    args?: { appId?: bigint };
+    fromBlock: bigint;
+    toBlock: bigint;
+  }): Promise<readonly { args: unknown; blockNumber: bigint | null; transactionHash: Hex | null }[]>;
+  getBlockNumber(): Promise<bigint>;
+}
+
+/**
+ * Whitechain's official RPC answers bounded eth_getLogs ranges. The Ankr RPC (the chain's default) refuses a
+ * range from block 0, so history always starts at the deploy block and is read in chunks.
+ */
+export const LOGS_RPC: Record<ChainName, string | undefined> = {
+  whitechain: "https://rpc.testnet.whitechain.io",
+  devnet: undefined,
+};
+
+export interface ReadOptions {
+  chain?: ChainName;
+  registry?: Address;
+  rpcUrl?: string;
+  client?: ChainReader;
+  now?: () => number;
+}
+
+function chainReader(opts: ReadOptions, forLogs = false): ChainReader {
+  if (opts.client) return opts.client;
+  const name = opts.chain ?? "whitechain";
+  const url = opts.rpcUrl ?? (forLogs ? LOGS_RPC[name] : undefined);
+  return createPublicClient({ chain: chainFor(name), transport: http(url) }) as unknown as ChainReader;
+}
+
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+const ZERO_BYTES32 = `0x${"00".repeat(32)}`;
+
+export interface AppInfo {
+  appId: string;
+  exists: boolean;
+  owner: Address;
+  rulesRoot: Hex;
+  /** Signs the sessions behind every stamp in this app: it decides who can start a verification. */
+  sessionSigner: Address;
+}
+
+/** An app's on-chain record: owner, filter root and session signer. Anyone can read it. */
+export async function appInfo(appId: string | bigint, opts: ReadOptions = {}): Promise<AppInfo> {
+  const registry = opts.registry ?? fail(opts.chain ?? "whitechain");
+  const id = parseAppId(appId);
+  const [owner, rulesRoot, sessionSigner] = (await chainReader(opts).readContract({
+    address: registry,
+    abi: WATERMARK_REGISTRY_ABI,
+    functionName: "apps",
+    args: [id],
+  })) as readonly [Address, Hex, Address];
+  return { appId: id.toString(), exists: owner !== ZERO_ADDRESS, owner, rulesRoot, sessionSigner };
+}
+
+export interface StampRecord {
+  wallet: Address;
+  /** Unix seconds. */
+  expiresAt: number;
+  block: number;
+  tx: Hex | null;
+}
+
+export interface StampHistory {
+  appId: string;
+  fromBlock: number;
+  toBlock: number;
+  /** Stamped events, renewals included. */
+  total: number;
+  uniqueWallets: number;
+  /** Of the newest wallets re-checked with isStamped (at most 200), how many are live now. */
+  active: number;
+  checked: number;
+  /** Newest first, one row per event. */
+  stamps: StampRecord[];
+}
+
+export interface HistoryOptions extends ReadOptions {
+  /** The registry's deploy block. The node helper reads it from deployments/; the browser must pass it. */
+  fromBlock?: bigint;
+  toBlock?: bigint;
+  /** Block span per eth_getLogs call. */
+  chunk?: number;
+  /** How many of the newest wallets to re-check with isStamped (max 200). */
+  recheck?: number;
+}
+
+/**
+ * Every stamp an app has given, read from Stamped events in chunks (transparency: anyone can audit an app).
+ * Only public on-chain data: wallets, expiries and transactions. No card data exists on-chain.
+ */
+export async function stampHistory(appId: string | bigint, opts: HistoryOptions = {}): Promise<StampHistory> {
+  const registry = opts.registry ?? fail(opts.chain ?? "whitechain");
+  if (opts.fromBlock === undefined) throw new Error("stampHistory needs fromBlock (the registry's deploy block)");
+  const id = parseAppId(appId);
+  const reader = chainReader(opts, true);
+  const chunk = BigInt(Math.max(1, Math.floor(opts.chunk ?? 2000)));
+  const from = opts.fromBlock;
+  const to = opts.toBlock ?? (await reader.getBlockNumber());
+
+  const stamps: StampRecord[] = [];
+  for (let start = from; start <= to; start += chunk) {
+    const end = start + chunk - 1n < to ? start + chunk - 1n : to;
+    const logs = await reader.getContractEvents({
+      address: registry,
+      abi: WATERMARK_REGISTRY_ABI,
+      eventName: "Stamped",
+      args: { appId: id },
+      fromBlock: start,
+      toBlock: end,
+    });
+    for (const l of logs) {
+      const a = l.args as { wallet: Address; appId?: bigint; expiresAt: bigint };
+      if (a.appId !== undefined && a.appId !== id) continue; // a node or mock that ignores the topic filter
+      stamps.push({
+        wallet: getAddress(a.wallet),
+        expiresAt: Number(a.expiresAt),
+        block: Number(l.blockNumber ?? 0n),
+        tx: l.transactionHash,
+      });
+    }
+  }
+  stamps.sort((x, y) => y.block - x.block);
+
+  const newestFirst = [...new Set(stamps.map((s) => s.wallet))];
+  const recheck = newestFirst.slice(0, Math.min(opts.recheck ?? MAX_CHECK_MANY, MAX_CHECK_MANY));
+  const live = recheck.length
+    ? await checkMany(recheck, id, {
+        chain: opts.chain ?? "whitechain",
+        registry,
+        ...(opts.client ? { client: opts.client as unknown as StampReader } : {}),
+        ...(opts.rpcUrl ? { rpcUrl: opts.rpcUrl } : {}),
+        ...(opts.now ? { now: opts.now } : {}),
+      })
+    : {};
+
+  return {
+    appId: id.toString(),
+    fromBlock: Number(from),
+    toBlock: Number(to),
+    total: stamps.length,
+    uniqueWallets: newestFirst.length,
+    active: Object.values(live).filter((r) => r.stamped).length,
+    checked: recheck.length,
+    stamps,
+  };
+}
+
+/** appId = uint256(keccak256(abi.encode(owner, salt))) >> 8, as the registry's computeAppId (interfaces F5). */
+export function computeAppId(owner: string, salt: Hex): bigint {
+  const encoded = encodeAbiParameters([{ type: "address" }, { type: "bytes32" }], [parseWallet(owner), salt]);
+  return BigInt(keccak256(encoded)) >> 8n;
+}
+
+export interface RegisterAppInput {
+  /** The account that will send the transaction; it owns the app. */
+  owner: string;
+  /** Any 32 bytes; a new salt (or owner) gives a new appId. */
+  salt: Hex;
+  /** Poseidon2 root of the app's filter (watermark_draft_policy / tools/zk). Immutable for this appId. */
+  rulesRoot: Hex;
+  /** The address that signs this app's sessions (your relayer's session key). */
+  sessionSigner: string;
+  chain?: ChainName;
+  registry?: Address;
+}
+
+export interface PreparedTx {
+  to: Address;
+  data: Hex;
+  value: "0";
+  chainId: number;
+}
+
+/**
+ * An UNSIGNED registerApp transaction for a company's own app and filter. The owner reviews and signs it;
+ * the SDK never holds a key or sends anything.
+ */
+export function prepareRegisterApp(input: RegisterAppInput): { tx: PreparedTx; appId: string; warnings: string[] } {
+  const chain = input.chain ?? "whitechain";
+  const registry = input.registry ?? fail(chain);
+  if (!/^0x[0-9a-fA-F]{64}$/.test(input.salt)) throw new Error("salt must be 32 bytes of 0x-hex");
+  if (!/^0x[0-9a-fA-F]{64}$/.test(input.rulesRoot)) throw new Error("rulesRoot must be 32 bytes of 0x-hex");
+  if (input.rulesRoot.toLowerCase() === ZERO_BYTES32) throw new Error("rulesRoot is zero: the registry refuses an empty filter");
+  const signer = parseWallet(input.sessionSigner);
+  if (signer === ZERO_ADDRESS) throw new Error("sessionSigner is the zero address: the registry refuses it");
+  const owner = parseWallet(input.owner);
+  return {
+    tx: {
+      to: registry,
+      data: encodeFunctionData({
+        abi: WATERMARK_REGISTRY_ABI,
+        functionName: "registerApp",
+        args: [input.salt, input.rulesRoot, signer],
+      }),
+      value: "0",
+      chainId: chainFor(chain).id,
+    },
+    appId: computeAppId(owner, input.salt).toString(),
+    warnings: [
+      "Rules are immutable: a different filter needs a new appId (a new salt).",
+      `The session signer ${signer} decides who can start a verification in this app. Keep its key on your relayer only.`,
+      "Send this from the owner account: the appId depends on the sender.",
+    ],
+  };
+}
+
 
 export interface DraftPrefix {
   network: Network;
@@ -203,8 +471,8 @@ export function draftPolicy(input: DraftPolicyInput): DraftPolicy {
   if (leaves.length > RULES_TREE_CAPACITY) throw new Error(`at most ${RULES_TREE_CAPACITY} leaves (tree depth 13)`);
   const untested = leaves.filter((l) => l.status !== "tested").length;
   if (untested) warnings.push(`${untested} leaf/leaves are "listed" (from a BIN list), not tested with a real card.`);
-  if (leaves.some((l) => l.network !== "RUPAY")) {
-    warnings.push("Visa and Mastercard are implemented but untested on real cards.");
+  if (networks.has("VISA") || networks.has("MASTERCARD")) {
+    warnings.push(VISA_MASTERCARD_NOT_LIVE);
   }
   const bankNames = [...new Set(leaves.map((l) => l.bank))];
   if (leaves.length > 0 && (leaves.length <= 3 || bankNames.length === 1 || leaves.some((l) => l.prefixLength === 8))) {

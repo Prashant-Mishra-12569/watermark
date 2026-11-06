@@ -1,10 +1,20 @@
+import { fileURLToPath } from "node:url";
 import { networkInterfaces } from "node:os";
 import { serve } from "@hono/node-server";
 import { initHash, WatermarkProver } from "@watermark/zk";
 import { createApp } from "./app.ts";
+import { checkCircuit } from "./circuit-check.ts";
 import { loadConfig } from "./config.ts";
 
 const config = loadConfig();
+const circuit = checkCircuit(config.circuitPath, fileURLToPath(new URL("../../contracts/test/fixtures/synthetic-stamp.json", import.meta.url)));
+if (!circuit.ok) {
+  if (process.env.ALLOW_CIRCUIT_MISMATCH !== "1") {
+    console.error(`prover: ${circuit.message}`);
+    process.exit(1);
+  }
+  console.warn(`prover: WARNING ${circuit.message}`);
+}
 await initHash();
 const prover = await WatermarkProver.load(config.circuitPath);
 
