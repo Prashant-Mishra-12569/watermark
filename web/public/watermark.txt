@@ -1,0 +1,700 @@
+# Watermark
+
+> Watermark lets an app accept only wallets backed by a real bank card. A user taps the card on our Android app
+> once, a zero-knowledge proof is checked on-chain, and the wallet gets a "stamp". Your contract, backend or AI agent
+> checks the stamp before an airdrop, mint or reward pays out.
+
+This file is the full reference for people and for AI agents. The same text is at /llms.txt.
+- Website: https://usewatermark.xyz
+- Source code (MIT licence): https://github.com/Prashant-Mishra-12569/watermark
+- Status: built at ETHGlobal Mumbai 2026. Test networks only. Every address and app id below comes from
+  deployments/whitechain.json and deployments/devnet.json in the repo.
+
+## 1. What Watermark is
+
+- A stamp on (wallet, appId) means: this wallet was linked to one real bank card that passed this app's card filter.
+- It is not identity, KYC, age, balance or one-person-one-vote. A person with three cards can get three stamps.
+- It makes every extra wallet cost a real bank card. That is what stops bots from farming airdrops, mints and rewards.
+- The card number is never stored and never goes on-chain. Our prover holds the card data in memory only while it
+  proves, then wipes it. One card can stamp one wallet per app. A stamp lasts up to 3 months.
+- Checking a stamp is one on-chain read: no API key, no account with us, no server of ours in the path.
+
+## 2. How it works
+
+### The user
+1. Opens your app's verify link: https://usewatermark.xyz/verify?app=<APP_ID>
+2. Picks a wallet: their own browser wallet (for example MetaMask) or one the page makes in the browser. The stamp
+   goes to that wallet, so it should be the wallet they will claim with.
+3. Scans the QR code with an Android phone running Watermark Tap, our NFC app. The phone shows the wallet's last 4
+   characters, so the user can check they match the page.
+4. Taps a bank card on the phone. The chip signs a fresh challenge derived from the session. No payment is made and
+   nothing is sent to a bank.
+5. The page shows "Verified" once the stamp is on-chain. The user pays no gas and needs no WBT.
+
+### Your app
+1. Picks an appId: our live app for real RuPay cards, or its own app with its own card list (section 10).
+2. Checks isStamped(wallet, appId) before it pays out: in Solidity (section 4), with the TypeScript SDK (section 5),
+   or from an AI agent over MCP (section 6).
+3. Sends wallets without a stamp to the verify link (section 8).
+
+### The relayer (https://api.usewatermark.xyz)
+1. Signs a session for the wallet and appId (EIP-712, valid for 10 minutes). This is off-chain, so it costs no gas.
+2. Receives the proof from the prover, simulates the stamp transaction, and sends it only if the simulation passes.
+   The relayer pays the gas.
+3. Relays gas-free USDT payments for stamped wallets through WatermarkSponsor (section 9), and mints the Genesis Pass.
+4. Refuses unstamped wallets and wallets over their daily quota, and stops at its per-transaction gas caps and daily
+   budget caps.
+
+### The prover (https://prover.usewatermark.xyz)
+1. Receives the card data from the phone, encrypted (RSA-OAEP + AES-GCM, bound to the session). The phone has already
+   checked the certificate chain and the app's filter itself.
+2. Decrypts it in memory and builds a zero-knowledge proof (Noir, UltraHonk) that a genuine network-signed card, which
+   passes this app's filter, signed this session's challenge.
+3. Computes a nullifier from the card's key, so one card can stamp only one wallet per app.
+4. Sends the proof to the relayer and drops the card data. Nothing is written to disk.
+
+Then WatermarkRegistry verifies the proof on Whitechain Sepolia and records the stamp: wallet, appId, nullifier and
+expiry. Any contract or client can read it with isStamped(wallet, appId).
+
+## 3. Live deployments
+
+### Whitechain Sepolia (testnet)
+- Chain id: 1874
+- Native coin: WBT (18 decimals)
+- RPC: https://rpc.testnet.whitechain.io (official; it also answers bounded eth_getLogs ranges for event history)
+- Other RPC: https://rpc.ankr.com/whitechain_testnet
+- Explorer: https://explorer.testnet.whitechain.io
+- Multicall3: 0xcA11bde05977b3631167028862bE2a173976CA11
+- viem users: define the chain yourself with defineChain({ id: 1874, ... }). viem's built-in `whitechainTestnet` is a
+  different network (chain 2625). The SDK exports the right one as `whitechainSepolia`.
+
+### Contracts on Whitechain Sepolia
+- WatermarkRegistry: 0x998934Efa31a6bE75945fDfAa126d3D6401F8Fd6 (source verified). Stamps live here.
+  https://explorer.testnet.whitechain.io/address/0x998934Efa31a6bE75945fDfAa126d3D6401F8Fd6
+- VerifierRouter: 0xc2E883a53aC54CBc9564882a77ab3723E1373A5C (source verified). Sends each proof to its circuit
+  profile's verifier, so new card networks can be added without redeploying the registry.
+  https://explorer.testnet.whitechain.io/address/0xc2E883a53aC54CBc9564882a77ab3723E1373A5C
+- HonkVerifier, profile 0 (today's RuPay circuit, source verified): 0x3929237326421Dbb07D7b82dF0C57a09218d967b
+  https://explorer.testnet.whitechain.io/address/0x3929237326421Dbb07D7b82dF0C57a09218d967b
+- WatermarkSponsor for the live app (source verified): 0x21b6ae18a412afb84a09263939c5e787d374939a
+  https://explorer.testnet.whitechain.io/address/0x21b6ae18a412afb84a09263939c5e787d374939a
+- WatermarkGenesisPass (source verified): 0x12DdF2A4C698A3271F21fEA07559467b6C8AdcB0. The Genesis Drop NFT: 100 passes, one per card.
+  https://explorer.testnet.whitechain.io/address/0x12DdF2A4C698A3271F21fEA07559467b6C8AdcB0
+- WatermarkPassRenderer (source verified): 0x32D1C048C81Cc60d9c21078B85C2f95132D0Fe72. The pass's on-chain SVG art.
+  https://explorer.testnet.whitechain.io/address/0x32D1C048C81Cc60d9c21078B85C2f95132D0Fe72
+- USDT (Whitechain's official test USDT, 6 decimals, EIP-3009; not ours): 0xcedfB56113143d55b2358b8CFbB0dEB5Ad2f55a7
+  https://explorer.testnet.whitechain.io/address/0xcedfB56113143d55b2358b8CFbB0dEB5Ad2f55a7
+- RelationsLib (verifier library): 0x1A88Ec9056f728925E98974a840644e9c17Ca96e
+  https://explorer.testnet.whitechain.io/address/0x1A88Ec9056f728925E98974a840644e9c17Ca96e
+- ZKTranscriptLib (verifier library): 0x4d51E4dD94C8e89b4472Bf07667fB2fDcE5E7e90
+  https://explorer.testnet.whitechain.io/address/0x4d51E4dD94C8e89b4472Bf07667fB2fDcE5E7e90
+- Previous WatermarkSponsor (superseded; previous live app; source verified): 0xAbD7327f6E6b884aEf395B80De073B8aDd0aD7BA
+  https://explorer.testnet.whitechain.io/address/0xAbD7327f6E6b884aEf395B80De073B8aDd0aD7BA
+
+### Public wallets and roots
+- Session signer of the live and test apps (our relayer): 0x9A0606E26646643604b5A334a261527065AaFdBB
+  https://explorer.testnet.whitechain.io/address/0x9A0606E26646643604b5A334a261527065AaFdBB
+- Relayer wallet (pays the gas for stamps, payments and pass mints): 0xf95E3C36020286117f1c3cd8Efd57Fcfb2e2a9Ba
+  https://explorer.testnet.whitechain.io/address/0xf95E3C36020286117f1c3cd8Efd57Fcfb2e2a9Ba
+- Demo business wallet (sends demo USDT for POST /fund): 0x30D55f6B9e0dfBc849e97ddbf5807A74CCE46b21
+  https://explorer.testnet.whitechain.io/address/0x30D55f6B9e0dfBc849e97ddbf5807A74CCE46b21
+- Deployer, and owner of the live and test apps: 0x72b6B557Fee237ECdc0A88A9D9850049acfaFC4b
+  https://explorer.testnet.whitechain.io/address/0x72b6B557Fee237ECdc0A88A9D9850049acfaFC4b
+- caRoot (the trusted card-network keys, from policies/ca-keys.json):
+  0x1a8637effab965c43a451a33a1df3e295b1839fc237c5de04f704e95ba0d8f10
+- Registry deploy block (event history starts here): 12335610
+
+### App ids
+App ids are 248-bit decimal numbers. Pass them as strings in JavaScript and as uint256 in Solidity.
+
+Live app. Use this one for real cards.
+  393344891601835728760966937624776276735512086066329273346256164761263100630
+  Filter: "RuPay bank debit (India, no prepaid)", 4,208 six-digit card prefixes (BINs)
+  rulesRoot: 0x0061cb51b3abde45582be5a854b6d75903e09472bce31b019339db95505bea59
+  Our verify page, our WatermarkSponsor and the Genesis Pass all use this app.
+
+Test app. Synthetic test card only (tools/testcard in the repo). Not for real rewards.
+  242622643093352524455632509511752146182158360637522126326090117364223963656
+  Filter: "Watermark test (synthetic + test cards)", 1 prefix (990001)
+  rulesRoot: 0x08d09d15afbf7ceeb7a9d05802ab845bf6316bf9fdffd57f593a718ec89eb90f
+
+Previous live app. Superseded: its filter also accepted prepaid card ranges. Don't gate on it.
+  245737539065175059008558421319713289281964530398934598066600266060113564106
+  rulesRoot: 0x205fbdc3f68391a4c420578e192525ab6a8ad9435385aad5b0f2e863e380e5dc (the first real-card stamp was here)
+
+### Alt mempool devnet (EIP-8141, chain 1337)
+For the Ethereum Foundation frame-transaction track. The devnet can be reset at any time.
+- WatermarkRegistry: 0x183826030BB08bbdD4f4A8f4a7135C6a8E3De42C
+- WatermarkQuotaPaymaster: 0x62183B1d118dae2F9C7dc8b42c7b71Cd27b67097
+- NaiveStakingRegistry (where the paymaster stakes 0.012 ETH): 0xD51c04d7A0B01124E84DE152F4e56d9eeCB22D2F
+- Test app id: 381847006229121247091940973631823689417232562617718304348843495002358058109
+- Explorer: https://explorer.altmempool.wtf
+- A sponsored frame transaction, admitted and mined in block 3,699:
+  https://explorer.altmempool.wtf/tx/0xcab8c9e2171a8048c8f5e12d4bb830c92cba7f458763d2c7ac8f23ab1faa8a93?node=https%3A%2F%2Faltmempool.forshtat.com%2Frpc
+
+## 4. Integrate in Solidity
+
+This works for contracts on Whitechain Sepolia (chain 1874), where the registry is. A contract on another chain can't
+read the registry: check in your backend instead (section 5), or build your allowlist with checkMany.
+
+Any contract can check a stamp in one call (from docs/INTEGRATE.md):
+
+```solidity
+interface IWatermarkRegistry {
+    function isStamped(address wallet, uint256 appId) external view returns (bool ok, uint64 expiresAt);
+}
+
+modifier onlyStamped() {
+    (bool ok, uint64 expiresAt) = watermark.isStamped(msg.sender, watermarkAppId);
+    require(ok && expiresAt > block.timestamp, "Watermark: no live stamp");
+    _;
+}
+```
+
+The full contract, as the MCP tool watermark_integration_snippet returns it for the live app (gate + one claim per
+wallet):
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.30;
+
+interface IWatermarkRegistry {
+    function isStamped(address wallet, uint256 appId) external view returns (bool ok, uint64 expiresAt);
+}
+
+/// Gate a function to wallets with a live Watermark stamp for one app.
+/// A stamp = one real bank card that passed the app's filter. Not identity or KYC.
+abstract contract WatermarkGated {
+    // WatermarkRegistry on whitechain: 0x998934Efa31a6bE75945fDfAa126d3D6401F8Fd6
+    IWatermarkRegistry public immutable watermark;
+    uint256 public immutable watermarkAppId;
+
+    constructor(IWatermarkRegistry registry) {
+        watermark = registry;
+        watermarkAppId = 393344891601835728760966937624776276735512086066329273346256164761263100630;
+    }
+
+    modifier onlyStamped() {
+        (bool ok, uint64 expiresAt) = watermark.isStamped(msg.sender, watermarkAppId);
+        require(ok && expiresAt > block.timestamp, "Watermark: no live stamp");
+        _;
+    }
+}
+
+// Example: one claim per stamped wallet
+contract Drop is WatermarkGated {
+    mapping(address => bool) public claimed;
+    constructor(IWatermarkRegistry r) WatermarkGated(r) {}
+    function claim() external onlyStamped {
+        require(!claimed[msg.sender], "already claimed");
+        claimed[msg.sender] = true;
+        // ... send the reward
+    }
+}
+```
+
+Notes
+- Deploy it with the registry address 0x998934Efa31a6bE75945fDfAa126d3D6401F8Fd6 as the constructor argument.
+- isStamped returns (ok, expiresAt). `ok` already includes the expiry; the `expiresAt > block.timestamp` test is a
+  second guard. expiresAt is unix seconds, 0 if the wallet was never stamped.
+- The registry makes sure one card stamps only one wallet per app. "One claim per wallet" is your contract's job (the
+  `claimed` mapping above).
+- The gate checks msg.sender. If a claim goes through a router or a relayer, check the wallet that receives the reward.
+- To test it, use a small mock registry that returns (false, 0) for an unstamped wallet (section 13 has one).
+
+## 5. Integrate with the TypeScript SDK
+
+Install: @watermark/sdk lives in the repo (sdk/) and is not on npm yet. Either use it from a clone of the repo (pnpm
+workspace, Node 24), or use the plain viem read further down, which gives the same answer as check().
+
+From docs/INTEGRATE.md:
+
+```ts
+import { check, checkMany } from "@watermark/sdk";
+
+const registry = "0x998934Efa31a6bE75945fDfAa126d3D6401F8Fd6";
+const appId = "393344891601835728760966937624776276735512086066329273346256164761263100630";
+
+const { stamped, expiresAt } = await check(userAddress, appId, { registry });
+if (!stamped) showGetStampedButton(); // links to the /verify page (verifyLink)
+
+// Airdrop or allowlist export: up to 200 wallets per call, one multicall
+const results = await checkMany(addresses, appId, { registry });
+```
+
+It reads the chain directly, with no API key and no relayer. It works in the browser. Node apps can use
+`@watermark/sdk/node`, which reads the addresses from deployments/.
+
+### What the SDK exports (sdk/src)
+Main entry, browser-safe (`@watermark/sdk`):
+- check(wallet, appId, opts) -> { stamped, expiresAt }. opts: { registry, chain?: "whitechain" | "devnet", rpcUrl?,
+  client?, now? }. expiresAt is unix seconds, 0 = never stamped. Throws on a malformed wallet or appId.
+- checkMany(wallets, appId, opts) -> { [checksummedWallet]: { stamped, expiresAt } }. At most 200 wallets, one
+  multicall on Whitechain. A failed read counts as not stamped.
+- verifyLink(appId, wallet | null, siteUrl, chain?) -> "https://usewatermark.xyz/verify?app=<appId>". The wallet is
+  only validated, never put in the link: the page never takes a wallet from the URL.
+- appInfo(appId, { registry }) -> { appId, exists, owner, rulesRoot, sessionSigner }
+- stampHistory(appId, { registry, fromBlock }) -> { total, uniqueWallets, active, checked, stamps[] }. Reads Stamped
+  events from the deploy block (12335610) in chunks; use the official RPC for logs.
+- prepareRegisterApp({ owner, salt, rulesRoot, sessionSigner, registry }) -> { tx, appId, warnings }. tx is UNSIGNED:
+  { to, data, value: "0", chainId }. The SDK never signs or sends anything.
+- computeAppId(owner, salt) = uint256(keccak256(abi.encode(owner, salt))) >> 8
+- draftPolicy(input), explainPolicy(policy), supportedCards()
+- whitechainSepolia, altmempoolDevnet (viem chains), USDT_WHITECHAIN, WATERMARK_REGISTRY_ABI, MAX_CHECK_MANY (200)
+
+Node only (`@watermark/sdk/node`): check, checkMany, appInfo, stampHistory and prepareRegisterApp without passing the
+registry (read from deployments/), plus auditApp(appId), getPolicy(appId), listPolicies(), deployedApps(chain),
+loadDeployment(chain) and registryFor(chain).
+
+### Without the SDK: plain viem
+The same read as check(), with nothing but viem:
+
+```ts
+import { createPublicClient, defineChain, http } from "viem";
+
+// Whitechain Sepolia. Define it yourself: viem's built-in `whitechainTestnet` is a different chain (2625).
+const whitechainSepolia = defineChain({
+  id: 1874,
+  name: "Whitechain Sepolia",
+  nativeCurrency: { name: "WhiteBIT Coin", symbol: "WBT", decimals: 18 },
+  rpcUrls: { default: { http: ["https://rpc.testnet.whitechain.io"] } },
+});
+
+const REGISTRY = "0x998934Efa31a6bE75945fDfAa126d3D6401F8Fd6";
+const APP_ID = 393344891601835728760966937624776276735512086066329273346256164761263100630n;
+const abi = [{
+  type: "function", name: "isStamped", stateMutability: "view",
+  inputs: [{ name: "wallet", type: "address" }, { name: "appId", type: "uint256" }],
+  outputs: [{ name: "ok", type: "bool" }, { name: "expiresAt", type: "uint64" }],
+}];
+
+const client = createPublicClient({ chain: whitechainSepolia, transport: http() });
+
+export async function isStamped(wallet) {
+  const [ok, expiresAt] = await client.readContract({
+    address: REGISTRY, abi, functionName: "isStamped", args: [wallet, APP_ID],
+  });
+  return ok && Number(expiresAt) > Math.floor(Date.now() / 1000);
+}
+```
+
+Always check on your server before paying out. Never trust a "stamped" flag sent by the browser.
+
+## 6. Integrate with an AI agent via MCP
+
+The Watermark MCP server (mcp/ in the repo) lets an agent check a wallet before paying a reward or giving access,
+audit an app, or draft a card filter.
+- It holds no keys and never signs or sends a transaction. Everything it returns is data.
+- No tool takes card data. Filter prefixes are 6- or 8-digit BINs from a public BIN list; the schema rejects anything
+  longer.
+- It runs locally over stdio.
+
+### Install
+Clone the repo, run `pnpm install` at the repo root (Node 24 runs the TypeScript directly), then add this to your
+client's MCP server config (the exact file depends on the client). From mcp/README.md:
+
+```json
+{
+  "mcpServers": {
+    "watermark": {
+      "command": "node",
+      "args": ["/absolute/path/to/watermark/mcp/src/index.ts"],
+      "env": { "WHITECHAIN_RPC": "https://rpc.ankr.com/whitechain_testnet" }
+    }
+  }
+}
+```
+
+Optional environment variables: WHITECHAIN_RPC (reads on Whitechain), ALTMEMPOOL_EXEC_RPC (reads on the devnet),
+WATERMARK_LOGS_RPC (event history; defaults to https://rpc.testnet.whitechain.io).
+
+### Tools
+Types: wallet = 0x address (40 hex characters); appId = decimal string; chain = "whitechain" (default, Whitechain
+Sepolia 1874) or "devnet" (1337); bytes32 = 0x + 64 hex characters. A trailing ? means optional.
+
+1. watermark_check_wallet
+   Is this wallet stamped for this app, and until when? Use it before paying a reward or giving access.
+   Inputs: wallet, appId, chain? -> returns stamped, expiresAt, expiresAtIso, meaning
+2. watermark_check_wallets
+   The same check for an airdrop or allowlist, in one multicall.
+   Inputs: wallets (1 to 200), appId, chain? -> returns total, stamped (count), results per wallet, meaning
+3. watermark_app_info
+   An app's on-chain record (owner, rulesRoot, session signer) plus an audit: is the filter enforced on-chain the
+   one the app publishes?
+   Inputs: appId, chain? -> returns exists, owner, rulesRoot, sessionSigner, audit { matches, published, issues }
+4. watermark_stamp_history
+   Transparency: total stamps, unique wallets, how many are live now, the latest ones with explorer links.
+   Inputs: appId, chain?, limit? (1 to 200, default 20) -> returns totalStamps, uniqueWallets, liveNow, latest[]
+5. watermark_list_apps
+   The registry address and the deployed apps (test and live) with their filter labels.
+   Inputs: chain? -> returns registry, apps[] { appId, environment, label, rulesRoot }
+6. watermark_draft_policy
+   Turns rules like "SBI RuPay debit only" into filter leaves, their Poseidon2 rulesRoot, warnings, and what a stamp
+   reveals. Prefixes come from a public BIN list, never from someone's own card. Signs nothing.
+   Inputs: networks (one or more of RUPAY, VISA, MASTERCARD), prefixes (up to 8,192 items of { network, prefix (6 or
+   8 digits), bank?, type? (debit | credit | prepaid), status? (tested | listed) }), label? (up to 80 characters),
+   environment? (live | test), banks?, types?, quotaPerDay? (1 to 1000), stampMonths? (1 to 3)
+   -> returns policy, rulesRoot, warnings, explanation, nextStep
+7. watermark_prepare_register_app
+   An UNSIGNED registerApp transaction for a company's own app, card filter and session signer, plus the predicted
+   appId. The owner reviews it and sends it from their own wallet.
+   Inputs: owner (wallet), rulesRoot (bytes32, from watermark_draft_policy), sessionSigner (wallet), salt? (bytes32,
+   random if left out), chain?
+   -> returns unsignedTransaction { to, data, value, chainId }, salt, appId, warnings, nextStep
+8. watermark_create_verify_link
+   A link that sends a user to the /verify page for an app.
+   Inputs: appId, siteUrl (the Watermark website: https://usewatermark.xyz), chain? -> returns link, howItWorks
+   Example: https://usewatermark.xyz/verify?app=393344891601835728760966937624776276735512086066329273346256164761263100630
+9. watermark_get_policy
+   The committed filter policy for an appId: label, environment, leaves, rulesRoot, quota.
+   Inputs: appId -> returns policy, meaning
+10. watermark_explain_policy
+   Plain language: who passes, what a stamp reveals publicly, and what it does not prove.
+   Inputs: appId -> returns label, whoPasses, whatAStampReveals, whatItDoesNotProve, limits
+11. watermark_supported_cards
+   Which cards can be proven today: RuPay debit is live; Visa and Mastercard are planned, not live.
+   Inputs: none -> returns cards[] { network, status, detail }, filters
+12. watermark_integration_snippet
+   Solidity (the onlyStamped modifier) or TypeScript (check, allowlist export) with the real registry address filled in.
+   Inputs: language (solidity | typescript), appId, chain? -> returns language, registry, code
+
+A typical agent rule: "Before sending a reward to a wallet, call watermark_check_wallet with our appId. Pay only if
+stamped is true. If it is false, send the user the link from watermark_create_verify_link."
+
+## 7. HTTP API
+
+You don't need the HTTP API to check a stamp: read the chain (sections 4 to 6). These endpoints run the Watermark
+pages. JSON everywhere; uint256 values are decimal strings and bytes are 0x-hex. Sessions, stamps, payments, funding
+and the pass routes are rate-limited per IP. The relayer accepts browser calls only from the origins it is configured
+for (CORS), so call it from a server.
+
+### Relayer: https://api.usewatermark.xyz
+
+GET /health
+  Response 200: {"ok":true,"sessionSigner":"0x9A0606E26646643604b5A334a261527065AaFdBB",
+   "relayer":"0xf95E3C36020286117f1c3cd8Efd57Fcfb2e2a9Ba","sponsor":"0x21B6aE18A412aFB84A09263939C5e787d374939a",
+   "business":"0x30D55f6B9e0dfBc849e97ddbf5807A74CCE46b21",
+   "genesisPass":"0x12DdF2A4C698A3271F21fEA07559467b6C8AdcB0"}
+GET /status/:wallet?app=<appId>&chain=1874
+  Reads isStamped on-chain. quotaLeft = gas-free payments the wallet has left today.
+  Example: GET /status/0x0000000000000000000000000000000000000001?app=393344891601835728760966937624776276735512086066329273346256164761263100630&chain=1874
+  Response 200: {"stamped":false,"expiresAt":0,"quotaLeft":0}
+  Errors: 400 {"error":"BAD_REQUEST","message":"wallet" | "app" | "chain"}, 502 {"error":"CHAIN_UNAVAILABLE"}
+GET /balance/:wallet
+  USDT balance (whole USDT, decimal string) and gas-free payments left today in the live app.
+  Response 200: {"usdt":"0","quotaLeft":0}
+GET /pass
+  Genesis Pass supply, for counters. Cached for 5 seconds.
+  Response 200: {"pass":"0x12DdF2A4C698A3271F21fEA07559467b6C8AdcB0","remaining":100,"totalSupply":"0","maxSupply":"100"}
+GET /pass/:wallet
+  Response 200: {"pass":"0x12DdF2A4C698A3271F21fEA07559467b6C8AdcB0","stamped":false,"stampExpiresAt":0,"paid":false,
+   "claimed":false,"tokenId":null,"remaining":100,"totalSupply":"0","maxSupply":"100","image":null}
+  paid is null when the payment history can't be read right now. image is the token's on-chain SVG once claimed.
+
+The routes below are used by the Watermark pages and the prover. You normally don't call them.
+
+POST /session
+  Request: {"wallet":"0x…","appId":"<appId>","chainId":"1874"}
+  Response 200: {"session":{ wallet, appId, nonce, expiresAt, validUntilMonth, chainId, registry },"sig":"0x…",
+   "qr":"<deep link for the phone>","sessionId":"<id>"}
+  Errors: 400 BAD_REQUEST, 404 UNKNOWN_APP (an appId this relayer doesn't serve), 429 RATE_LIMIT,
+  503 CHAIN_NOT_READY | BUSY
+GET /session/:id
+  Response 200: {"session":{…},"sig":"0x…"}   404: {"error":"NOT_FOUND"}
+POST /stamp (called by the prover once a proof verifies)
+  Request: {"session":{…},"sig":"0x…","proof":"0x…","publicInputs":["0x…", 6 items]}
+  Response 200: {"txHash":"0x…"}
+  Errors include 401 BAD_SIGNATURE, 404 UNKNOWN_APP, 422 STAMP_REJECTED {reason} (no gas spent), 422 GAS_CAP,
+  503 BUDGET_CAP, 504 STAMP_PENDING {txHash}
+POST /pay (gas-free USDT payment from a stamped wallet, section 9)
+  Request: {"intent":{"from":"0x…","to":"0x…","value":"1000000","validAfter":"<unix s>","validBefore":"<unix s>",
+   "nonce":"0x<32 bytes>"},"signature":"0x<65 bytes>"}   (value in USDT base units: "1000000" = 1 USDT)
+  Response 200: {"txHash":"0x…","from":"<the relayer that paid the gas>"}
+  Errors ({"reason":"…","error":"…"}): 400 BAD_REQUEST, 401 BAD_SIGNATURE, 403 NOT_STAMPED, 409 NONCE_USED,
+  422 INSUFFICIENT_USDT | GAS_CAP | PAY_REJECTED, 429 QUOTA_USED | RATE_LIMIT, 503 BUDGET_CAP | PAUSED
+POST /fund (demo only: the business sends a little test USDT to a stamped wallet, once)
+  Request: {"wallet":"0x…"}   Response 200: {"txHash":"0x…","from":"<business wallet>"}
+  Errors: 403 NOT_STAMPED, 409 ALREADY_FUNDED, 429 RATE_LIMIT
+POST /pass (claim the Genesis Pass; the relayer pays the gas)
+  Request: {"wallet":"0x…"}   Response 200: {"txHash":"0x…","tokenId":"<1 to 100>","from":"<relayer>"}
+  Errors: 403 NOT_STAMPED | NO_PAYMENT, 409 ALREADY_CLAIMED {tokenId} | CLAIM_PENDING, 410 SOLD_OUT, 429 RATE_LIMIT
+
+### Prover: https://prover.usewatermark.xyz
+
+GET /health
+  Response 200: {"ok":true,"apps":["<appId>", …],"queue":0}
+GET /policy/:appId
+  The app's public card filter, so anyone (and the phone) can check a card prefix against it.
+  Example: GET /policy/242622643093352524455632509511752146182158360637522126326090117364223963656
+  Response 200: {"appId":"242622643093352524455632509511752146182158360637522126326090117364223963656",
+   "label":"Watermark test (synthetic + test cards)","environment":"test",
+   "rulesRoot":"0x08d09d15afbf7ceeb7a9d05802ab845bf6316bf9fdffd57f593a718ec89eb90f",
+   "leaves":[{"networkId":1,"prefixLength":6,"prefix":"990001"}]}   404: {"error":"NOT_FOUND"}
+POST /prove (the phone app only: it takes the encrypted card envelope)
+  Response 202: {"jobId":"<id>"}
+GET /prove/:jobId
+  Response 200: {"status":"queued" | "running" | "done" | "error","txHash"?: "0x…","error"?: "NOT_IN_POLICY" |
+   "EXPIRES_TOO_SOON" | "BAD_CARD" | "DECRYPT_FAILED" | "STAMP_REJECTED"}
+
+## 8. Letting your users get stamped
+
+### The verify link
+  https://usewatermark.xyz/verify?app=<APP_ID>
+For the live app:
+  https://usewatermark.xyz/verify?app=393344891601835728760966937624776276735512086066329273346256164761263100630
+Build it with verifyLink(appId, null, "https://usewatermark.xyz") or watermark_create_verify_link. Label the button
+something like "Get verified with Watermark".
+
+The link works for app ids our relayer serves, which includes the live app. Any other appId is refused with
+UNKNOWN_APP, so an app with its own card list runs its own session signer (section 10).
+
+### What a user needs
+- An Android phone (Android 8 or newer) with NFC, running Watermark Tap. It is not in an app store. Its download page
+  is https://usewatermark.xyz/app (an .apk file, once it is posted there). At ETHGlobal Mumbai, users can tap on our
+  phone at the Watermark booth.
+- A RuPay bank debit card issued in India whose prefix is on the live list (prepaid cards don't count). Visa and
+  Mastercard don't work yet.
+- A wallet: their own browser wallet (for example MetaMask) or the one the page makes in the browser. It should be
+  the same wallet they claim with.
+- Nothing else: no gas, no WBT, no fee, no sign-up, no documents.
+
+### What happens
+1. The user opens the link and picks a wallet.
+2. The page shows a QR code. It is valid for 10 minutes and refreshes on its own.
+3. The user scans it with the phone and taps the card.
+4. The page shows "Verified" with the stamp's expiry. From then on, your isStamped check passes for that wallet.
+- The same card with the same wallet again renews the stamp.
+- The same card with a different wallet in the same app is refused: one card, one wallet per app.
+
+### The Genesis Drop and the bot test
+https://usewatermark.xyz/pass is our own drop, built on the same check. It shows the whole flow from a user's side:
+1. Verify with your card (/verify?next=pass): a stamp in the live app.
+2. Send one free test payment (/pay?next=pass): gas-free USDT through WatermarkSponsor. We pay the fee.
+3. Claim the NFT (POST /pass): WatermarkGenesisPass, 100 in total, one per bank card, minted gas-free.
+The contract checks the stamp itself. Step 2 is checked by our relayer from the sponsor's PaymentRelayed events,
+because a contract can't read past events. https://usewatermark.xyz/attack makes 5 throwaway bot wallets and sends
+them at the drop's free perks (USDT funding, a gas-free payment, the pass). Every request is real; every one is refused.
+
+## 9. Sponsoring user fees (WatermarkSponsor)
+
+Stamped wallets can pay in USDT without holding gas or WBT. The business pays the gas through its relayer.
+
+How it works
+1. The user signs an EIP-3009 TransferWithAuthorization for USDT: { from, to, value, validAfter, validBefore, nonce }.
+   EIP-712 domain: name "Tether USD", version "1", chainId 1874, verifyingContract
+   0xcedfB56113143d55b2358b8CFbB0dEB5Ad2f55a7. No transaction, no gas.
+2. The relayer calls WatermarkSponsor.relayPayment(intent, signature) and pays the gas.
+3. The contract checks that the caller is its relayer, that `from` has a live stamp for its appId, and that `from`
+   has sponsored payments left today. Then it submits the authorization to USDT.
+
+Rules in the contract (not on our server)
+- One WatermarkSponsor per app. Its appId and relayer are fixed at deploy.
+- quotaPerDay = 20: each stamped wallet gets 20 sponsored payments per UTC day. A reverted payment uses no quota.
+- Unstamped wallets and wallets over quota are refused on-chain, so even our relayer can't sponsor them.
+- Views: quotaLeft(wallet), usedToday(wallet). Event: PaymentRelayed.
+
+Live: the sponsor for the live app is 0x21b6ae18a412afb84a09263939c5e787d374939a. A real gas-free payment under it
+(1 USDT to the shop; the payer paid 0):
+https://explorer.testnet.whitechain.io/tx/0xb848b7c8c589335d17ab1570f0cb1765325a1d065e58a2f9447e9d333e376879
+
+Relayer-side drain limits (defaults): every payment is simulated before any gas is spent; a per-transaction gas cap
+(300,000 for payments) and a daily gas budget, separate from stamps; a per-IP rate limit; and at most 2 mined
+reverted payments per wallet per UTC day.
+
+Your own sponsor
+- Deploy contracts/script/DeploySponsor.s.sol with your APP_ID, RELAYER_ADDRESS (your relayer's hot wallet) and
+  QUOTA_PER_DAY, then run the relayer with SPONSOR_ADDRESS set. Rotating the relayer means a new sponsor.
+
+Known trade-off: a signed EIP-3009 authorization is a bearer instrument. Anyone who sees it can submit it to USDT
+directly. That only moves the payer's own USDT to the recipient they signed for, and it skips the quota.
+
+Ethereum alt mempool (EIP-8141 devnet): WatermarkQuotaPaymaster pays for up to 20 frame transactions per UTC day for
+each stamped wallet. Its VERIFY frame reads the registry's stamp expiry and its own clock slot, so it stakes itself
+(0.012 ETH) to be allowed to read that storage. The daily quota is an EIP-8250 keyed nonce, and the fees are pinned.
+One sponsored frame tx was admitted and mined (section 3). Design and trade-offs: docs/EF_ALTMEMPOOL.md.
+
+## 10. Card list (policies)
+
+### What counts in the live app
+- 4,208 six-digit card prefixes (BINs): RuPay network, bank debit cards, issued in India.
+- Prepaid ranges are left out (gift, transit and payroll cards, which anyone can buy over the counter), and so are
+  ranges the dataset gives no category.
+- Source: https://github.com/mostafa19950/bin-list-data (CC BY 4.0). It is unofficial and possibly outdated, so every
+  leaf is marked "listed", not "tested". No prefix was chosen because of a team member's card.
+- What is proven cryptographically: the card network, through the RuPay CA key 05 that signed the card. Bank, card
+  type and country are only as good as the BIN list behind the prefixes.
+- Full list: policies/live.json in the repo, or GET https://prover.usewatermark.xyz/policy/<appId>.
+
+### How a filter works
+- Each leaf is { networkId (1 = RuPay, 2 = Visa, 3 = Mastercard), prefixLength (6 or 8), prefix }.
+- rulesRoot is the Poseidon2 Merkle root of the leaves (tree depth 13, up to 8,192 leaves). The circuit proves the
+  card's prefix is one of the leaves; the registry checks the proof against apps(appId).rulesRoot.
+- Rules are fixed per appId: a new filter means a new appId.
+- A narrower filter makes each stamp reveal more. A stamp in an "SBI only" app shows the wallet holds an SBI card.
+
+### Audit any app's filter
+1. Read apps(appId) on the registry: owner, rulesRoot, sessionSigner (explorer, SDK appInfo, or the MCP tool
+   watermark_app_info).
+2. Get the published leaves: policies/<name>.json in the repo, or GET /policy/<appId> on the prover.
+3. Recompute the root from the leaves: `node tools/zk/src/roots.ts --check` (CI runs it on every push). The MCP tool
+   watermark_app_info and the SDK's auditApp do the comparison for you.
+4. Check caRoot() on the registry against policies/ca-keys.json (the trusted network keys).
+5. See how many wallets an app has stamped: watermark_stamp_history or the SDK's stampHistory.
+
+### Your own app, with your own card list
+1. Draft the filter with watermark_draft_policy (BIN prefixes from a public BIN list). It returns leaves, rulesRoot,
+   warnings.
+2. Publish the policy (its leaves) where users can see it, so anyone can check your on-chain root against it.
+3. Register: watermark_prepare_register_app returns an unsigned registerApp(salt, rulesRoot, sessionSigner)
+   transaction and the appId it will create. Sign and send it from the owner wallet.
+4. Run a session signer: it signs the QR sessions for your app (our relayer does this for the live app). It decides
+   who can start a verification; it can't stamp anyone without a real card and a valid proof.
+5. Gate on your new appId (sections 4 to 6). Only RuPay cards can be proven today, whatever the filter says.
+
+## 11. Privacy
+
+What we see and store
+- Our prover sees the card data (card number, BIN, card key, certificates, card expiry) briefly, in memory, to make
+  the proof. Then it wipes it. You have to trust that wipe; we can't prove it. Proving on the phone is the real fix,
+  and it is on the roadmap. Anyone can run their own prover.
+- On the network, card data travels only as ciphertext, readable with the prover's key.
+- The relayer and the prover see IP addresses and timing. Request logs are off in demo mode.
+- What we store: nothing from the card. No KYC files, no documents, no card numbers.
+
+What goes on-chain (public, permanent)
+- The wallet, the appId, a nullifier (a one-way card id per app), the stamp's expiry month, and the proof.
+- The app's filter (its rulesRoot and its public list).
+- USDT payments, like any token transfer.
+- Never: the card number, the BIN or the card's expiry.
+
+Rules every part follows
+- Never log request bodies, card fields, witnesses or private proof inputs.
+- No analytics, trackers or crash reporting anywhere in the flow.
+- If you integrate Watermark, you never need card data: your code only sees a wallet address and a yes/no stamp.
+- Using one wallet in two apps links them, even though the nullifiers differ.
+
+## 12. Limits
+
+- Only RuPay debit cards work today (cards using the RuPay CA key 05 with the 1984/1408/768-bit, exponent-3 key
+  profile). Visa and Mastercard are planned, not live: their filters can be drafted, but no card can be proven yet.
+  Each needs its own circuit profile, which plugs into the VerifierRouter without a redeploy.
+- Test networks only (Whitechain Sepolia and the alt mempool devnet). A real launch needs PCI and legal review,
+  network and bank terms, and a licensed BIN source.
+- One card is not one person. Two cards make two stamps. A reissued card has a new key, so it gets a new stamp.
+- Possession only: a contactless tap has no PIN, so a borrowed or stolen card also passes.
+- No revoke. A stamp lasts until the end of a month 1 to 3 months ahead (our relayer uses 3), never past the card's
+  own certificate expiry, and can't be revoked early. A lost wallet can't move its stamp to a new wallet.
+- Our prover sees card data briefly, in memory (section 11).
+- The nullifier isn't fully secret: anyone who has read the card and knows the appId can compute it and link the
+  card to the wallet.
+- The chip's challenge is only 4 bytes, so sessions are rate-limited and the relayer chooses the nonce.
+- An app's session signer could refuse a user or open too many sessions. It can't stamp anyone without a real card.
+- The live list comes from an unofficial BIN dataset that may be out of date.
+- Watermark Tap is not in an app store yet, and @watermark/sdk is not on npm yet.
+
+## 13. Example: gate an airdrop end to end
+
+Goal: only wallets backed by a real bank card can claim, one claim each, and unverified users get a clear way in.
+
+Step 1. Choose the appId
+Use the live app id (section 3) for real RuPay cards. Register your own app only for a different card list (section 10).
+
+Step 2a. The contract (if it is on Whitechain Sepolia)
+Use the Drop contract from section 4. Deploy it with the registry 0x998934Efa31a6bE75945fDfAa126d3D6401F8Fd6. A wallet
+without a live stamp gets "Watermark: no live stamp".
+
+Test that an unstamped wallet is refused (Foundry):
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.30;
+
+import {Test} from "forge-std/Test.sol";
+import {Drop, IWatermarkRegistry} from "../src/Drop.sol";
+
+/// Test double: a wallet is stamped until the expiry you set.
+contract MockRegistry is IWatermarkRegistry {
+    mapping(address => uint64) public expiry;
+    function setExpiry(address wallet, uint64 expiresAt) external {
+        expiry[wallet] = expiresAt;
+    }
+    function isStamped(address wallet, uint256) external view returns (bool ok, uint64 expiresAt) {
+        expiresAt = expiry[wallet];
+        ok = expiresAt > block.timestamp;
+    }
+}
+
+contract DropTest is Test {
+    MockRegistry registry = new MockRegistry();
+    Drop drop = new Drop(registry);
+    address bot = address(0xB07);
+
+    function test_unstampedWalletIsRefused() public {
+        vm.prank(bot);
+        vm.expectRevert(bytes("Watermark: no live stamp"));
+        drop.claim();
+    }
+}
+```
+(To test the happy path, call registry.setExpiry(wallet, uint64(block.timestamp + 30 days)) first.)
+
+Step 2b. The backend (if the contract is on another chain, or the payout is off-chain)
+Check on the server, right before you pay out or add the wallet to the allowlist:
+
+```ts
+import { check, type CheckOptions } from "@watermark/sdk";
+
+const REGISTRY = "0x998934Efa31a6bE75945fDfAa126d3D6401F8Fd6";
+const APP_ID = "393344891601835728760966937624776276735512086066329273346256164761263100630";
+
+export async function assertStamped(wallet: string, opts: CheckOptions = {}): Promise<void> {
+  const { stamped } = await check(wallet, APP_ID, { registry: REGISTRY, ...opts });
+  if (!stamped) throw new Error(`NOT_STAMPED: verify at https://usewatermark.xyz/verify?app=${APP_ID}`);
+}
+```
+
+Test that an unstamped wallet is refused (node --test; `client` replaces the chain read):
+
+```ts
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { assertStamped } from "./watermark-gate.ts"; // the file above
+
+test("an unstamped wallet is refused", async () => {
+  const client = { readContract: async () => [false, 0n] as const };
+  await assert.rejects(assertStamped("0x000000000000000000000000000000000000dEaD", { client }), /NOT_STAMPED/);
+});
+```
+
+For a snapshot allowlist, run checkMany over your claim list in batches of 200 and keep the stamped wallets. Check
+again with check() at claim time, because stamps expire.
+
+Step 3. The way in for unverified users
+When the claim is refused, show a "Get verified with Watermark" button that opens
+https://usewatermark.xyz/verify?app=<APP_ID>. Ask the user to choose the wallet they claim with. When they come back,
+check again (check(), isStamped, or GET /status/:wallet?app=<APP_ID>&chain=1874) and enable the claim.
+
+Step 4. Don't touch card data, and watch it work
+Your app never asks for, stores or logs card numbers or any card field. It only needs the wallet address.
+watermark_stamp_history (MCP) or stampHistory (SDK) shows how many wallets your appId has stamped and which are live.
+
+## 14. Links
+
+- Website: https://usewatermark.xyz
+- Genesis Drop: https://usewatermark.xyz/pass
+- Get the Android app: https://usewatermark.xyz/app
+- Verify (live app): https://usewatermark.xyz/verify?app=393344891601835728760966937624776276735512086066329273346256164761263100630
+- Bot test: https://usewatermark.xyz/attack
+- This file: https://usewatermark.xyz/watermark.txt (also https://usewatermark.xyz/llms.txt)
+- Relayer API: https://api.usewatermark.xyz · Prover: https://prover.usewatermark.xyz
+- Source code: https://github.com/Prashant-Mishra-12569/watermark
+- Integration guide: https://github.com/Prashant-Mishra-12569/watermark/blob/main/docs/INTEGRATE.md
+- MCP server: https://github.com/Prashant-Mishra-12569/watermark/blob/main/mcp/README.md
+- Privacy: https://github.com/Prashant-Mishra-12569/watermark/blob/main/docs/PRIVACY.md
+- Alt mempool paymaster: https://github.com/Prashant-Mishra-12569/watermark/blob/main/docs/EF_ALTMEMPOOL.md
+- Deployments: https://github.com/Prashant-Mishra-12569/watermark/blob/main/deployments/whitechain.json
+- Live card list: https://github.com/Prashant-Mishra-12569/watermark/blob/main/policies/live.json
+- First real-card stamp (previous live app):
+  https://explorer.testnet.whitechain.io/tx/0xd7e0166584dbb3b404d2b81308b5b69c94fa52b4d2d0da6a66759a52bb86bc07
+- Gas-free USDT payment (live app):
+  https://explorer.testnet.whitechain.io/tx/0xb848b7c8c589335d17ab1570f0cb1765325a1d065e58a2f9447e9d333e376879

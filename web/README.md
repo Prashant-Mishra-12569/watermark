@@ -37,6 +37,7 @@ are fixed when `dev` starts or at `build` time, so restart after changing them. 
 | `NEXT_PUBLIC_RELAYER_LAN_URL` | unset | Only when set, `/verify` offers a "short QR" toggle (`watermark://verify?id=…&p=…`). Watermark Tap doesn't support short links yet. Must be a URL the app can read, like `http://192.168.1.2:8788` (no `_` in the host) |
 | `NEXT_PUBLIC_DEMO_SHOP` | unset | `/pay` recipient (the demo shop's address). Unset: `/pay` shows a recipient field |
 | `NEXT_PUBLIC_PAY_MAX_USDT` | `5` | Largest amount `/pay` offers. Keep it equal to the relayer's `PAY_MAX_USDT` |
+| `NEXT_PUBLIC_GENESIS_PASS_ADDRESS` | unset | The `PASS_LIVE` switch: the WatermarkGenesisPass address, the same as the relayer's `GENESIS_PASS_ADDRESS`. Unset: `/pass` says "The drop opens soon" and `/verify` and `/pay` run without the drop's step header. Set it only after a pass was minted from a browser (SITE_SPEC hard stop) |
 
 Without `NEXT_PUBLIC_APP_ID`, `/verify` shows a "this page isn't set up yet" message instead of a QR.
 
@@ -48,14 +49,19 @@ The relayer must list every origin the site is served from in `CORS_ORIGINS` (ex
 `127.0.0.1` are different origins).
 
 ## Pages
+The site is two pages (SITE_FINAL.md): **Builders** at `/` and the **Genesis Drop** at `/pass`. `/verify` and `/pay` are
+steps inside the drop, `/attack` is a tool the home page opens, and `/credits` is a footer link. None of them are in the
+nav.
+
 | Route | Job | Status |
 |---|---|---|
-| `/` | Pitch: "Bots can't hold plastic." Buttons to `/verify` and `/pay` | ✅ built |
+| `/` | **Builders (home), for companies and builders.** "Stop bots from farming your airdrop." How it works, how to add it (the Solidity `isStamped` modifier, the SDK's `check` / `checkMany`, the MCP server), the bot test and the live wallet checker, the card rules (`#control`), on-chain receipts, privacy and limits | ✅ built |
 | `/verify` | Wallet choice (own wallet or browser wallet) → `POST /session` → big QR + `watermark://` link + the wallet's last 4 chars → poll `/status` → "Verified ✓" + explorer link | ✅ built; "Verified ✓" needs the deployed registry |
 | `/pay` | Same wallet as `/verify` (own wallet or browser wallet) → stamp (`/status`), USDT balance and quota (`/balance`) → optional "Get demo USDT (from the business)" (`POST /fund`) → amount + recipient, signed in the background (EIP-3009) → `POST /pay` → "Paid ✓", explorer link, "Gas paid by the relayer, not you" | ✅ built; needs the relayer's `/pay`, `/fund`, `/balance` and `SPONSOR_ADDRESS` |
-| `/attack` | "Start bot attack": live counters (requests, refused, budget left), protection toggle, "estimated" label when it's off | not built |
-| `/sponsor` | App rules, TEST/LIVE badge, rules root, what a stamp reveals, budget and quota | not built |
-| `/dev` | Integration: contract call, SDK snippet, MCP config | not built |
+| `/pass` | Watermark Genesis Pass (100 only, one per bank card). Shown only when `NEXT_PUBLIC_GENESIS_PASS_ADDRESS` is set (`PASS_LIVE`); otherwise it says the pass isn't deployed yet and calls nothing. "{N} of 100 left" (`GET /pass`), the art on the left (a preview, then the minted pass's on-chain SVG from `tokenURI`, shown with `<img>`), and on the right the live app's wallet choice (`<WalletGate purpose="pass">`; only the address is used, nothing is signed) → `GET /pass/:wallet` every 10 s → a 3-step checklist (1 "Tap my card" → `/verify?next=pass`, 2 "Make the payment" → `/pay?next=pass`, 3 "Claim my pass, free" → `POST /pass`) → a receipt (YOU · RELAYER · contract). The header shows "Step n of 3" (`useFlowStep`). Copy for every state is in `lib/genesis-pass.ts` (`PASS_COPY`, `passErrorCopy`) | ✅ built, **not deployed**. Walked through in headless Chrome against a local anvil fork with a throwaway pass (choose wallet, step 1, both ticks, claim, receipt, reload, phone width, relayer down); never against a deployed pass |
+| `/attack` | The bot test, opened from the home page's "Run the bot test": it makes 5 bot wallets and sends them at our own drop | ✅ built |
+| `/credits` | The fonts the site uses and their licences. The site ships no image files: every picture is drawn in code | ✅ built |
+| `/dev`, `/sponsor` | Permanent redirects (`next.config.ts`) to `/` and `/#control`, so old links keep working | redirect |
 
 ### Use your own wallet (MetaMask, Rabby, Coinbase Wallet, Brave, ...)
 `/verify` and `/pay` first ask **"Use my wallet"** or **"Continue without a wallet"**. The second is the burner below,
