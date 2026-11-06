@@ -441,3 +441,48 @@ Result:
 - Added a test that the live filter has no prepaid or uncategorised ranges and matches the deployed appId.
 - PRIVACY.md: rows for the tunnel (it sees only ciphertext) and for bought cards. README test counts: 249 TypeScript,
   267 Foundry, 28 Android, 10 Noir. AI_USAGE.md now links Samanway's prompt file.
+
+## 21:20
+
+**64.**
+> Is our project live and usable by everyone now? Can anybody use any wallet and their own card to get a stamp? What
+> is the exact workflow of our website? Samanway is building a separate NFT whitelist site with the Watermark MCP to
+> show real use, so what exactly will be on our main website? Can people try and verify something there too?
+
+Result:
+- Read the web pages. Explained what is public (the contracts, the SDK and MCP checks) and what isn't yet (the
+  website, the prover and the relayer run on Samanway's Mac, and the APK isn't published), plus which cards work.
+- Suggested a public "check any wallet" page, so visitors without a card can still verify stamps and audit the filter.
+
+## 21:35
+
+**65.**
+> Who builds the UI for our phone app, Samanway or me? New users need a way to find the app, so we should offer the
+> APK on the website, and let them check it's the real APK. If the app is already on the device, users should be able
+> to onboard directly in the app without scanning a QR; we should have that option. For the MCP: if a company wants to
+> add Watermark, does it need its own app, or does it use mine, and how? And explain the app UI we have now.
+
+Result:
+- Checked the app: the screens are a plain text skeleton (80 lines), and it trusts a fixed list of session signers
+  built into the APK, so another company's app would be refused. Proposed reading the signer from the Registry
+  on-chain instead, plus APK download with a published checksum and an "open in app" button for phone browsers.
+
+## 01:00 (Sat)
+
+**66.**
+> [Pasted Samanway's handoff: the site is live at usewatermark.xyz (the Genesis Pass drop, /app download page, bot
+> test, docs for AI agents), relayer and prover on public subdomains, the Genesis Pass NFT and renderer contracts; my
+> two jobs are the Tap app and an end-to-end check with my own wallet; build the demo variant and send him the APK.]
+> Read the brief in the repo and the /app page on our domain, and build the app's UI/UX properly. I shared the taste
+> and theme in the repo. Build from the user's side: very cool, minimal and clean, made for consumers, not
+> developers. Don't test now, I'll test by hand. Take your time, think at every step, and ask if you have questions.
+
+Result:
+- Matched the website: its fonts (Geist, Geist Mono, Instrument Serif italic accents, all SIL OFL) and colours.
+- Redesigned the Tap app: a home screen, "Is this your wallet?" with the wallet ending in big tiles and a ready
+  bar, one journey screen (ring plus checklist) for read, check, encrypt and prove, a postage-stamp success moment
+  with a vibration, friendly problem screens with one action each, and a "Private" sheet holding the privacy
+  details. Added a launcher icon.
+- Added a "card already linked" message: the prover now passes the registry's NullifierBoundToOtherWallet reason
+  through as CARD_ALREADY_LINKED instead of a generic failure.
+- Built the demo APK; 28 Android and 272 TypeScript tests pass. Not run on a phone yet.
