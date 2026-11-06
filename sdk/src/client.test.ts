@@ -85,12 +85,12 @@ test("checkMany caps the list at 200 wallets", async () => {
   await assert.rejects(checkMany(many, "1", { registry: REGISTRY, client: reader }), /at most 200/);
 });
 
-test("verifyLink encodes the app and a checksummed wallet", () => {
-  assert.equal(
-    verifyLink("12345", A, "https://watermark.example/demo"),
-    "https://watermark.example/demo/verify?app=12345&wallet=0x00000000000000000000000000000000000000A1",
-  );
+test("verifyLink matches the website's /verify route (?app=, plus ?chain=1337 for the devnet)", () => {
+  // The page stamps its own browser wallet, so the wallet is validated but never put in the URL
+  assert.equal(verifyLink("12345", A, "https://watermark.example/demo"), "https://watermark.example/demo/verify?app=12345");
+  assert.equal(verifyLink("12345", null, "https://watermark.example/", "devnet"), "https://watermark.example/verify?app=12345&chain=1337");
   assert.throws(() => verifyLink("1", A, "javascript:alert(1)"), /http/);
+  assert.throws(() => verifyLink("1", "nope", "https://watermark.example"), /not an address/);
 });
 
 test("draftPolicy builds leaves and warns about narrow, untested and empty filters", () => {

@@ -1,8 +1,37 @@
 /**
- * The read side of WatermarkRegistry (contracts/src/interfaces/IWatermarkRegistry.sol, interfaces F5).
- * Only what apps and agents need to check stamps; writes go through the relayer.
+ * The parts of WatermarkRegistry the SDK uses (contracts/src/interfaces/IWatermarkRegistry.sol, interfaces F5).
+ * Reads for apps and agents, plus registerApp so a company can be handed an UNSIGNED registration transaction.
+ * The SDK never signs or sends anything.
  */
 export const WATERMARK_REGISTRY_ABI = [
+  {
+    type: "function",
+    name: "registerApp",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "salt", type: "bytes32" },
+      { name: "rulesRoot", type: "bytes32" },
+      { name: "sessionSigner", type: "address" },
+    ],
+    outputs: [{ name: "appId", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "computeAppId",
+    stateMutability: "pure",
+    inputs: [
+      { name: "appOwner", type: "address" },
+      { name: "salt", type: "bytes32" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "verifier",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+  },
   {
     type: "function",
     name: "isStamped",
