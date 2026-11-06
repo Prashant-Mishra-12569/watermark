@@ -24,7 +24,7 @@ import {
 export const metadata: Metadata = {
   title: "Docs · Watermark",
   description:
-    "Stop bots from farming your airdrop. How Watermark works, the MCP server for AI agents, the code to add it, and every setting you can change.",
+    "Keep bots out of your app. How Watermark works, the MCP server for AI agents, the code to add it, and every setting you can change.",
 };
 
 /*

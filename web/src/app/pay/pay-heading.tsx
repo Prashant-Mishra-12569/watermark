@@ -11,17 +11,17 @@ export const PAY_MAIN = "mx-auto w-full max-w-6xl overflow-x-clip px-4 pb-20 pt-
 /** Step 2's words (SITE_FINAL "Page 2": "2 Send one free test payment, we pay the fee"). */
 export const PAY_COPY = {
   title: "Pay with *no* fees.",
-  lead: "Stamped wallets pay no fees. Sign one test USDT payment. We pay the fee.",
+  lead: "Once your wallet has a stamp, you don't pay network fees. Sign one test USDT payment and we'll cover the fee.",
   /** The wallet question: the stamp from step 1 is what makes the payment free. */
   question: "Which wallet did you stamp?",
-  questionSub: "Pick the wallet from step 1. You pay no fees.",
+  questionSub: "Pick the wallet you used in step 1. You won't pay any fees.",
   /** After paying on the drop walk (?next=pass): step 3 on /pass. */
   toStep3: "Go to step 3",
   backToDrop: "Back to the drop",
   toStep1: "Go to step 1",
   /** The same link off the drop's walk (no step numbers there). */
   toVerify: "Tap your card",
-  noStampNext: "Do step 1 first: tap your bank card. It takes 2 minutes.",
+  noStampNext: "Do step 1 first and tap your bank card. It only takes 2 minutes.",
 } as const;
 
 /**

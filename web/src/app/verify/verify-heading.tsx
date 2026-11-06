@@ -114,10 +114,10 @@ export const VERIFY_COPY = {
   stamped: "Your wallet is *stamped*.",
   /** Under the h1 while the wallet is chosen (the QR screen then says what to do). */
   intro:
-    "Tap your bank card on the Watermark phone app. Your wallet gets a stamp bots can't fake. You pay no fees.",
+    "Tap your bank card on the Watermark phone app and your wallet gets a stamp that bots can't fake. It's free.",
   /** The wallet question on the drop walk (?next=pass): the stamp and the NFT go to the same wallet. */
   passQuestion: "Where should we keep your NFT?",
-  passQuestionSub: "Your stamp and your NFT go to the wallet you pick. You pay no fees.",
+  passQuestionSub: "Your stamp and your NFT go to the wallet you pick, and you won't pay any fees.",
   /** After the stamp, on the drop's walk: step 2 (/pay?next=pass). */
   next: "Go to step 2",
   /** After the stamp, off the walk: the same free payment, without the drop's step words. */
