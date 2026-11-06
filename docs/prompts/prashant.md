@@ -486,3 +486,64 @@ Result:
 - Added a "card already linked" message: the prover now passes the registry's NullifierBoundToOtherWallet reason
   through as CARD_ALREADY_LINKED instead of a generic failure.
 - Built the demo APK; 28 Android and 272 TypeScript tests pass. Not run on a phone yet.
+
+## 01:20
+
+**67.**
+> How do I see the APK? How do I download it from the website?
+
+Result:
+- Explained the three ways: previews in Android Studio, installing over USB with adb, and the website download,
+  which only works once Samanway places the file on the site (it returned 404 at this point).
+
+## 01:30
+
+**68.**
+> Now check the latest repo commits and verify what has been done in total and what's left. Check that everything
+> works properly and is live, or whether something is missing. Go deep and think at every step: there should be
+> no fault. [Then, during the check:] Continue with the latest commits, very deeply and precisely.
+
+Result:
+- Checked CI (green on main), every test locally (394 TypeScript, 28 Android, the demo APK builds), every public
+  page and both servers, the APK served by the site (byte-identical to our build), all six Whitechain contracts
+  (source-verified), the Genesis Pass (gated on the no-prepaid live app, 1 of 100 claimed), the EF devnet tx (still
+  there, 5 frames successful) and the docs page for AI agents (addresses consistent).
+- Fixed a website test that failed on Windows (file paths read from URLs), and updated the README (live links, the
+  APK signing certificate, the live-app stamp, the Genesis Pass claim, test counts, font credits).
+- Found for Samanway: the live relayer and prover still serve the old salt-2 app with the prepaid-inclusive filter,
+  and the business wallet has 19 test USDT, about 9 drop users at 2 USDT each.
+
+## 02:00
+
+**69.**
+> Freshen up the whole GitHub repo. Write a proper, very guided README from the judges' point of view: clean, simple
+> words, technical where needed, with flowcharts that explain the tech simply and answer the questions judges might
+> ask. Commit everything and clean the repo: keep only what's needed now, nothing spare. Research how recent ETHGlobal
+> winners structure their READMEs (as an example only, don't copy, don't mention other projects). Go beyond airdrops:
+> show use cases in apps people use today, for example how Uniswap could apply Watermark. Add the GitHub repo
+> details such as the website link, and a detailed, guided MCP section, and make sure the MCP works for agents and
+> developers. Make the product look valuable and professional. Check ETHGlobal's repo and README requirements (no demo
+> video yet).
+
+Result:
+- Research: ETHGlobal asks for a public repo that shows what was built during the event, and separates new work
+  from reused work. Strong READMEs open with the pitch, live links and proof, then how it works, the stack,
+  deployments, partner use and setup.
+- Ran the real stdio MCP server against the live chain (12 tools, live answers). Rewrote mcp/README.md as a guided
+  setup for Claude Code, Cursor and Claude Desktop, and added a project .mcp.json.
+- Rewrote README.md: an "in 30 seconds" summary with on-chain proof, sequence and architecture diagrams, what a
+  stamp proves and doesn't, use cases (including a Uniswap v4 hook sketch), developer paths, the circuit and the
+  contracts, partner tracks, privacy, honest limits, addresses, setup, the repo map and disclosures. Checked all 47
+  internal and 20 external links.
+- Cleaned up: removed the temporary handoff, moved Samanway's prompt log next to mine, and added the app screens row
+  to AI_USAGE.md.
+
+## 02:35
+
+**70.**
+> [Screenshot of PR #32: "ci / typescript" failing; contracts and the secrets check passing.] Check this and solve it.
+
+Result:
+- Two website tests require the MCP config on usewatermark.xyz to match the JSON block in mcp/README.md exactly; the
+  new guide had dropped its `env` line. Put it back; all 399 TypeScript tests pass, and the README test count is
+  updated.
