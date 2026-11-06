@@ -35,7 +35,7 @@ next-env.d.ts
 # Foundry
 contracts/out/
 contracts/cache/
-contracts/broadcast/**/dry-run/
+contracts/broadcast/
 
 # Noir
 circuits/target/
@@ -62,3 +62,6 @@ Thumbs.db
 
 # Local-only policies (e.g. a real card BIN for dev testing): never commit
 policies/local*.json
+
+# forge-std is installed by CI and locally with: forge install foundry-rs/forge-std --no-git
+contracts/lib/
