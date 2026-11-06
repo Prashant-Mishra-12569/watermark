@@ -616,3 +616,22 @@ Result:
   test (the wallet checker first, then the bot farm), and the "Live on Whitechain Sepolia" values as tiles. Code
   blocks in "Add it" are shorter on phones and scroll inside.
 - 223 website tests pass, typecheck is clean, and the production build succeeds.
+
+## 03:35
+
+**75.**
+> Send me screenshots here of what you've done, so I can see.
+
+Result:
+- Re-ran the site locally and took high-resolution 390px screenshots of every redesigned section, in two labelled
+  gallery images. Fixed one flaw found while looking: the privacy cards now keep their own height.
+
+## 04:51
+
+**76.**
+> Check one last time that everything is ready from A to Z. Are we ready to shoot the demo?
+
+Result:
+- Checked GitHub (all PRs merged, CI green), the live site (both phone updates live), the APK on the site, both
+  servers, the chain (balances, NFT stock, the live check), the EF tx and the repo documents. Listed what's left
+  before shooting and before submission.
