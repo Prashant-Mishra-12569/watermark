@@ -406,3 +406,38 @@ Result:
 
 Result:
 - Scanned both files for card numbers, BINs and keys, then committed them (the push is done by hand).
+
+## 20:37
+
+**61.**
+> Check the progress.
+
+Result:
+- Samanway merged the EF paymaster code and devnet deployment, the wallet choice on /verify and /pay, the Sponsor,
+  and the stricter live app (salt 3). Checked it on the chain: its root is the no-prepaid filter, and the signer is ours.
+- Found that salt 2 was also registered, with the old filter; it's now listed as unused in INTEGRATE.md.
+- Found and decoded the first gas-free USDT payment (tx 0x298d3d17…): 1 USDT from the stamped wallet, gas paid by
+  the relayer, and the payer holds 0 WBT. Added it to the README with the stablecoin reason.
+
+## 20:50
+
+**62.**
+> Give me the final list: exactly what's left on my side, on Samanway's side and in total. The full development plan,
+> after fetching the latest from the repo.
+
+Result:
+- Fetched main (PR #23 merged, my PR #24 open with CI green) and wrote the remaining plan with owners and times up to
+  the 08:00 submission.
+
+## 21:05
+
+**63.**
+> OK, do what's left on my side apart from submission, pitching and so on: any technical or backend part. And what
+> testing is left, exactly? Use the latest repo info and tell me.
+
+Result:
+- Checked the new live app's Sponsor on the chain (right appId, relayer and Registry) and the balances: relayer
+  0.456 WBT (about 30 stamps), the stamped wallet 1 USDT.
+- Added a test that the live filter has no prepaid or uncategorised ranges and matches the deployed appId.
+- PRIVACY.md: rows for the tunnel (it sees only ciphertext) and for bought cards. README test counts: 249 TypeScript,
+  267 Foundry, 28 Android, 10 Noir. AI_USAGE.md now links Samanway's prompt file.

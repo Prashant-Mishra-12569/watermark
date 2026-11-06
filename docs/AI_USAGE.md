@@ -10,7 +10,7 @@ We decided what to build, how it fits together, which prizes to go for and who d
 real card and every transaction on the chain ourselves.
 
 The AI wrote most of the code and docs. It worked from our prompts and from our build spec in [docs/spec/](spec/).
-Every prompt we gave it is in [docs/prompts/](prompts/).
+Every prompt we gave it is in [docs/prompts/](prompts/) (Prashant) and [prompts/](../prompts/) (Samanway).
 
 We read and checked every change. Some commits were made by the AI when we asked, after we reviewed them, under our
 own names. We pushed and merged every change ourselves. No commit names an AI as its author.
@@ -43,7 +43,7 @@ Prompts: [docs/prompts/prashant.md](prompts/prashant.md)
 
 ## Samanway: website, relayer, contracts, alt mempool
 
-Prompts: [docs/prompts/](prompts/) (Samanway's file)
+Prompts: [prompts/samanway-01-workshop-and-relayer.md](../prompts/samanway-01-workshop-and-relayer.md) (session 1; later sessions to be added)
 
 | Area | Files | What the AI did | What Samanway did |
 |---|---|---|---|
