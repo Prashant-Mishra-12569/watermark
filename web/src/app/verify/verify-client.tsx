@@ -10,6 +10,7 @@ import { FloatChip } from "../_site/float-chip";
 import { WalletGate } from "../_wallet/wallet-gate";
 import { VerifyFlow } from "./verify-flow";
 import { VERIFY_COPY, VerifyHeading } from "./verify-heading";
+import { resolveDemoApp } from "@/lib/demo-apps.ts";
 
 /**
  * The page width every /verify state shares (the header's container). overflow-x-clip: the stamp's landing (it starts
@@ -40,7 +41,7 @@ export function VerifyClient() {
           appId: process.env.NEXT_PUBLIC_APP_ID,
           chainId: process.env.NEXT_PUBLIC_CHAIN_ID,
         },
-        { app: q.get("app"), chain: q.get("chain"), next: q.get("next") },
+        { app: resolveDemoApp(q.get("app")), chain: q.get("chain"), next: q.get("next") },
         { liveAppId: LIVE_APP.appId, passLive: PASS_LIVE },
       ),
     );
