@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 import { PASS_LIVE, addressUrl, last4, txUrl } from "@/lib/site.ts";
 import { Counter } from "../_site/counter";
 import { cx } from "../_site/cx";
@@ -23,7 +23,7 @@ import {
   type DoorState,
   type Tone,
 } from "./bots.ts";
-import { useAttack } from "./use-attack.ts";
+import { useAttack, type AttackView } from "./use-attack.ts";
 
 // Literal process.env.NEXT_PUBLIC_* reads, so Next inlines them (the same on the server and in the browser).
 const CONFIG = readAttackConfig(
@@ -70,10 +70,58 @@ const LINE: Record<Tone, string> = {
   muted: "text-night-muted",
 };
 
+/** One bot test per page: the hero's Launch button and the night card share it. */
+const AttackContext = createContext<AttackView | null>(null);
+
+/**
+ * Holds the page's one bot test (useAttack), so the Launch button can sit in the hero, on the first screen, as well as
+ * on the night card where the results show. Wrap both in it; the server page's content passes through as children.
+ */
+export function AttackProvider({ children }: { children: ReactNode }) {
+  const attack = useAttack(CONFIG.ok ? CONFIG.config : null);
+  return <AttackContext.Provider value={attack}>{children}</AttackContext.Provider>;
+}
+
+function useAttackView(): AttackView {
+  const attack = useContext(AttackContext);
+  if (!attack) throw new Error("AttackProvider is missing");
+  return attack;
+}
+
+/** The Launch pill's words, the same in the hero and on the night card. */
+function launchLabel(attack: AttackView): string {
+  if (attack.phase === "running") return "Bots running…";
+  if (attack.cooldownSeconds > 0) return `Launch again in ${attack.cooldownSeconds}s`;
+  return `Launch ${BOT_COUNT} bots ↗`;
+}
+
+/**
+ * The hero's Launch button: the page's main action on the first screen. It starts the same run as the night card's
+ * button, then brings the night card (where each bot's row lands) into view. Nothing when the page isn't set up.
+ */
+export function HeroLaunch() {
+  const attack = useAttackView();
+  if (!CONFIG.ok) return null;
+  const running = attack.phase === "running";
+  return (
+    <PillButton
+      size="lg"
+      disabled={running || attack.cooldownSeconds > 0}
+      busy={running}
+      onClick={() => {
+        attack.launch();
+        const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        document.getElementById("bot-test")?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+      }}
+    >
+      {launchLabel(attack)}
+    </PillButton>
+  );
+}
+
 /** The bot test: the Launch button, the bot grid and the tally, on the page's one dark card. Every request is real (bots.ts). */
 export function AttackClient() {
-  const config = CONFIG.ok ? CONFIG.config : null;
-  const attack = useAttack(config);
+  const attack = useAttackView();
 
   if (!CONFIG.ok)
     return (
@@ -97,7 +145,7 @@ export function AttackClient() {
   const lines = attack.summary ? summaryLines(attack.summary) : [];
 
   return (
-    <NightCard as="section" labelledBy="bot-test-title">
+    <NightCard as="section" labelledBy="bot-test-title" id="bot-test" className="scroll-mt-6">
       <div className="grid gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-14">
         <div className="flex min-w-0 flex-col">
           <Headline as="h2" id="bot-test-title">
@@ -115,11 +163,7 @@ export function AttackClient() {
               disabled={running || attack.cooldownSeconds > 0}
               busy={running}
             >
-              {running
-                ? "Bots running…"
-                : attack.cooldownSeconds > 0
-                  ? `Launch again in ${attack.cooldownSeconds}s`
-                  : `Launch ${BOT_COUNT} bots ↗`}
+              {launchLabel(attack)}
             </PillButton>
           </div>
 
@@ -184,13 +228,27 @@ function Stat({ label, value, bug = false }: { label: string; value: number; bug
 }
 
 /**
- * The grid: one row per bot, one cell per door. Rows not made yet show as quiet placeholders. Exported only so the
- * layout can be previewed with three doors; the page renders it through AttackClient.
+ * The grid: one row per bot, one cell per door. Before the first launch it is one calm line saying what will show
+ * here (not a table of empty cells); once bots exist, rows not made yet show as quiet placeholders. Exported only so
+ * the layout can be previewed with three doors; the page renders it through AttackClient.
  */
 export function BotGrid({ bots, doors, running }: { bots: readonly BotView[]; doors: readonly Door[]; running: boolean }) {
   const rowGrid = doors.length === 2 ? ROW_GRID_2 : ROW_GRID_3;
   const cellLayout = doors.length === 2 ? CELL_LAYOUT_2 : CELL_LAYOUT_3;
   const waiting = Array.from({ length: Math.max(0, BOT_COUNT - bots.length) }, (_, i) => bots.length + i + 1);
+  if (bots.length === 0 && !running)
+    return (
+      <div className="flex min-w-0 flex-col items-start gap-3 rounded-inner border border-dashed border-night-line bg-white/[0.03] px-5 py-6 sm:flex-row sm:items-center sm:gap-4 sm:px-6">
+        <span aria-hidden="true" className="flex shrink-0 gap-1">
+          {Array.from({ length: BOT_COUNT }, (_, i) => (
+            <span key={i} className="size-2 rounded-full border border-night-muted/60" />
+          ))}
+        </span>
+        <p className="min-w-0 text-[15px] leading-snug text-night-muted">
+          Results show here, one row per bot: {doors.map((d) => DOOR_NAME[d]).join(", ")}.
+        </p>
+      </div>
+    );
   return (
     <div className="min-w-0 rounded-inner border border-night-line bg-white/[0.03] p-2.5 sm:p-4">
       <div aria-hidden="true" className={cx("grid gap-1.5 px-0.5 pb-2.5 text-xs font-medium text-night-muted sm:gap-2", rowGrid)}>
@@ -223,7 +281,6 @@ export function BotGrid({ bots, doors, running }: { bots: readonly BotView[]; do
           </li>
         ))}
       </ol>
-      {bots.length === 0 && <p className="sr-only">Press Launch and the bots appear here, one row each.</p>}
     </div>
   );
 }

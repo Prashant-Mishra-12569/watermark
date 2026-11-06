@@ -1,4 +1,4 @@
-import { cx, Headline, PassArt } from "@/app/_site";
+import { cx, emphasize, Headline, PassArt } from "@/app/_site";
 import { PASS_PLATES, passArtEdition, passArtId, passPlate } from "@/lib/pass-art.ts";
 
 /**
@@ -15,8 +15,14 @@ export function PassPlates({ mine }: { mine?: string | null }) {
   return (
     <section aria-labelledby="pass-plates-title" className="pb-20 sm:pb-24">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between lg:gap-10">
+        {/* Two whole phrases: on one line with the dot between them, or (phones) one under the other without it. */}
         <Headline as="h2" size="card" id="pass-plates-title">
-          5 *Mumbai* plates · 20 stamps each
+          <span className="whitespace-nowrap">5 {emphasize("*Mumbai*")} plates</span>
+          <span aria-hidden="true" className="max-sm:hidden">
+            {" · "}
+          </span>
+          <span className="sr-only">, </span>
+          <span className="whitespace-nowrap max-sm:block">20 stamps each</span>
         </Headline>
         <p className="max-w-[46ch] text-muted">Each NFT is a stamp its contract draws on-chain. Your number picks the landmark.</p>
       </div>

@@ -10,9 +10,10 @@ import { addressUrl, PASS_ADDRESS, PASS_FLOW } from "@/lib/site.ts";
  */
 
 /**
- * Phones and tablets: the words, then the NFT, then the steps and the questions. From lg: words, steps and questions
- * on the left; the NFT on the right (a fixed 420px column), sticky while the left column scrolls. The left column is a
- * size container, so the H1 is sized from its own width and can never run into the NFT beside it.
+ * Phones and tablets: the words, then the NFT, then the steps and the questions. From 900px (the home hero's
+ * breakpoint, so a laptop zoomed to 150% gets two columns too): words, steps and questions on the left; the NFT on the
+ * right (a 340px column, 420px from lg), sticky while the left column scrolls. The left column is a size container, so
+ * the H1 is sized from its own width and can never run into the NFT beside it.
  */
 export function PassLayout({
   intro,
@@ -27,14 +28,14 @@ export function PassLayout({
   after?: ReactNode;
 }) {
   return (
-    <div className="grid grid-cols-1 gap-y-12 pb-20 pt-10 sm:pb-24 sm:pt-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:gap-x-14 lg:gap-y-14 lg:pt-16 xl:gap-x-20">
-      <div className="@container min-w-0 lg:col-start-1 lg:row-start-1">{intro}</div>
-      <div className="min-w-0 lg:col-start-2 lg:row-span-3 lg:row-start-1">
+    <div className="grid grid-cols-1 gap-y-12 pb-20 pt-10 sm:pb-24 sm:pt-14 min-[56.25rem]:grid-cols-[minmax(0,1fr)_minmax(0,340px)] min-[56.25rem]:gap-x-10 min-[56.25rem]:gap-y-14 min-[56.25rem]:pt-[clamp(24px,5svh,64px)] lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:gap-x-14 xl:gap-x-20">
+      <div className="@container min-w-0 min-[56.25rem]:col-start-1 min-[56.25rem]:row-start-1">{intro}</div>
+      <div className="min-w-0 min-[56.25rem]:col-start-2 min-[56.25rem]:row-span-3 min-[56.25rem]:row-start-1">
         {/* The header doesn't stick, so the NFT can sit close to the top while the left column scrolls. */}
-        <div className="lg:sticky lg:top-8">{art}</div>
+        <div className="min-[56.25rem]:sticky min-[56.25rem]:top-8">{art}</div>
       </div>
-      <div className="min-w-0 lg:col-start-1 lg:row-start-2">{children}</div>
-      {after && <div className="min-w-0 lg:col-start-1 lg:row-start-3">{after}</div>}
+      <div className="min-w-0 min-[56.25rem]:col-start-1 min-[56.25rem]:row-start-2">{children}</div>
+      {after && <div className="min-w-0 min-[56.25rem]:col-start-1 min-[56.25rem]:row-start-3">{after}</div>}
     </div>
   );
 }
@@ -44,12 +45,12 @@ const FACT_ICON: readonly LineIconName[] = ["ticket", "coin", "stamp", "card"];
 
 /**
  * The H1's size, from the intro column's own width (cqi: PassLayout makes it a size container) and the screen's
- * height (svh, so a short laptop screen keeps the hero in view). "cardholders." is ~5.6em wide, so at 14.5cqi it
- * fills at most ~80% of the column: it can't reach the NFT beside it at any width. Capped at 64px while the page is
- * one column (tablets), 88px beside the NFT.
+ * height (svh, so a short laptop screen keeps the hero in view). One column (phones, tablets): at most 64px. Beside
+ * the NFT (from 900px): on the home H1's scale, at most 68px, so it is always two lines ("A free NFT for / real
+ * cardholders.", ~7.6em at most, under 80% of the column) and never reaches the NFT.
  */
 const H1_SIZE =
-  "text-[length:clamp(36px,min(14.5cqi,11svh),64px)] lg:text-[length:clamp(44px,min(14.5cqi,11.5svh),88px)]";
+  "text-[length:clamp(36px,min(14.5cqi,11svh),64px)] min-[56.25rem]:text-[length:clamp(40px,min(10cqi,7.8svh),68px)]";
 
 /**
  * Eyebrow "Watermark Genesis Drop · protected by Watermark", the H1, the one paragraph and the four facts. The
@@ -72,7 +73,7 @@ export function PassIntro() {
           {PASS_COPY.eyebrowTail}
         </span>
       </p>
-      <h1 className={cx("mt-6 max-w-[13ch] text-balance font-semibold leading-[1] tracking-[-0.035em]", H1_SIZE)}>
+      <h1 className={cx("mt-6 max-w-[13ch] text-balance font-semibold leading-[1] tracking-[-0.035em] min-[56.25rem]:mt-5 min-[56.25rem]:max-w-[15ch] min-[56.25rem]:leading-[1.02]", H1_SIZE)}>
         {emphasize(PASS_COPY.title)}
       </h1>
       <p className="mt-6 max-w-[46ch] text-lg leading-relaxed text-muted sm:text-xl">{PASS_COPY.sub}</p>
@@ -123,15 +124,15 @@ export function PassStage({
   meter?: ReactNode;
 }) {
   return (
-    <figure className="mx-auto w-full max-w-[420px]">
+    <figure className="w-full max-w-[420px] min-[56.25rem]:mx-auto">
       <div className="overflow-hidden rounded-card bg-surface">
-        <div className="relative px-8 pb-10 pt-16 sm:px-12 lg:pb-9">
+        <div className="relative px-8 pb-10 pt-16 sm:px-12 min-[56.25rem]:px-10 min-[56.25rem]:pb-9 min-[56.25rem]:pt-12 lg:px-12 lg:pt-16">
           {/*
             The stamp: 264px on phones, 300px on tablets, up to 320px beside the words (never wider than ~340px with
             its tilt). Beside the words it also shrinks with a short screen, so the stage and its "{N} left" stay in
             view while it sticks (stage ≈ 190px + 1.27 × the stamp's width).
           */}
-          <div className="mx-auto w-[min(100%,264px)] motion-safe:animate-float sm:w-[min(100%,300px)] lg:w-[min(100%,clamp(232px,calc((100svh_-_260px)*0.79),320px))]">
+          <div className="mx-auto w-[min(100%,264px)] motion-safe:animate-float sm:w-[min(100%,300px)] min-[56.25rem]:w-[min(100%,clamp(200px,calc((100svh_-_260px)*0.79),320px))]">
             <div className="rotate-[2deg]">{children}</div>
           </div>
           {chips.slice(0, 2).map((c, i) => (

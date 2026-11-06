@@ -44,7 +44,8 @@ function useTouchOnly(): boolean {
  * Layout options (all optional, so existing pages keep their look):
  * - `intro`: the page's own heading block (its h1), shown above the choice while loading and choosing. The choice's
  *   question then becomes an h2.
- * - `aside`: an object shown beside the choice from lg up (hidden on smaller screens).
+ * - `aside`: an object shown beside the choice from 900px up (hidden on smaller screens), like the home hero's two
+ *   columns.
  * - `hideBar`: the page renders <WalletBar> itself (controls.switchWallet is its button).
  * - `title` / `sub`: replace the question and its line (the Genesis Drop steps word it for the drop).
  */
@@ -170,7 +171,12 @@ export function WalletGate({
   return (
     <section
       aria-labelledby={questionId}
-      className={cx("grid items-center gap-12", aside ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)] lg:gap-16" : null)}
+      className={cx(
+        "grid items-center gap-12",
+        aside
+          ? "min-[56.25rem]:grid-cols-[minmax(0,1fr)_minmax(0,280px)] min-[56.25rem]:gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,360px)] lg:gap-16"
+          : null,
+      )}
     >
       <div className="flex min-w-0 flex-col">
         {intro}
@@ -178,7 +184,8 @@ export function WalletGate({
           id={questionId}
           className={cx(
             "font-semibold tracking-[-0.025em]",
-            intro ? "mt-10 text-2xl leading-tight sm:text-[28px]" : "text-[28px] leading-tight sm:text-[34px]",
+            // Under the page's h1: the gap shrinks on a short laptop screen, so the wallet cards start on the first screen.
+            intro ? "mt-[clamp(20px,4svh,40px)] text-2xl leading-tight sm:text-[28px]" : "text-[28px] leading-tight sm:text-[34px]",
           )}
         >
           {title ?? copy.title}
@@ -192,10 +199,10 @@ export function WalletGate({
           </div>
         )}
 
-        <ul className="mt-6 grid gap-3 sm:grid-cols-2 sm:gap-4">{burnerFirst ? [burnerCard, ownCard] : [ownCard, burnerCard]}</ul>
+        <ul className="mt-[clamp(16px,3svh,24px)] grid gap-3 sm:grid-cols-2 sm:gap-4">{burnerFirst ? [burnerCard, ownCard] : [ownCard, burnerCard]}</ul>
       </div>
       {aside && (
-        <div aria-hidden="true" className="hidden min-w-0 justify-center lg:flex">
+        <div aria-hidden="true" className="hidden min-w-0 justify-center min-[56.25rem]:flex">
           {aside}
         </div>
       )}
