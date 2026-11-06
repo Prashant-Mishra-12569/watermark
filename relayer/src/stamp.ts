@@ -88,6 +88,28 @@ export class SerialQueue {
 }
 
 /**
+ * The relayer key's send queues, one SerialQueue per chain. Stamps and payments are sent from the same key, so they
+ * share these queues (one in-flight tx per chain for the whole relayer): StampService and PayService get one instance.
+ */
+export class TxQueues {
+  private readonly queues = new Map<number, SerialQueue>();
+  private readonly max: number;
+
+  constructor(max: number) {
+    this.max = max;
+  }
+
+  get(chainId: number): SerialQueue {
+    let q = this.queues.get(chainId);
+    if (!q) {
+      q = new SerialQueue(this.max);
+      this.queues.set(chainId, q);
+    }
+    return q;
+  }
+}
+
+/**
  * Daily stamp budget in wei (spec K layer 5), reset at 00:00 UTC. A send first reserves its worst case
  * (gas limit × maxFeePerGas); the receipt then settles the real cost. A tx whose receipt never came keeps its
  * reservation as spent, which errs on the safe side.
@@ -241,16 +263,18 @@ export function gasLimitFor(estimate: bigint, maxGas: bigint): bigint {
 }
 
 export class StampService {
-  private readonly queues = new Map<number, SerialQueue>();
+  private readonly queues: TxQueues;
   private readonly budgets = new Map<number, DailyBudget>();
   private readonly settings: StampSettings;
   private readonly writer: ChainWriter;
   private readonly nowMs: () => number;
 
-  constructor(settings: StampSettings, writer: ChainWriter, nowMs: () => number = Date.now) {
+  /** `queues`: pass the relayer's shared TxQueues so stamps and payments never send two txs at once. */
+  constructor(settings: StampSettings, writer: ChainWriter, nowMs: () => number = Date.now, queues?: TxQueues) {
     this.settings = settings;
     this.writer = writer;
     this.nowMs = nowMs;
+    this.queues = queues ?? new TxQueues(settings.maxQueue);
   }
 
   /** Each chain has its own budget: WBT on 1874 and devnet ETH on 1337 are different money. */
@@ -264,12 +288,7 @@ export class StampService {
   }
 
   queue(chainId: number): SerialQueue {
-    let q = this.queues.get(chainId);
-    if (!q) {
-      q = new SerialQueue(this.settings.maxQueue);
-      this.queues.set(chainId, q);
-    }
-    return q;
+    return this.queues.get(chainId);
   }
 
   async handle(req: StampRequestBody): Promise<StampOutcome> {

@@ -159,6 +159,8 @@ test("without RELAYER_PRIVATE_KEY, /stamp is 503 RELAYER_NOT_CONFIGURED and /ses
     ok: true,
     sessionSigner: privateKeyToAccount(SIGNER_KEY).address,
     relayer: null,
+    sponsor: null,
+    business: null,
   });
 });
 

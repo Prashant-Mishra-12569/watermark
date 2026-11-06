@@ -5,7 +5,8 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { toFunctionSelector, toFunctionSignature, type Abi, type AbiFunction, type AbiParameter } from "viem";
 import { SESSION_TYPES } from "@watermark/sdk";
-import { registryAbi } from "./abi.ts";
+import { registryAbi, sponsorAbi } from "./abi.ts";
+import { TRANSFER_WITH_AUTHORIZATION_TYPES } from "./usdt.ts";
 
 const sol = readFileSync(new URL("../../contracts/src/interfaces/IWatermarkRegistry.sol", import.meta.url), "utf8");
 const registrySol = readFileSync(new URL("../../contracts/src/WatermarkRegistry.sol", import.meta.url), "utf8");
@@ -95,4 +96,62 @@ test("stamp() turns every verifier failure into InvalidProof, so no HonkVerifier
   const names = registryAbi.filter((x) => x.type === "error").map((e) => (e as { name: string }).name);
   for (const v of ["SumcheckFailed", "ShpleminiFailed", "ValueGeFieldOrder", "PublicInputsLengthWrong", "ProofLengthWrongWithLogN"])
     assert.ok(!names.includes(v), v);
+});
+
+// ------------------------------------------------------------------ WatermarkSponsor (F5, F7)
+
+const sponsorSol = readFileSync(new URL("../../contracts/src/WatermarkSponsor.sol", import.meta.url), "utf8");
+const sponsorFn = (name: string) =>
+  (sponsorAbi as readonly Abi[number][]).find((x) => x.type === "function" && x.name === name) as AbiFunction;
+
+test("PaymentIntent tuple order matches WatermarkSponsor.sol and the EIP-3009 typed data", () => {
+  const m = sponsorSol.match(/struct\s+PaymentIntent\s*\{([^}]*)\}/);
+  assert.ok(m, "struct PaymentIntent in WatermarkSponsor.sol");
+  const solFields = m[1]!
+    .split(";")
+    .map((f) => f.replace(/\/\/.*$/gm, "").trim())
+    .filter(Boolean)
+    .map((f) => {
+      const [type = "", name = ""] = f.split(/\s+/);
+      return { type, name };
+    });
+  const param = sponsorFn("relayPayment").inputs[0] as AbiParameter & { components: readonly AbiParameter[] };
+  const abiFields = param.components.map((c) => ({ type: c.type, name: c.name }));
+  assert.deepEqual(abiFields, solFields);
+  assert.deepEqual(abiFields, TRANSFER_WITH_AUTHORIZATION_TYPES.TransferWithAuthorization.map((f) => ({ type: f.type, name: f.name })));
+  assert.equal(
+    toFunctionSignature(sponsorFn("relayPayment")),
+    "relayPayment((address,address,uint256,uint256,uint256,bytes32),bytes)",
+  );
+  assert.match(sponsorSol, /function relayPayment\(PaymentIntent calldata intent, bytes calldata userSig\) external \{/);
+});
+
+test("sponsor views exist in WatermarkSponsor.sol with the same return types", () => {
+  assert.match(sponsorSol, /function quotaLeft\(address wallet\) external view returns \(uint32\)/);
+  assert.match(sponsorSol, /function usedToday\(address wallet\) public view returns \(uint32\)/);
+  assert.match(sponsorSol, /IWatermarkRegistry public immutable registry;/);
+  assert.match(sponsorSol, /uint256 public immutable appId;/);
+  assert.match(sponsorSol, /IEIP3009Bytes public immutable usdt;/);
+  assert.match(sponsorSol, /address public immutable relayer;/);
+  assert.match(sponsorSol, /uint32 public immutable quotaPerDay;/);
+  assert.deepEqual(sponsorFn("quotaLeft").outputs.map((o) => o.type), ["uint32"]);
+  assert.deepEqual(sponsorFn("appId").outputs.map((o) => o.type), ["uint256"]);
+  for (const a of ["registry", "usdt", "relayer"]) assert.deepEqual(sponsorFn(a).outputs.map((o) => o.type), ["address"]);
+  // The sponsor calls the `bytes signature` overload (selector 0xcf092995), which is what the relayer relies on.
+  assert.equal(
+    toFunctionSelector("transferWithAuthorization(address,address,uint256,uint256,uint256,bytes32,bytes)"),
+    "0xcf092995",
+  );
+  assert.match(sponsorSol, /selector 0xcf092995/);
+});
+
+test("the sponsor error list is exactly the errors WatermarkSponsor.sol declares", () => {
+  const ours = sponsorAbi
+    .filter((x) => x.type === "error")
+    .map((e) => toFunctionSignature(e as never).replace(/\s/g, ""))
+    .sort();
+  const declared = solErrors(sponsorSol).sort();
+  assert.ok(declared.includes("NotStamped(address,uint256)"));
+  assert.ok(declared.includes("QuotaUsed(address,uint32)"));
+  assert.deepEqual(ours, declared);
 });
