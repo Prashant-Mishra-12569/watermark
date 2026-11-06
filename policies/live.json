@@ -1,7 +1,7 @@
 {
   "label": "RuPay debit (India)",
   "environment": "live",
-  "appId": "",
+  "appId": "245737539065175059008558421319713289281964530398934598066600266060113564106",
   "source": "https://github.com/mostafa19950/bin-list-data",
   "license": "CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)",
   "note": "Every 6-digit Indian RuPay DEBIT BIN in the public dataset above. Unofficial and possibly outdated, so every leaf is 'listed' (unproven). No prefix is chosen because of a team member's card. The network is proven by the RuPay CA key in the circuit; bank and card type come only from this list.",
