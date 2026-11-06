@@ -25,6 +25,17 @@ forge test --gas-report
 The fork tests (`*.fork.t.sol`) fork Whitechain Sepolia read-only through `$WHITECHAIN_RPC` or the public RPC. Nothing
 is broadcast.
 
+## Alt mempool paymaster (devnet 1337)
+
+- `src/WatermarkQuotaPaymaster.sol`, `src/demo/DemoCounter.sol`, `script/DeployQuotaPaymaster.s.sol`,
+  `script/StampFromFixture.s.sol` (stamps a wallet with `test/fixtures/devnet-stamp.json`, a synthetic-card proof).
+- Frame opcodes come from `vendor/hegota-support/` (`@forshtat/hegota-support@0.0.1`, MIT, vendored because `lib/` is
+  not committed), remapped as `@forshtat/hegota-support/`.
+- Tests: `test/WatermarkQuotaPaymaster.t.sol` and `test/review/`, against the real `WatermarkRegistry` with stand-in
+  frame helpers (`test/mocks/HegotaMocks.sol`). The opcode-tracer tests skip below `-vvv`:
+  `forge test -vvv --match-contract 'ValidationRulesAuditTest|ValidationTraceReview'`.
+- Runbook and gas flags for the devnet: `tools/ef-sender/README.md`. Results: `docs/EF_ALTMEMPOOL.md`.
+
 ## Registry behaviour beyond F5
 
 - **`stamp` refuses `s.wallet == address(0)`** with `ZeroWallet()`, as part of check 2. `address(0)` is also the

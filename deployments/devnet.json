@@ -1,0 +1,64 @@
+{
+  "chainId": 1337,
+  "registry": "0x183826030BB08bbdD4f4A8f4a7135C6a8E3De42C",
+  "verifier": "0xFF16a750159c7d7548A90015bB766Ec994F41603",
+  "profileVerifiers": {
+    "0": "0x3b8647C9cE10d023145fb9ED479e6DBd5CeF6778"
+  },
+  "sponsor": null,
+  "paymaster": "0x62183B1d118dae2F9C7dc8b42c7b71Cd27b67097",
+  "usdt": null,
+  "appId": "381847006229121247091940973631823689417232562617718304348843495002358058109",
+  "deployedAt": "2026-11-06T12:04:01.428Z",
+  "deployer": "0x967450D5d12dbC6543EbE8f177b2BDBae924e135",
+  "caRoot": "0x198ab4dd1b226ef292c9eba6eb4b1285e7216a51bb0ba872cf491bbe3ecbc3fe",
+  "rulesRoot": "0x08d09d15afbf7ceeb7a9d05802ab845bf6316bf9fdffd57f593a718ec89eb90f",
+  "liveAppId": null,
+  "liveRulesRoot": null,
+  "sessionSigner": "0x18C2b1A79B3870EDf9ddc30f09426F029E6Cc41a",
+  "stampedWallet": "0xE37EEB29EF7aaDA2048b6Fbe5a6A60A5C4B9A701",
+  "demoCounter": "0xfd09d9c46a2732A8c9B799f9a7ff7472Defa601B",
+  "stakingRegistry": "0xD51c04d7A0B01124E84DE152F4e56d9eeCB22D2F",
+  "paymasterConfig": {
+    "quotaPerDay": 20,
+    "maxCostPerTxEth": "0.001",
+    "sponsoredMaxFeeGwei": "1",
+    "sponsoredTipWei": "1000000",
+    "fundingEth": "0.05"
+  },
+  "stake": {
+    "eth": "0.012",
+    "unstakeDelaySec": 86400
+  },
+  "libraries": {
+    "RelationsLib": "0x1A88Ec9056f728925E98974a840644e9c17Ca96e",
+    "ZKTranscriptLib": "0x4d51E4dD94C8e89b4472Bf07667fB2fDcE5E7e90"
+  },
+  "blockNumber": 3349,
+  "txHashes": {
+    "RelationsLib": "0x4585eb6e0f64e6b76a26a92a9e18b914b13ff54b6e91b8d95b146912f5a50250",
+    "ZKTranscriptLib": "0x135f928720e994cca0bdb331bf4e5b9c841faf00a3736e303723e3a4572688e3",
+    "verifier": "0x540bfe206bc725b3b610291fd213c401ed0e68b08223926c5fdecfeb1f9f9266",
+    "registry": "0x0b4484bd66cbd1496189ca69f9eb54f10c6f72af5101623e227ac9a70c46ac4a",
+    "setCaRoot": "0xa8f2855ee270b4645bc473399fa9d9628bb0054ad0dcb015f430bd70c00c0c1d",
+    "registerApp": "0x380cc9bcb521ad038488d1c010a9a58911528c0f430c30f9c733a0ad92684217",
+    "router": "0xd00b7aab1a866eb4166287971d42d9ec14e7a487eb2e58c3b4ce8f423a1cd86a",
+    "stamp": "0xaf4673d4ff71cf2b43f2ece2f56448af44faf7b66604abceaa4836053c853ff3",
+    "paymaster": "0x9dbbc1e2113364ec4b531f5f3da43e69a3d5bbd305e678dcfa6f83cdd9b31e69",
+    "stake": "0xcbe6785dcf4c9f3194dca236693c3f54e1bc22836f4210c942270ff1260a94dd",
+    "demoCounter": "0x304e46c5fcb5a7273605412d3abb680c354e9911b04a0b7ea4684af72908257e",
+    "sponsoredFrameTx": "0xcab8c9e2171a8048c8f5e12d4bb830c92cba7f458763d2c7ac8f23ab1faa8a93"
+  },
+  "altMempool": {
+    "sidecarRpc": "https://altmempool.forshtat.com/rpc",
+    "admittedTx": "0xcab8c9e2171a8048c8f5e12d4bb830c92cba7f458763d2c7ac8f23ab1faa8a93",
+    "admittedTxBlock": 3699,
+    "explorer": "https://explorer.altmempool.wtf/tx/0xcab8c9e2171a8048c8f5e12d4bb830c92cba7f458763d2c7ac8f23ab1faa8a93?node=https%3A%2F%2Faltmempool.forshtat.com%2Frpc",
+    "blocks": {
+      "stamp": 3361,
+      "paymaster": 3687,
+      "stake": 3688,
+      "demoCounter": 3691
+    }
+  }
+}

@@ -102,6 +102,22 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  tools/ef-sender:
+    dependencies:
+      '@forshtat/hegota-support':
+        specifier: 0.0.1
+        version: 0.0.1(viem@2.57.16(typescript@5.9.3)(zod@4.6.7))
+      viem:
+        specifier: ^2.57.7
+        version: 2.57.16(typescript@5.9.3)(zod@4.6.7)
+    devDependencies:
+      '@types/node':
+        specifier: ^24.19.2
+        version: 24.19.2
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   tools/testcard:
     dependencies:
       '@watermark/sdk':
@@ -192,6 +208,16 @@ packages:
 
   '@emnapi/runtime@1.11.3':
     resolution: {integrity: sha512-Xz4Tpyki7XyrpbUK1jR1AhdAdaXyhhY4lZ3neLodmhpuWfy2PAQN5B46sAiU4liOXGLkHypn/qU+jvfWSCYYLA==}
+
+  '@forshtat/hegota-support@0.0.1':
+    resolution: {integrity: sha512-F6ZvduwrMBjzjoYE85DH7JHRaDyx2V2+kgSsi2eUDLiAJR1uiqp6mRzkYOLA+Y3pjxDpw60Z07mTer/4bebcZQ==}
+    engines: {node: '>=20.12'}
+    peerDependencies:
+      solc: 0.8.28
+      viem: ^2.57.0
+    peerDependenciesMeta:
+      solc:
+        optional: true
 
   '@hono/node-server@1.19.18':
     resolution: {integrity: sha512-609kppIP9GITS+EwPyB6Kiq8z2yXONaYD1VHpo7MMP9celRJYbkFr9KakJncHwK0EK/XYtlogqmrLchDv5HX5w==}
@@ -1392,6 +1418,10 @@ snapshots:
     dependencies:
       tslib: 2.9.1
     optional: true
+
+  '@forshtat/hegota-support@0.0.1(viem@2.57.16(typescript@5.9.3)(zod@4.6.7))':
+    dependencies:
+      viem: 2.57.16(typescript@5.9.3)(zod@4.6.7)
 
   '@hono/node-server@1.19.18(hono@4.13.16)':
     dependencies:
