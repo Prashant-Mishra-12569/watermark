@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300" role="img" aria-labelledby="t d">
+  <title id="t">How Watermark works</title>
+  <desc id="d">Six steps: connect a wallet, scan the QR, tap the card, the phone checks and encrypts, the prover makes a zero-knowledge proof, the registry stamps the wallet.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0L10 5L0 10z" fill="#0a0a0a"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="300" rx="24" fill="#ffffff"/>
+  <g font-family="Helvetica, Arial, sans-serif">
+    <text x="40" y="52" font-size="22" font-weight="700" fill="#0a0a0a">From tap to stamp in about 10 seconds</text>
+    <text x="40" y="78" font-size="14" fill="#6b6b6b">The user never pays gas. No card number ever reaches the chain.</text>
+
+    <!-- 6 cards: x = 40 + i*(170+22) -->
+    <g>
+      <rect x="40" y="108" width="170" height="160" rx="16" fill="#f5f5f3"/>
+      <circle cx="68" cy="136" r="14" fill="#ff6b1a"/><text x="68" y="141" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">1</text>
+      <text x="56" y="182" font-size="15" font-weight="700" fill="#0a0a0a">Connect a wallet</text>
+      <text x="56" y="206" font-size="13" fill="#6b6b6b">On the website.</text>
+      <text x="56" y="226" font-size="13" fill="#6b6b6b">The relayer signs a</text>
+      <text x="56" y="246" font-size="13" fill="#6b6b6b">one-time session.</text>
+    </g>
+    <g>
+      <rect x="232" y="108" width="170" height="160" rx="16" fill="#f5f5f3"/>
+      <circle cx="260" cy="136" r="14" fill="#ff6b1a"/><text x="260" y="141" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">2</text>
+      <text x="248" y="182" font-size="15" font-weight="700" fill="#0a0a0a">Scan the QR</text>
+      <text x="248" y="206" font-size="13" fill="#6b6b6b">The app checks the</text>
+      <text x="248" y="226" font-size="13" fill="#6b6b6b">QR and shows your</text>
+      <text x="248" y="246" font-size="13" fill="#6b6b6b">wallet ending.</text>
+    </g>
+    <g>
+      <rect x="424" y="108" width="170" height="160" rx="16" fill="#f5f5f3"/>
+      <circle cx="452" cy="136" r="14" fill="#ff6b1a"/><text x="452" y="141" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">3</text>
+      <text x="440" y="182" font-size="15" font-weight="700" fill="#0a0a0a">Tap your card</text>
+      <text x="440" y="206" font-size="13" fill="#6b6b6b">The chip signs this</text>
+      <text x="440" y="226" font-size="13" fill="#6b6b6b">session's challenge.</text>
+      <text x="440" y="246" font-size="13" fill="#6b6b6b">No PIN, no payment.</text>
+    </g>
+    <g>
+      <rect x="616" y="108" width="170" height="160" rx="16" fill="#f5f5f3"/>
+      <circle cx="644" cy="136" r="14" fill="#ff6b1a"/><text x="644" y="141" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">4</text>
+      <text x="632" y="182" font-size="15" font-weight="700" fill="#0a0a0a">Check on phone</text>
+      <text x="632" y="206" font-size="13" fill="#6b6b6b">Its certificates and</text>
+      <text x="632" y="226" font-size="13" fill="#6b6b6b">the card rules pass,</text>
+      <text x="632" y="246" font-size="13" fill="#6b6b6b">then it's encrypted.</text>
+    </g>
+    <g>
+      <rect x="808" y="108" width="170" height="160" rx="16" fill="#f5f5f3"/>
+      <circle cx="836" cy="136" r="14" fill="#ff6b1a"/><text x="836" y="141" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">5</text>
+      <text x="824" y="182" font-size="15" font-weight="700" fill="#0a0a0a">Private proof</text>
+      <text x="824" y="206" font-size="13" fill="#6b6b6b">The prover makes a</text>
+      <text x="824" y="226" font-size="13" fill="#6b6b6b">zero-knowledge proof</text>
+      <text x="824" y="246" font-size="13" fill="#6b6b6b">and wipes the data.</text>
+    </g>
+    <g>
+      <rect x="1000" y="108" width="160" height="160" rx="16" fill="#0a0a0a"/>
+      <circle cx="1028" cy="136" r="14" fill="#ff6b1a"/><text x="1028" y="141" font-size="14" font-weight="700" fill="#fff" text-anchor="middle">6</text>
+      <text x="1016" y="182" font-size="15" font-weight="700" fill="#ffffff">Stamped</text>
+      <text x="1016" y="206" font-size="13" fill="#b5b5b5">The Registry checks</text>
+      <text x="1016" y="226" font-size="13" fill="#b5b5b5">the proof on-chain.</text>
+      <text x="1016" y="246" font-size="13" fill="#b5b5b5">Gas paid by relayer.</text>
+    </g>
+
+    <!-- arrows in the gaps -->
+    <g stroke="#0a0a0a" stroke-width="2" marker-end="url(#a)">
+      <line x1="212" y1="188" x2="229" y2="188"/>
+      <line x1="404" y1="188" x2="421" y2="188"/>
+      <line x1="596" y1="188" x2="613" y2="188"/>
+      <line x1="788" y1="188" x2="805" y2="188"/>
+      <line x1="980" y1="188" x2="997" y2="188"/>
+    </g>
+  </g>
+</svg>

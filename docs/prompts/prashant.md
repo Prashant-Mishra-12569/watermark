@@ -538,7 +538,7 @@ Result:
 - Cleaned up: removed the temporary handoff, moved Samanway's prompt log next to mine, and added the app screens row
   to AI_USAGE.md.
 
-## 02:35
+## 02:20
 
 **70.**
 > [Screenshot of PR #32: "ci / typescript" failing; contracts and the secrets check passing.] Check this and solve it.
@@ -547,3 +547,26 @@ Result:
 - Two website tests require the MCP config on usewatermark.xyz to match the JSON block in mcp/README.md exactly; the
   new guide had dropped its `env` line. Put it back; all 399 TypeScript tests pass, and the README test count is
   updated.
+
+## 02:28
+
+**71.**
+> This should be the tagline everywhere: "Real people leave a mark". Update it.
+
+Result:
+- New tagline in the README header, package.json, the website's page title and share cards, the website footer,
+  watermark.txt and llms.txt, and the Tap app's home screen ("Real people leave a *mark*."). The precise line stays
+  next to it: a stamp proves a real bank card, not one unique person.
+- Website tests (223) and Android tests pass; the demo APK is rebuilt.
+
+## 02:45
+
+**72.**
+> [Screenshot of the README on GitHub: "Unable to render rich display: svg element not in render tree" where the
+> Mermaid diagrams should be.] Fix it properly, and change the tagline in the README and anywhere else it's left.
+
+Result:
+- GitHub renders Mermaid in a sandboxed frame it controls, and it was failing there. Replaced the three Mermaid
+  diagrams with SVG images in the brand colours (docs/assets), checked by rendering them locally.
+- The old tagline was still on main because PR #32 merged before the tagline commits; they're on this branch now.
+  Nothing else in the repo still uses it, and the GitHub description already shows the new one.

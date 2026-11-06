@@ -60,8 +60,8 @@ fun IdleScreen(modifier: Modifier = Modifier) {
         },
     ) {
         Spacer(Modifier.height(8.dp))
-        ScreenTitle("Tap your card.\nKeep it private.", accent = "Keep", style = MaterialTheme.typography.displaySmall)
-        ScreenText("Prove your wallet is backed by a real bank card. Free, and about 10 seconds.")
+        ScreenTitle("Real people\nleave a mark.", accent = "mark", style = MaterialTheme.typography.displaySmall)
+        ScreenText("Tap your bank card once to prove your wallet is backed by a real card. Free, private, about 10 seconds.")
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             StepTile(1, Glyph.Phone, "Scan the QR", Modifier.weight(1f))

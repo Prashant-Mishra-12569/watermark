@@ -17,7 +17,7 @@ const instrumentSerif = Instrument_Serif({
 
 // SITE_FINAL.md hero, page 1. Pages may set their own title.
 export const metadata: Metadata = {
-  title: "Watermark · Stop bots from farming your airdrop",
+  title: "Watermark · Real people leave a mark",
   description:
     "Watermark lets only wallets backed by a real bank card claim. Add it with one line. No KYC. Your users pay no fees.",
   referrer: "no-referrer",
@@ -28,13 +28,13 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "Watermark",
     url: "https://usewatermark.xyz",
-    title: "Watermark · Stop bots from farming your airdrop",
+    title: "Watermark · Real people leave a mark",
     description: "Only wallets backed by a real bank card can claim. One line of code. No KYC. Users pay no fees.",
   },
   twitter: {
     card: "summary_large_image",
     site: "@usewatermark",
-    title: "Watermark · Stop bots from farming your airdrop",
+    title: "Watermark · Real people leave a mark",
     description: "Only wallets backed by a real bank card can claim. One line of code. No KYC. Users pay no fees.",
   },
 };

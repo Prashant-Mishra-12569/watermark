@@ -2,7 +2,7 @@
   <img src="web/public/brand/lockup.png" alt="Watermark" width="360">
 </p>
 
-<h3 align="center">Bots can't hold plastic.</h3>
+<h3 align="center">Real people leave a mark.</h3>
 
 <p align="center">
   Tap your bank card on your phone once. Your wallet gets a private, on-chain stamp that proves it is backed by a real
@@ -61,32 +61,7 @@ Every contract is deployed and **source-verified** on the Whitechain explorer ([
 
 ## How it works
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor U as You
-    participant W as Website
-    participant R as Relayer
-    participant P as Phone app
-    participant C as Bank card
-    participant Z as Prover
-    participant B as WatermarkRegistry
-
-    U->>W: Connect a wallet
-    W->>R: Ask for a session for this wallet
-    R-->>W: Signed session (wallet, app, one-time challenge)
-    W-->>U: QR code
-    U->>P: Scan the QR with the phone camera
-    P->>P: Check the session signature, show the wallet ending
-    U->>C: Hold the card to the phone
-    C-->>P: Signs the challenge with its chip key
-    P->>P: Check the certificates and the app's card rules
-    P->>Z: Card data, encrypted on the phone
-    Z->>Z: Build a zero-knowledge proof, then wipe the card data
-    Z->>R: Proof only
-    R->>B: stamp(session, proof), relayer pays gas
-    B-->>U: Wallet stamped
-```
+<p align="center"><img src="docs/assets/how-it-works.svg" alt="Six steps: connect a wallet, scan the QR, tap your card, the phone checks and encrypts, the prover makes a zero-knowledge proof, the Registry stamps the wallet" width="100%"></p>
 
 In plain words:
 1. **You connect a wallet** on a website (your own, such as MetaMask, or one the site makes for you).
@@ -231,36 +206,7 @@ cards from these five banks". Your users keep using the same Watermark Tap app. 
 
 ### System map
 
-```mermaid
-flowchart LR
-    subgraph Phone["Android phone"]
-        A["Watermark Tap<br/>Kotlin · Compose · NFC"]
-    end
-    subgraph Servers["Our servers (replaceable)"]
-        R["Relayer<br/>signs sessions, pays gas"]
-        Z["Prover<br/>Noir + Barretenberg"]
-    end
-    subgraph Chain["Whitechain Sepolia"]
-        G["WatermarkRegistry"]
-        V["VerifierRouter<br/>UltraHonk verifier"]
-        S["WatermarkSponsor<br/>gas-free USDT"]
-        N["Genesis Pass<br/>on-chain art"]
-    end
-    subgraph Dev["Alt mempool devnet"]
-        DR["Devnet Registry"]
-        Q["QuotaPaymaster<br/>EIP-8141 frames"]
-    end
-    Card(("Bank card")) -- "NFC tap" --> A
-    Web["Website"] -- "QR" --> A
-    A -- "encrypted card data" --> Z
-    Z -- "proof" --> R
-    R -- "stamp()" --> G
-    G --> V
-    S -- "isStamped?" --> G
-    N -- "isStamped?" --> G
-    Q -- "reads stamps" --> DR
-    Apps["Any app, SDK or AI agent"] -- "isStamped?" --> G
-```
+<p align="center"><img src="docs/assets/system-map.svg" alt="System map: bank card and website feed the Watermark Tap app; the prover and relayer turn the tap into a stamp in WatermarkRegistry on Whitechain; the Sponsor, the Genesis Pass and any app read it; a quota paymaster on the alt mempool devnet reads stamps" width="100%"></p>
 
 ### The card check (EMV)
 Every chip card can prove it is genuine. When the phone reads the card, the chip **signs a 4-byte challenge with its own
@@ -344,12 +290,7 @@ anyone can buy those over the counter.
 
 ## Privacy and security
 
-```mermaid
-flowchart LR
-    C["Card data"] -->|"read over NFC"| P["Phone<br/>checks it, encrypts it"]
-    P -->|"RSA-OAEP + AES-GCM,<br/>bound to the session"| Z["Prover<br/>in memory only, then wiped"]
-    Z -->|"zero-knowledge proof"| B["Blockchain<br/>proof, nullifier, wallet, month"]
-```
+<p align="center"><img src="docs/assets/privacy.svg" alt="Where card data goes: card to phone (checked and encrypted) to prover (in memory, wiped) to chain (only a proof, a one-way card ID, the wallet and a month)" width="100%"></p>
 
 - **On-chain:** only the proof, a one-way card ID (the nullifier), the wallet and the valid-until month. Never the card
   number, the bank or the expiry date.
