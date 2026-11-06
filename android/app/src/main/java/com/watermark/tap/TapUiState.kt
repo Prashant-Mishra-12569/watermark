@@ -53,4 +53,6 @@ enum class RefusalReason(val message: String) {
     NFC_OFF("Turn on NFC to tap your card."),
     NO_SESSION("Scan the QR code on the website first. Nothing was read from the card."),
     SESSION_USED("This QR code was already used. Scan a new one from the website."),
+    /** The chain refused the stamp: one card stamps one wallet per app, and this card already stamped another. */
+    CARD_ALREADY_LINKED("This card is already linked to another wallet in this app."),
 }

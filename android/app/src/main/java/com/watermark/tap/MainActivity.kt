@@ -239,6 +239,7 @@ class MainActivity : ComponentActivity(), NfcAdapter.ReaderCallback {
         "SESSION_EXPIRED" -> TapUiState.Refused(RefusalReason.SESSION_EXPIRED)
         "SESSION_USED" -> TapUiState.Refused(RefusalReason.SESSION_USED)
         "BAD_SESSION_SIG" -> TapUiState.Refused(RefusalReason.WRONG_SIGNER)
+        "CARD_ALREADY_LINKED" -> TapUiState.Refused(RefusalReason.CARD_ALREADY_LINKED)
         "BUSY" -> TapUiState.Error("The prover is busy. Try again in a moment with a new QR.")
         "STAMP_REJECTED" -> TapUiState.Error("The proof was made but the chain refused the stamp.")
         else -> TapUiState.Refused(RefusalReason.BAD_CARD)
