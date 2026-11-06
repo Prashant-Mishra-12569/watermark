@@ -32,7 +32,9 @@
     "router": "0x507d5f1518e43215914e2fc8dbdd02093cbdbedcebfb53afe16c09c7cdda8279",
     "sponsor": "0x64e89664108ca4b2988de740c42e42b87ddc0ada27ad666d3585b31037e31e9c",
     "previousRegisterLiveApp": "0x97f2de36e3171b2b84bea076c1d6a9022b1c72189dd29b1708e286f7024569ab",
-    "previousSponsor": "0x8def643766caaa301c9415b552d3bd45695aa9166863dc82a6015d2cdd1dac8c"
+    "previousSponsor": "0x8def643766caaa301c9415b552d3bd45695aa9166863dc82a6015d2cdd1dac8c",
+    "genesisPassRenderer": "0x600e203503380426125903645d9ba691c61146d4002b04cb90b6ea2e3144fa3d",
+    "genesisPass": "0xe2df1e4f3ddc5a5efeafbf5861bf33340faf4b1e6d354d8954f75adbabec7df4"
   },
   "sponsorAppId": "393344891601835728760966937624776276735512086066329273346256164761263100630",
   "previousLive": {
@@ -40,5 +42,7 @@
     "liveRulesRoot": "0x205fbdc3f68391a4c420578e192525ab6a8ad9435385aad5b0f2e863e380e5dc",
     "sponsor": "0xAbD7327f6E6b884aEf395B80De073B8aDd0aD7BA",
     "note": "First real-card stamp and first gas-free USDT payment. Superseded: its filter also accepted prepaid card ranges."
-  }
+  },
+  "genesisPass": "0x12DdF2A4C698A3271F21fEA07559467b6C8AdcB0",
+  "genesisPassRenderer": "0x32D1C048C81Cc60d9c21078B85C2f95132D0Fe72"
 }
