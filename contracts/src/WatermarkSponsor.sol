@@ -30,12 +30,17 @@ interface IEIP3009Bytes {
 /// Known trade-off (F7): an EIP-3009 authorization is a bearer instrument. Anyone who sees a signed authorization (in
 /// the relayer's request, or in the mempool once `relayPayment` is broadcast) can submit it to USDT directly. That only
 /// moves the user's own USDT to the recipient the user signed for, for the amount and time window the user signed for,
-/// and it skips this contract's quota. It never spends the business's gas budget or anything held by this contract.
-/// If it happens first, the relayer's `relayPayment` reverts inside USDT ("authorization is used"); the relayer
-/// simulates before sending, so it normally refuses without spending gas.
+/// and it skips this contract's quota. It never moves anything held by this contract. If the direct submission lands
+/// before the relayer simulates, the simulation fails and the relayer sends nothing. If it lands while the relayer's
+/// `relayPayment` is already in flight, that transaction reverts inside USDT ("authorization is used") and the
+/// relayer has paid its gas.
 ///
 /// Quota: `quotaPerDay` sponsored payments per wallet per UTC day (`block.timestamp / 1 days`). A reverted call
-/// (including a revert inside USDT) uses no quota, because the whole call reverts.
+/// (including a revert inside USDT) uses no quota, because the whole call reverts. So the quota bounds SUCCESSFUL
+/// payments only, not the relayer's gas: a stamped ERC-1271 wallet can sign "valid" only inside eth_call (for example
+/// when tx.gasprice == 0) and "invalid" in the mined transaction, and every such relay reverts, costs the relayer gas
+/// and uses no quota (WatermarkSponsorFailedRelayTest). The relayer must therefore (1) simulate and estimate with its
+/// real fee fields, and (2) count on-chain-reverted relays per wallet per UTC day and refuse a wallet after one or two.
 contract WatermarkSponsor {
     /// @notice An EIP-3009 TransferWithAuthorization message (interfaces F7). `value` has 6 decimals (USDT).
     /// The token accepts it when `validAfter < block.timestamp < validBefore` and `nonce` is unused for `from`.
@@ -126,7 +131,8 @@ contract WatermarkSponsor {
     /// authorization's time window is open now; `intent.from` is non-zero, stamped for `appId` and the stamp hasn't
     /// expired (checked per call, so a stamp that expires mid-day stops payments at that second); the wallet has quota
     /// left today. Then it counts the payment and calls USDT, which checks the signature and the nonce. Any revert
-    /// inside USDT is bubbled up unchanged and uses no quota.
+    /// inside USDT is bubbled up unchanged and uses no quota (see the contract notes: the relayer, not this contract,
+    /// limits reverted relays).
     ///
     /// Gas was measured on a Whitechain Sepolia fork with the real USDT, for the whole transaction including the
     /// 21,000 base; test_fork_gasProfile prints the figures:

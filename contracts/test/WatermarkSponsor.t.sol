@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.30;
 
-import {Test} from "forge-std/Test.sol";
+import {Test, console2} from "forge-std/Test.sol";
 import {WatermarkSponsor} from "../src/WatermarkSponsor.sol";
 import {MockRegistry} from "./mocks/MockRegistry.sol";
 import {MockEIP3009} from "./mocks/MockEIP3009.sol";
 import {Mock1271Wallet} from "./mocks/Mock1271Wallet.sol";
+import {SimulationOnlyWallet} from "./mocks/SimulationOnlyWallet.sol";
 
 /// @notice Unit tests with a mock registry and a mock EIP-3009 token. Fork tests against the real Whitechain USDT
 /// live in WatermarkSponsor.fork.t.sol.
@@ -770,5 +771,82 @@ contract RelayerHarness {
             err = e;
         }
         usedAfter = sponsor.usedToday(i.from);
+    }
+}
+
+/// @notice KNOWN LIMITATION, kept on purpose (review finding SPONSOR-1). relayPayment rolls the quota back whenever the
+/// token call reverts ("a reverted call uses no quota"), so the per-wallet quota bounds SUCCESSFUL sponsored payments
+/// only. A stamped wallet can make a relayer send any number of payments that pass simulation and revert on-chain,
+/// each paid by the relayer and none counted. The guard lives in the relayer's POST /pay: simulate with real fee
+/// fields, and refuse a wallet after one or two on-chain-reverted relays per UTC day (relayer/README.md). If this test
+/// starts failing, the contract changed how failed relays count: update the NatSpec and relayer/README.md.
+contract WatermarkSponsorFailedRelayTest is Test {
+    uint256 internal constant APP_ID = uint256(keccak256("review-app")) >> 8;
+    uint32 internal constant QUOTA = 20; // policies/test.json
+    uint256 internal constant T0 = 20_000 days + 12 hours;
+    uint256 internal constant GAS_PRICE = 5 gwei; // Whitechain Sepolia base fee
+    uint256 internal constant DAILY_BUDGET_WEI = 0.1 ether; // relayer default (DAILY_BUDGET_WEI)
+
+    MockRegistry registry;
+    MockEIP3009 token;
+    WatermarkSponsor sponsor;
+    SimulationOnlyWallet wallet;
+    address relayer = makeAddr("relayer");
+    address shop = makeAddr("shop");
+
+    function setUp() public {
+        vm.warp(T0);
+        registry = new MockRegistry();
+        token = new MockEIP3009();
+        sponsor = new WatermarkSponsor(address(registry), APP_ID, address(token), relayer, QUOTA);
+        wallet = new SimulationOnlyWallet();
+        token.mint(address(wallet), 1_000e6);
+        registry.setStamp(address(wallet), APP_ID, uint64(T0 + 90 days)); // stamped with one real card
+    }
+
+    function _intent(uint256 i) internal view returns (WatermarkSponsor.PaymentIntent memory) {
+        return WatermarkSponsor.PaymentIntent({
+            from: address(wallet),
+            to: shop,
+            value: 1e6,
+            validAfter: block.timestamp - 1,
+            validBefore: block.timestamp + 1 hours,
+            nonce: keccak256(abi.encode("grief", i))
+        });
+    }
+
+    function test_knownLimitation_failedRelaysNeverConsumeQuota() public {
+        uint256 attempts = 5 * uint256(QUOTA); // 100 relays, five times the daily quota
+        uint256 burned;
+        for (uint256 i; i < attempts; ++i) {
+            WatermarkSponsor.PaymentIntent memory intent = _intent(i);
+
+            // Relayer layer 1: simulate (eth_call, no gas price). It passes, so the relayer sends.
+            uint256 snap = vm.snapshotState();
+            vm.txGasPrice(0);
+            vm.prank(relayer);
+            sponsor.relayPayment(intent, hex"");
+            vm.revertToState(snap);
+
+            // The real transaction, priced: the wallet now says "invalid", the token reverts, the sponsor rolls back.
+            vm.txGasPrice(GAS_PRICE);
+            vm.prank(relayer);
+            uint256 g0 = gasleft();
+            (bool ok, bytes memory ret) =
+                address(sponsor).call(abi.encodeCall(WatermarkSponsor.relayPayment, (intent, hex"")));
+            burned += g0 - gasleft();
+            assertFalse(ok);
+            assertEq(bytes4(ret), MockEIP3009.InvalidSignature.selector);
+        }
+        // 100 relays paid by the business, quota untouched: only the relayer can stop this wallet.
+        assertEq(sponsor.usedToday(address(wallet)), 0);
+        assertEq(sponsor.quotaLeft(address(wallet)), QUOTA);
+        assertEq(token.balanceOf(shop), 0);
+
+        uint256 perRelay = burned / attempts + 21_000; // execution measured here + the tx base cost
+        console2.log("execution gas per failed relay (excl. 21k base, calldata):", burned / attempts);
+        console2.log(
+            "failed relays that exhaust DAILY_BUDGET_WEI at 5 gwei:", DAILY_BUDGET_WEI / (perRelay * GAS_PRICE)
+        );
     }
 }

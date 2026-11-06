@@ -1080,3 +1080,79 @@ contract WatermarkRegistryTest is Test {
         assertFalse(callerOk);
     }
 }
+
+/// @notice Ownership takeover attempts (from the adversarial review; all held). A random sequence of
+/// transferOwnership / acceptOwnership / setCaRoot calls from four actors is checked against a two-line model:
+/// only `owner` may propose or set caRoot, only `pendingOwner` may accept, and acceptance clears the proposal.
+contract WatermarkRegistryOwnershipModelTest is Test {
+    WatermarkRegistry reg;
+    address[4] actors;
+    address modelOwner;
+    address modelPending;
+    bytes32 modelRoot;
+
+    function setUp() public {
+        reg = new WatermarkRegistry(IVerifier(address(new MockVerifier())));
+        actors = [address(this), makeAddr("a"), makeAddr("b"), makeAddr("c")];
+        modelOwner = address(this);
+    }
+
+    function testFuzz_ownershipMatchesTwoStepModel(uint8[32] calldata ops) public {
+        for (uint256 i; i < ops.length; ++i) {
+            address caller = actors[ops[i] & 3];
+            uint8 action = (ops[i] >> 2) % 3;
+            address target = (ops[i] >> 4) & 4 == 0 ? actors[(ops[i] >> 5) & 3] : address(0);
+
+            vm.prank(caller);
+            if (action == 0) {
+                (bool ok,) = address(reg).call(abi.encodeCall(reg.transferOwnership, (target)));
+                assertEq(ok, caller == modelOwner, "only the owner proposes");
+                if (ok) modelPending = target;
+            } else if (action == 1) {
+                (bool ok,) = address(reg).call(abi.encodeCall(reg.acceptOwnership, ()));
+                assertEq(ok, caller == modelPending && caller != address(0), "only the pending owner accepts");
+                if (ok) {
+                    modelOwner = caller;
+                    modelPending = address(0);
+                }
+            } else {
+                bytes32 root = keccak256(abi.encode(i, caller));
+                (bool ok,) = address(reg).call(abi.encodeCall(reg.setCaRoot, (root)));
+                assertEq(ok, caller == modelOwner, "only the owner sets caRoot");
+                if (ok) modelRoot = root;
+            }
+            assertEq(reg.owner(), modelOwner);
+            assertEq(reg.pendingOwner(), modelPending);
+            assertEq(reg.caRoot(), modelRoot);
+        }
+    }
+
+    /// A proposal the owner replaced or cancelled can't be accepted later, and the previous owner keeps no power.
+    function test_stalePendingAndPreviousOwnerHaveNoPower() public {
+        address a = actors[1];
+        address b = actors[2];
+        reg.transferOwnership(a);
+        reg.transferOwnership(b); // replaces a
+        vm.prank(a);
+        vm.expectRevert(WatermarkRegistry.NotPendingOwner.selector);
+        reg.acceptOwnership();
+
+        vm.prank(b);
+        reg.acceptOwnership();
+        vm.expectRevert(WatermarkRegistry.NotOwner.selector);
+        reg.setCaRoot(bytes32(uint256(1)));
+        vm.expectRevert(WatermarkRegistry.NotOwner.selector);
+        reg.transferOwnership(address(this));
+
+        // Cancel (address(0)) leaves no acceptor among real senders. (Only msg.sender == address(0) would match an
+        // empty proposal, which no transaction can have; OpenZeppelin Ownable2Step behaves the same.)
+        vm.prank(b);
+        reg.transferOwnership(address(0));
+        for (uint256 i; i < actors.length; ++i) {
+            vm.prank(actors[i]);
+            vm.expectRevert(WatermarkRegistry.NotPendingOwner.selector);
+            reg.acceptOwnership();
+        }
+        assertEq(reg.owner(), b);
+    }
+}
