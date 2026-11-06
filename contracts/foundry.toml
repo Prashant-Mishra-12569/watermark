@@ -18,6 +18,8 @@ fs_permissions = [
     { access = "read", path = "../policies" },
     { access = "read", path = "../deployments" },
     { access = "read", path = "./test/fixtures" },
+    # WatermarkPassRenderer.t.sol hashes the art generator and compares it with test/fixtures/pass-svg/generator.sha256
+    { access = "read", path = "./script/pass-art" },
 ]
 
 [rpc_endpoints]
