@@ -1,47 +1,22 @@
 package com.watermark.tap.ui.screens
 
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.watermark.tap.ui.components.Caption
+import androidx.compose.ui.unit.dp
 import com.watermark.tap.ui.components.Glyph
-import com.watermark.tap.ui.components.GlyphBadge
-import com.watermark.tap.ui.components.PrivacyChip
-import com.watermark.tap.ui.components.QuietProgress
-import com.watermark.tap.ui.components.StatusKind
-import com.watermark.tap.ui.components.StatusMark
-import com.watermark.tap.ui.components.UsesNote
-import com.watermark.tap.ui.components.WmCard
-import com.watermark.tap.ui.theme.WmColors
+import com.watermark.tap.ui.components.GlyphIcon
+import com.watermark.tap.ui.components.ProgressRing
 
-/** Fetching the signed session behind a short QR link. */
+/** Fetching the signed request behind a short QR link. Nothing is read from the card here. */
 @Composable
 fun LoadingSessionScreen(modifier: Modifier = Modifier) {
-    StepScreen(
-        title = "Opening your session…",
-        text = "Getting the signed request from Watermark.",
-        modifier = modifier,
-        visual = { GlyphBadge(Glyph.Phone) },
-        extra = { QuietProgress(label = "Opening your session") },
-        uses = { UsesNote("The session code in your QR. Nothing from your card.") },
-    )
-}
-
-/** The link or session couldn't be used. No card was read. */
-@Composable
-fun InvalidSessionScreen(reason: String, modifier: Modifier = Modifier) {
-    StepScreen(
-        title = "This QR can't be used",
-        text = "Refresh the page on your laptop and scan the new QR.",
-        modifier = modifier,
-        visual = { StatusMark(StatusKind.Problem) },
-        chip = { PrivacyChip("Nothing was read from your card.") },
-        extra = {
-            WmCard(outlined = true) {
-                Caption("What went wrong")
-                Text(reason, style = MaterialTheme.typography.bodyMedium, color = WmColors.Ink)
-            }
-        },
-    )
+    ScreenBody(modifier, centered = true, spacing = 20) {
+        ProgressRing(null, size = 120.dp, stroke = 5.dp) {
+            GlyphIcon(Glyph.Phone, Modifier.size(40.dp), strokeWidth = 2.dp)
+        }
+        ScreenTitle("Opening your request", centered = true, style = MaterialTheme.typography.headlineMedium)
+        ScreenText("One moment.", centered = true)
+    }
 }
