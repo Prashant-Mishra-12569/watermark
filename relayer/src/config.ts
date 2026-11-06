@@ -1,14 +1,17 @@
 /** Relayer configuration, read once from the environment (see .env.example). Secrets never leave this module. */
 import { getAddress, isAddress, isHex, type Address, type Hex } from "viem";
-import { altmempoolDevnet, whitechainSepolia } from "@watermark/sdk";
+import { altmempoolDevnet, USDT_WHITECHAIN, whitechainSepolia } from "@watermark/sdk";
+import { parseUsdt } from "./usdt.ts";
 
 export interface ChainConfig {
   chainId: number;
   rpcUrl: string;
   /** WatermarkRegistry on this chain. Sessions for a chain are refused until it is set. */
   registry: Address | null;
-  /** WatermarkSponsor (Whitechain only), for quotaLeft. */
+  /** WatermarkSponsor (Whitechain only): quotaLeft and POST /pay. null = /pay answers 503 SPONSOR_NOT_CONFIGURED. */
   sponsor: Address | null;
+  /** The EIP-3009 token payments move (Whitechain USDT). null on chains without one. */
+  usdt: Address | null;
 }
 
 export interface Config {
@@ -25,8 +28,10 @@ export interface Config {
   corsOrigins: string[];
   sessionsPerMinutePerIp: number;
   maxOpenSessions: number;
-  /** Pays gas for stamps. null = POST /stamp answers 503 RELAYER_NOT_CONFIGURED (sessions still work). */
+  /** Pays gas for stamps and payments. null = POST /stamp and POST /pay answer 503 RELAYER_NOT_CONFIGURED. */
   relayerKey: Hex | null;
+  /** The business wallet that funds demo users (POST /fund). null = /fund answers 503 FUND_NOT_CONFIGURED. */
+  businessKey: Hex | null;
   stamp: StampConfig;
   pay: PayConfig;
   /** Deprecated settings that were still honoured; index.ts prints them at startup. */
@@ -51,6 +56,19 @@ export interface PayConfig {
   budgetWei: bigint;
   /** Refuse GAS_CAP when a payment's estimate is above this (MAX_GAS_PER_PAY). */
   maxGas: bigint;
+  /** Largest payment in USDT base units (PAY_MAX_USDT, default 5 USDT). */
+  maxValue: bigint;
+  /** What POST /fund sends once per wallet per relayer run, in USDT base units (DEMO_FUND_USDT, default 2 USDT). */
+  demoFund: bigint;
+  /** POST /pay and POST /fund requests per IP per minute (PAYS_PER_MINUTE_PER_IP). */
+  perMinutePerIp: number;
+  /**
+   * Sponsored relays that were mined but reverted, per wallet per UTC day, before the wallet is refused QUOTA_USED
+   * (PAY_MAX_REVERTS_PER_WALLET). The sponsor's quota counts successful payments only (review finding SPONSOR-1).
+   */
+  maxRevertsPerWallet: number;
+  /** PAY_PAUSED=true: every POST /pay is refused PAUSED (an operator switch; nothing else changes). */
+  paused: boolean;
 }
 
 /** 0.1 WBT: ~6 stamps at 3M gas and 5 gwei. Set STAMP_BUDGET_WEI to change it. */
@@ -59,6 +77,15 @@ export const DEFAULT_MAX_GAS_PER_STAMP = 3_500_000n;
 /** 0.1 WBT: ~200 payments at 100k gas and 5 gwei. Set DAILY_BUDGET_WEI to change it. */
 export const DEFAULT_DAILY_BUDGET_WEI = 100_000_000_000_000_000n;
 export const DEFAULT_MAX_GAS_PER_PAY = 300_000n;
+export const DEFAULT_PAY_MAX_USDT = "5";
+export const DEFAULT_DEMO_FUND_USDT = "2";
+
+function usdtAmount(name: string, env: NodeJS.ProcessEnv, fallback: string): bigint {
+  const v = env[name]?.trim() || fallback;
+  const units = parseUsdt(v);
+  if (units === null || units <= 0n) throw new Error(`${name} must be a positive USDT amount like 5 or 1.5 (6 decimals at most)`);
+  return units;
+}
 
 function privateKey(name: string, env: NodeJS.ProcessEnv): Hex | null {
   const v = env[name]?.trim();
@@ -146,6 +173,7 @@ export function loadConfig(rawEnv: NodeJS.ProcessEnv = process.env): Config {
         rpcUrl: env.WHITECHAIN_RPC?.trim() || whitechainSepolia.rpcUrls.default.http[0],
         registry: optionalAddress("REGISTRY_ADDRESS", env),
         sponsor: optionalAddress("SPONSOR_ADDRESS", env),
+        usdt: optionalAddress("USDT_ADDRESS", env) ?? USDT_WHITECHAIN,
       },
     ],
     [
@@ -155,6 +183,7 @@ export function loadConfig(rawEnv: NodeJS.ProcessEnv = process.env): Config {
         rpcUrl: env.ALTMEMPOOL_EXEC_RPC?.trim() || altmempoolDevnet.rpcUrls.default.http[0],
         registry: optionalAddress("DEVNET_REGISTRY_ADDRESS", env),
         sponsor: null,
+        usdt: null,
       },
     ],
   ]);
@@ -173,6 +202,7 @@ export function loadConfig(rawEnv: NodeJS.ProcessEnv = process.env): Config {
     sessionsPerMinutePerIp: Number(env.SESSIONS_PER_MINUTE_PER_IP ?? 10),
     maxOpenSessions: Number(env.MAX_OPEN_SESSIONS ?? 5000),
     relayerKey: privateKey("RELAYER_PRIVATE_KEY", env),
+    businessKey: privateKey("BUSINESS_PRIVATE_KEY", env),
     stamp: {
       budgetWei: wei("STAMP_BUDGET_WEI", env, DEFAULT_STAMP_BUDGET_WEI),
       maxGas: positiveGas("MAX_GAS_PER_STAMP", env, DEFAULT_MAX_GAS_PER_STAMP),
@@ -183,6 +213,11 @@ export function loadConfig(rawEnv: NodeJS.ProcessEnv = process.env): Config {
     pay: {
       budgetWei: wei("DAILY_BUDGET_WEI", env, DEFAULT_DAILY_BUDGET_WEI),
       maxGas: positiveGas("MAX_GAS_PER_PAY", env, DEFAULT_MAX_GAS_PER_PAY),
+      maxValue: usdtAmount("PAY_MAX_USDT", env, DEFAULT_PAY_MAX_USDT),
+      demoFund: usdtAmount("DEMO_FUND_USDT", env, DEFAULT_DEMO_FUND_USDT),
+      perMinutePerIp: positiveInt("PAYS_PER_MINUTE_PER_IP", env, 10),
+      maxRevertsPerWallet: positiveInt("PAY_MAX_REVERTS_PER_WALLET", env, 2),
+      paused: env.PAY_PAUSED?.trim() === "true",
     },
     warnings,
   };

@@ -17,7 +17,9 @@ import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const REPO = resolve(import.meta.dirname, "..", "..");
-const OUT = resolve(REPO, "contracts", "test", "fixtures", "synthetic-stamp.json");
+// OUT / APP_OWNER: devnet fixtures (alt mempool runbook). The appId (public input [2]) is bound to the app owner, so a
+// registry deployed by another key needs a proof for that owner. Defaults keep the committed fixture unchanged.
+const OUT = process.env.OUT ? resolve(process.env.OUT) : resolve(REPO, "contracts", "test", "fixtures", "synthetic-stamp.json");
 const CIRCUIT = resolve(REPO, "circuits", "target", "watermark.json");
 
 const [sourceCommit, circuitSha256, nargoVersion] = process.argv.slice(2);
@@ -37,7 +39,7 @@ const bbjsVersion: string = JSON.parse(
   readFileSync(resolve(REPO, "tools", "zk", "node_modules", "@aztec-foundation", "bb.js", "package.json"), "utf8"),
 ).version;
 
-const appOwner: string = getAddress("0x00000000000000000000000000000000000a11ce"); // EIP-55 on output (F0)
+const appOwner: string = getAddress(process.env.APP_OWNER ?? "0x00000000000000000000000000000000000a11ce"); // EIP-55 (F0)
 const salt = "0x" + "00".repeat(32);
 const appId: bigint =
   BigInt(keccak256(encodeAbiParameters([{ type: "address" }, { type: "bytes32" }], [appOwner, salt]))) >> 8n;

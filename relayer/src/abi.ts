@@ -50,4 +50,43 @@ export const registryAbi = parseAbi([
   "error MonthTooLarge(uint256 month)",
 ]);
 
-export const sponsorAbi = parseAbi(["function quotaLeft(address wallet) view returns (uint32)"]);
+/**
+ * WatermarkSponsor (contracts/src/WatermarkSponsor.sol; F5, F7). One sponsor per app. The error list is exactly the
+ * errors the contract declares (abi.test.ts checks both ways), so a refused simulation is named, not just a selector.
+ * USDT's own reverts are Error(string) (for example "TetherToken: auth invalid"); the sponsor bubbles them up unchanged
+ * and viem decodes Error(string) without an ABI entry.
+ */
+export const sponsorAbi = parseAbi([
+  "struct PaymentIntent { address from; address to; uint256 value; uint256 validAfter; uint256 validBefore; bytes32 nonce; }",
+  "function relayPayment(PaymentIntent intent, bytes userSig)",
+  "function quotaLeft(address wallet) view returns (uint32)",
+  "function usedToday(address wallet) view returns (uint32)",
+  "function registry() view returns (address)",
+  "function appId() view returns (uint256)",
+  "function usdt() view returns (address)",
+  "function relayer() view returns (address)",
+  "function quotaPerDay() view returns (uint32)",
+
+  // constructor
+  "error ZeroAddress()",
+  "error NotAContract(address account)",
+  "error InvalidAppId(uint256 appId)",
+  "error ZeroQuota()",
+  // relayPayment, in check order
+  "error NotRelayer(address caller)",
+  "error ZeroValue()",
+  "error InvalidRecipient(address to)",
+  "error AuthorizationNotYetValid(uint256 validAfter, uint256 nowTs)",
+  "error AuthorizationExpired(uint256 validBefore, uint256 nowTs)",
+  "error NotStamped(address wallet, uint256 appId)",
+  "error QuotaUsed(address wallet, uint32 quotaPerDay)",
+]);
+
+/** The ERC-20 / EIP-3009 surface of Whitechain USDT (TetherTokenV2) the relayer reads or calls. */
+export const usdtAbi = parseAbi([
+  "function balanceOf(address account) view returns (uint256)",
+  "function transfer(address to, uint256 value) returns (bool)",
+  "function decimals() view returns (uint8)",
+  "function DOMAIN_SEPARATOR() view returns (bytes32)",
+  "function authorizationState(address authorizer, bytes32 nonce) view returns (bool)",
+]);

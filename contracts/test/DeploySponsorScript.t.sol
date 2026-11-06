@@ -54,6 +54,20 @@ contract DeploySponsorScriptTest is Test {
         assertEq(c.relayer, 0x70997970C51812dc3A010C7d01b50e0d17dc79C8);
     }
 
+    /// @dev deployments/whitechain.json holds the test app ("appId") and the live app ("liveAppId"). Without APP_ID the
+    /// sponsor must bind to the live one, or every real card-tap wallet would be NOT_STAMPED (DEPLOY-APPID-FALLBACK).
+    function test_liveAppIdWinsOverTheTestAppId() public view {
+        DeploySponsor.Config memory c = script.fromDeploymentJson(
+            '{"chainId":1874,"appId":"242622643093352524455632509511752146182158360637522126326090117364223963656",'
+            '"liveAppId":"245737539065175059008558421319713289281964530398934598066600266060113564106"}',
+            1874
+        );
+        assertEq(c.appId, 245737539065175059008558421319713289281964530398934598066600266060113564106);
+
+        c = script.fromDeploymentJson('{"appId":12345,"liveAppId":null}', 1874);
+        assertEq(c.appId, 12345, "a null liveAppId falls back to appId");
+    }
+
     function test_refusesAFileForAnotherChain() public {
         vm.expectRevert(bytes("DeploySponsor: deployment file is for another chain"));
         script.fromDeploymentJson('{"chainId":1337,"registry":"0x5FbDB2315678afecb367f032d93F642f64180aa3"}', 1874);

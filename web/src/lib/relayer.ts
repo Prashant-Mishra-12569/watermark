@@ -18,6 +18,22 @@ export type RelayerErrorCode =
   | "BUSY"
   | "CHAIN_UNAVAILABLE"
   | "NOT_FOUND"
+  // POST /pay refusals (F6) and /pay, /fund setup states
+  | "NOT_STAMPED"
+  | "QUOTA_USED"
+  | "BUDGET_CAP"
+  | "GAS_CAP"
+  | "BAD_SIGNATURE"
+  | "PAUSED"
+  | "SPONSOR_NOT_CONFIGURED"
+  | "FUND_NOT_CONFIGURED"
+  | "ALREADY_FUNDED"
+  | "INSUFFICIENT_FUNDS" // the payer's USDT balance is too low (relayer: INSUFFICIENT_USDT)
+  | "TX_FAILED" // sent but reverted (relayer: PAY_REVERTED, FUND_REVERTED)
+  | "TX_PENDING" // sent, no receipt yet; the error carries txHash (relayer: PAY_PENDING, FUND_PENDING)
+  | "NONCE_USED" // this exact authorization was already used
+  | "PAY_REJECTED" // the chain would refuse it; nothing was sent (relayer: PAY_REJECTED, FUND_REJECTED)
+  | "FUND_EMPTY" // the business wallet is out of demo USDT
   // client-side
   | "NETWORK" // relayer down, wrong URL, or this origin isn't in CORS_ORIGINS
   | "TIMEOUT"
@@ -33,17 +49,45 @@ const KNOWN_CODES = new Set<RelayerErrorCode>([
   "BUSY",
   "CHAIN_UNAVAILABLE",
   "NOT_FOUND",
+  "NOT_STAMPED",
+  "QUOTA_USED",
+  "BUDGET_CAP",
+  "GAS_CAP",
+  "BAD_SIGNATURE",
+  "PAUSED",
+  "SPONSOR_NOT_CONFIGURED",
+  "FUND_NOT_CONFIGURED",
+  "ALREADY_FUNDED",
+  "INSUFFICIENT_FUNDS",
+  "TX_FAILED",
+  "TX_PENDING",
+  "NONCE_USED",
+  "PAY_REJECTED",
+  "FUND_EMPTY",
 ]);
+
+/** The relayer's /pay and /fund reason codes (relayer/src/pay.ts) that map onto one of the codes above. */
+const RELAYER_ALIASES: Readonly<Record<string, RelayerErrorCode>> = {
+  INSUFFICIENT_USDT: "INSUFFICIENT_FUNDS",
+  PAY_REVERTED: "TX_FAILED",
+  FUND_REVERTED: "TX_FAILED",
+  PAY_PENDING: "TX_PENDING",
+  FUND_PENDING: "TX_PENDING",
+  FUND_REJECTED: "PAY_REJECTED",
+};
 
 export class RelayerError extends Error {
   readonly code: RelayerErrorCode;
   /** HTTP status, 0 when no response arrived. */
   readonly status: number;
-  constructor(code: RelayerErrorCode, status: number, message?: string) {
+  /** Set when the relayer did send a transaction (TX_PENDING, TX_FAILED): link it so the user can check. */
+  readonly txHash: Hex | null;
+  constructor(code: RelayerErrorCode, status: number, message?: string, txHash: Hex | null = null) {
     super(message ?? code);
     this.name = "RelayerError";
     this.code = code;
     this.status = status;
+    this.txHash = txHash;
   }
 }
 
@@ -120,12 +164,17 @@ async function request(url: string, init: RequestInit, opts: RequestOptions): Pr
   }
 }
 
-/** Maps an F6 error response {error, message?} to a typed error. Falls back to the HTTP status. */
+/**
+ * Maps an F6 error response to a typed error: {error, message?} (session, status) or {reason} (pay, fund).
+ * Falls back to the HTTP status.
+ */
 export function errorFromResponse(status: number, body: unknown): RelayerError {
   const b = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
-  const error = typeof b.error === "string" ? b.error : "";
+  const error = typeof b.reason === "string" ? b.reason : typeof b.error === "string" ? b.error : "";
   const message = typeof b.message === "string" ? b.message.slice(0, 200) : undefined;
-  if (KNOWN_CODES.has(error as RelayerErrorCode)) return new RelayerError(error as RelayerErrorCode, status, message);
+  const txHash = typeof b.txHash === "string" && BYTES32.test(b.txHash) ? (b.txHash as Hex) : null;
+  const code = Object.hasOwn(RELAYER_ALIASES, error) ? RELAYER_ALIASES[error]! : error;
+  if (KNOWN_CODES.has(code as RelayerErrorCode)) return new RelayerError(code as RelayerErrorCode, status, message, txHash);
   if (status === 429) return new RelayerError("RATE_LIMIT", status, message);
   if (status === 400) return new RelayerError("BAD_REQUEST", status, message);
   if (status === 404) return new RelayerError("NOT_FOUND", status, message);
@@ -240,4 +289,72 @@ export function parseStatusResponse(body: unknown): StatusResponse {
   };
   // Only a literal `true` from the chain read counts as stamped.
   return { stamped: b.stamped === true, expiresAt: num(b.expiresAt), quotaLeft: num(b.quotaLeft) };
+}
+
+// ---- Gasless USDT payment (F6 /pay, /fund, /balance) ----
+
+const TX_HASH = /^0x[0-9a-fA-F]{64}$/;
+const USDT_AMOUNT = /^\d{1,30}(\.\d{1,6})?$/;
+/** POST /pay waits for the receipt, so give it longer than a read. */
+export const PAY_TIMEOUT_MS = 90_000;
+
+export interface TxResponse {
+  txHash: Hex;
+  /** Who sent the transaction (the relayer), when the relayer says so. */
+  from: Address | null;
+}
+
+export interface BalanceResponse {
+  /** USDT as a decimal string, e.g. "1.5" */
+  usdt: string;
+  quotaLeft: number;
+}
+
+export function parseTxResponse(body: unknown): TxResponse {
+  if (!body || typeof body !== "object") throw new RelayerError("BAD_RESPONSE", 200, "not an object");
+  const b = body as Record<string, unknown>;
+  if (typeof b.txHash !== "string" || !TX_HASH.test(b.txHash)) throw new RelayerError("BAD_RESPONSE", 200, "txHash");
+  const from = typeof b.from === "string" && ADDRESS.test(b.from) ? (b.from as Address) : null;
+  return { txHash: b.txHash as Hex, from };
+}
+
+export function parseBalanceResponse(body: unknown): BalanceResponse {
+  if (!body || typeof body !== "object") throw new RelayerError("BAD_RESPONSE", 200, "not an object");
+  const b = body as Record<string, unknown>;
+  if (typeof b.usdt !== "string" || !USDT_AMOUNT.test(b.usdt)) throw new RelayerError("BAD_RESPONSE", 200, "usdt");
+  const q = Number(b.quotaLeft ?? 0);
+  return { usdt: b.usdt, quotaLeft: Number.isFinite(q) && q >= 0 ? Math.floor(q) : 0 };
+}
+
+/**
+ * POST /pay {intent, signature}. The relayer checks the stamp and quota, simulates, pays the gas and waits for the
+ * receipt. The body holds a signature: never log it.
+ */
+export async function postPay(
+  relayerUrl: string,
+  body: { intent: unknown; signature: Hex },
+  opts: RequestOptions = {},
+): Promise<TxResponse> {
+  const res = await request(
+    `${relayerUrl}/pay`,
+    { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) },
+    { timeoutMs: PAY_TIMEOUT_MS, ...opts },
+  );
+  return parseTxResponse(res);
+}
+
+/** POST /fund {wallet}: the business sends this stamped wallet some demo USDT (once per wallet per relayer run). */
+export async function postFund(relayerUrl: string, wallet: Address, opts: RequestOptions = {}): Promise<TxResponse> {
+  const res = await request(
+    `${relayerUrl}/fund`,
+    { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ wallet }) },
+    { timeoutMs: PAY_TIMEOUT_MS, ...opts },
+  );
+  return parseTxResponse(res);
+}
+
+/** GET /balance/:wallet → USDT balance and today's sponsored payments left. */
+export async function getBalance(relayerUrl: string, wallet: Address, opts: RequestOptions = {}): Promise<BalanceResponse> {
+  const res = await request(`${relayerUrl}/balance/${encodeURIComponent(wallet)}`, { method: "GET" }, opts);
+  return parseBalanceResponse(res);
 }

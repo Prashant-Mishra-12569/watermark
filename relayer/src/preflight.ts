@@ -58,3 +58,53 @@ export async function sessionSignerWarnings(
   }
   return warnings;
 }
+
+/**
+ * WatermarkSponsor's immutables against this relayer's settings (warn only, like the session signer check). Each
+ * mismatch makes every POST /pay fail: a different relayer reverts NotRelayer in the simulation (422 PAY_REJECTED),
+ * and a different registry, app or token means payments are checked against something other than what /verify stamps.
+ */
+export async function sponsorWarnings(
+  config: Pick<Config, "appIds" | "chains">,
+  relayer: Address | null,
+  readInfo: (chain: ChainConfig & { sponsor: Address; usdt: Address }) => Promise<{
+    appId: bigint;
+    registry: Address;
+    relayer: Address;
+    usdt: Address;
+  }>,
+): Promise<string[]> {
+  const warnings: string[] = [];
+  for (const c of config.chains.values()) {
+    if (!c.sponsor) continue;
+    if (!c.usdt) {
+      warnings.push(`SPONSOR_ADDRESS is set for chain ${c.chainId}, which has no USDT: POST /pay is off`);
+      continue;
+    }
+    let info;
+    try {
+      info = await readInfo({ ...c, sponsor: c.sponsor, usdt: c.usdt });
+    } catch {
+      warnings.push(`could not read WatermarkSponsor ${c.sponsor} on chain ${c.chainId}: check SPONSOR_ADDRESS and the RPC`);
+      continue;
+    }
+    if (!relayer) {
+      warnings.push("RELAYER_PRIVATE_KEY is not set: POST /pay answers 503 RELAYER_NOT_CONFIGURED");
+    } else if (getAddress(info.relayer) !== getAddress(relayer)) {
+      warnings.push(
+        `WatermarkSponsor.relayer is ${getAddress(info.relayer)}, but RELAYER_PRIVATE_KEY is ${getAddress(relayer)}. ` +
+          "Every payment will be refused (NotRelayer)",
+      );
+    }
+    if (c.registry && getAddress(info.registry) !== getAddress(c.registry)) {
+      warnings.push(`WatermarkSponsor.registry is ${getAddress(info.registry)}, not REGISTRY_ADDRESS ${getAddress(c.registry)}`);
+    }
+    if (getAddress(info.usdt) !== getAddress(c.usdt)) {
+      warnings.push(`WatermarkSponsor.usdt is ${getAddress(info.usdt)}, not USDT_ADDRESS ${getAddress(c.usdt)}`);
+    }
+    if (!config.appIds.has(info.appId.toString())) {
+      warnings.push(`WatermarkSponsor pays for appId ${info.appId}, which is not in APP_IDS: its users can't get a session here`);
+    }
+  }
+  return warnings;
+}
