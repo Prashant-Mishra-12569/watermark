@@ -1,5 +1,5 @@
 import { LineIcon } from "@/app/_art";
-import { ExternalLink, PillButton, StatusChip } from "@/app/_site";
+import { ExternalLink, PillButton, StatusChip, SwipeRow, cx } from "@/app/_site";
 import { DOCS, repoFileUrl } from "@/lib/site.ts";
 import {
   COMING_SOON,
@@ -30,9 +30,21 @@ export function Control({ policy, policyFile }: { policy: ControlPolicy | null; 
       <div className={WRAP}>
         <SectionHead id="control" eyebrow="You stay in control" title={CONTROL_TITLE} lead={CONTROL_LEAD} />
 
-        <ul className="mt-12 grid grid-cols-1 gap-4 sm:mt-16 sm:gap-6 md:grid-cols-2">
+        {/* Phones: a row you swipe (the next fact peeks in), so four facts are not a long column. From 768px: two
+            by two. */}
+        <SwipeRow
+          label="What you control"
+          dotsClassName="md:hidden"
+          className={cx(
+            "mt-8 -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto overscroll-x-contain px-4 py-2 [scrollbar-width:none] sm:-mx-6 sm:mt-12 sm:scroll-px-6 sm:gap-4 sm:px-6 [&::-webkit-scrollbar]:hidden",
+            "md:mx-0 md:mt-16 md:grid md:snap-none md:grid-cols-2 md:gap-6 md:overflow-visible md:px-0 md:py-0",
+          )}
+        >
           {facts.map((fact) => (
-            <li key={fact.key} className="flex min-w-0 flex-col rounded-card bg-surface p-6 sm:p-8">
+            <li
+              key={fact.key}
+              className="wm-lift flex w-[84%] max-w-[380px] shrink-0 snap-start flex-col rounded-card bg-surface p-6 sm:w-[60%] sm:p-8 md:w-auto md:max-w-none"
+            >
               <span
                 aria-hidden="true"
                 className="grid size-12 place-items-center rounded-full bg-white text-ink ring-1 ring-black/[0.05]"
@@ -68,7 +80,7 @@ export function Control({ policy, policyFile }: { policy: ControlPolicy | null; 
               )}
             </li>
           ))}
-        </ul>
+        </SwipeRow>
 
         <div className="mt-4 flex flex-col gap-6 rounded-card border border-line p-6 sm:mt-6 sm:p-8 min-[56.25rem]:flex-row min-[56.25rem]:items-center min-[56.25rem]:justify-between">
           <p className="flex flex-wrap items-center gap-3 text-lg">

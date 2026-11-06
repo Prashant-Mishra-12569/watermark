@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { LineIcon } from "@/app/_art";
-import { StampSeal } from "@/app/_site";
+import { StampSeal, SwipeRow } from "@/app/_site";
 import { cx } from "@/app/_site/cx";
 import { HOW_STEPS, HOW_TITLE, type StepIcon } from "./copy.ts";
 import styles from "./how.module.css";
@@ -124,15 +124,24 @@ export function How() {
       <div className={WRAP}>
         <SectionHead id="how" eyebrow="Three steps" title={HOW_TITLE} />
 
-        {/* One simple card per step at every size: step label, title, line, then the picture at the bottom.
-            Three across from 900px (two shared rows: words, pictures), stacked below that. */}
-        <ol className="mt-12 grid grid-cols-1 gap-4 sm:mt-16 sm:gap-6 min-[56.25rem]:grid-cols-3 min-[56.25rem]:grid-rows-[auto_1fr] min-[56.25rem]:gap-x-4 min-[56.25rem]:gap-y-0 lg:gap-x-6">
+        {/* One simple card per step: step label, title, line, then the picture at the bottom. Under 900px a row you
+            swipe (the next step peeks in from the right), so three steps are not a 1,200px column on a phone. Three
+            across from 900px (two shared rows: words, pictures). */}
+        <SwipeRow
+          as="ol"
+          label="Three steps"
+          dotsClassName="min-[56.25rem]:hidden"
+          className={cx(
+            "mt-8 -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto overscroll-x-contain px-4 py-2 [scrollbar-width:none] sm:-mx-6 sm:mt-12 sm:scroll-px-6 sm:gap-4 sm:px-6 [&::-webkit-scrollbar]:hidden",
+            "min-[56.25rem]:mx-0 min-[56.25rem]:mt-16 min-[56.25rem]:grid min-[56.25rem]:snap-none min-[56.25rem]:grid-cols-3 min-[56.25rem]:grid-rows-[auto_1fr] min-[56.25rem]:gap-x-4 min-[56.25rem]:gap-y-0 min-[56.25rem]:overflow-visible min-[56.25rem]:px-0 min-[56.25rem]:py-0 lg:gap-x-6",
+          )}
+        >
           {HOW_STEPS.map((step, i) => (
             <li
               key={step.title}
               style={{ "--wm-i": i } as CSSProperties}
               className={cx(
-                "flex min-w-0 flex-col rounded-card bg-surface p-6 sm:p-8 min-[56.25rem]:row-span-2 min-[56.25rem]:grid min-[56.25rem]:grid-rows-subgrid min-[56.25rem]:p-6 lg:p-8",
+                "wm-lift flex w-[84%] max-w-[380px] shrink-0 snap-start flex-col rounded-card bg-surface p-6 sm:w-[60%] sm:p-8 min-[56.25rem]:w-auto min-[56.25rem]:max-w-none min-[56.25rem]:row-span-2 min-[56.25rem]:grid min-[56.25rem]:grid-rows-subgrid min-[56.25rem]:p-6 lg:p-8",
                 styles.card,
               )}
             >
@@ -158,7 +167,7 @@ export function How() {
               </div>
             </li>
           ))}
-        </ol>
+        </SwipeRow>
       </div>
     </section>
   );

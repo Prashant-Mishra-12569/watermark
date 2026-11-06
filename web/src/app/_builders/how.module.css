@@ -6,7 +6,9 @@
  */
 
 @supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
+  /* Only on the three-across grid: under 900px the cards sit in a sideways row (how.tsx), where a vertical view
+     timeline would follow the row's own scroller instead of the page. */
+  @media (prefers-reduced-motion: no-preference) and (min-width: 900px) {
     .card {
       animation: wm-how-rise linear both;
       animation-timeline: view();
