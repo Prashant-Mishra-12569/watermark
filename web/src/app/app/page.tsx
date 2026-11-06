@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { connection } from "next/server";
 import type { ReactNode } from "react";
 import { LineIcon, type LineIconName } from "@/app/_art";
-import { cx, emphasize, ExternalLink, Headline, PillButton, Step } from "@/app/_site";
+import { cx, emphasize, ExternalLink, Headline, PillButton, Step, SwipeRow } from "@/app/_site";
 import { DOCS } from "@/lib/site.ts";
 import { ANDROID_SOURCE_URL, APK_FILE_NAME, APK_PUBLIC_URL, apkDownload, formatSize } from "./apk";
 import { DownloadQr } from "./download-qr";
@@ -235,11 +235,23 @@ function Install() {
       <p className="mt-5 max-w-[60ch] text-pretty text-lg leading-relaxed text-muted sm:text-xl">
         The app isn&rsquo;t from the Play Store, so Android asks you once.
       </p>
-      <ol className="mt-10 grid gap-3 md:grid-cols-3">
+      {/* Phones and small tablets: a row you swipe; three across from 768px. */}
+      <SwipeRow
+        as="ol"
+        label="Install steps"
+        dotsClassName="md:hidden"
+        className="-mx-4 mt-8 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto overscroll-x-contain px-4 py-2 [scrollbar-width:none] sm:-mx-6 sm:scroll-px-6 sm:px-6 [&::-webkit-scrollbar]:hidden md:mx-0 md:mt-10 md:grid md:snap-none md:grid-cols-3 md:overflow-visible md:px-0 md:py-0"
+      >
         {INSTALL.map((s, i) => (
-          <Step key={s.title} n={i + 1} title={s.title} body={s.body} />
+          <Step
+            key={s.title}
+            n={i + 1}
+            title={s.title}
+            body={s.body}
+            className="wm-lift w-[80%] max-w-[340px] shrink-0 snap-start sm:w-[46%] md:w-auto md:max-w-none"
+          />
         ))}
-      </ol>
+      </SwipeRow>
       <p className="mt-6 flex gap-3 text-[15px] leading-relaxed text-muted">
         <span aria-hidden="true" className="mt-[0.6em] size-1.5 shrink-0 rounded-full bg-saffron" />
         We&rsquo;re a hackathon project, so the app isn&rsquo;t on the Play Store yet.

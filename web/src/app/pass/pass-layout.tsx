@@ -32,7 +32,7 @@ export function PassLayout({
       <div className="@container min-w-0 min-[56.25rem]:col-start-1 min-[56.25rem]:row-start-1">{intro}</div>
       <div className="min-w-0 min-[56.25rem]:col-start-2 min-[56.25rem]:row-span-3 min-[56.25rem]:row-start-1">
         {/* The header doesn't stick, so the NFT can sit close to the top while the left column scrolls. */}
-        <div className="min-[56.25rem]:sticky min-[56.25rem]:top-8">{art}</div>
+        <div className="min-[56.25rem]:sticky min-[56.25rem]:top-24">{art}</div>
       </div>
       <div className="min-w-0 min-[56.25rem]:col-start-1 min-[56.25rem]:row-start-2">{children}</div>
       {after && <div className="min-w-0 min-[56.25rem]:col-start-1 min-[56.25rem]:row-start-3">{after}</div>}

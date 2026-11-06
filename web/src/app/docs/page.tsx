@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { CodeBlock, ExternalLink, Headline, PillButton, StatusChip, cx } from "@/app/_site";
+import { CodeBlock, ExternalLink, Headline, PillButton, StatusChip, SwipeRow, cx } from "@/app/_site";
 import { AGENT_PROMPT } from "@/app/_builders/agent-prompt-text.ts";
 import { MCP_SERVERS_JSON, MCP_TOOL_PREFIX } from "@/app/_builders/mcp-data.ts";
 import { SOLIDITY_GATE, TYPESCRIPT_CHECK } from "@/app/_builders/snippets.ts";
@@ -90,16 +90,16 @@ export default function DocsPage() {
         <p className="mb-5 text-sm font-medium text-muted">Docs</p>
         <Headline as="h1">{HERO.title}</Headline>
         <p className="mt-5 max-w-[52ch] text-lg leading-relaxed text-muted sm:text-xl">{HERO.sub}</p>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <PillButton href="#add">Add it to your app</PillButton>
-          <PillButton href="/watermark.txt" external variant="secondary">
+        <div className="mt-8 flex flex-wrap gap-2 min-[380px]:gap-2.5 sm:gap-3">
+          <PillButton href="#add" size="hero">Add it to your app</PillButton>
+          <PillButton href="/watermark.txt" external variant="secondary" size="hero">
             Full reference
           </PillButton>
         </div>
       </header>
 
       <div className="mt-14 grid gap-10 sm:mt-20 lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-16">
-        <nav aria-label="On this page" className="min-w-0 lg:sticky lg:top-6 lg:self-start">
+        <nav aria-label="On this page" className="min-w-0 lg:sticky lg:top-24 lg:self-start">
           <p className="text-sm font-medium text-muted">On this page</p>
           <ol className="mt-3 grid grid-cols-2 gap-x-4 rounded-inner bg-surface p-3 text-[15px] sm:grid-cols-4 lg:grid-cols-1 lg:bg-transparent lg:p-0">
             {TOC.map((item) => (
@@ -118,14 +118,15 @@ export default function DocsPage() {
         <div className="grid min-w-0 gap-16 sm:gap-20">
           {/* 1. What it stops */}
           <DocSection id="stops" title="What it *stops*." lead="Each extra wallet needs another real bank card. Bots can't fake that.">
-            <ul className="grid gap-3 sm:grid-cols-2">
+            {/* Phones: a row you swipe; from 640px two by two. */}
+            <SwipeRow label="What it stops" dotsClassName="sm:hidden" className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto overscroll-x-contain px-4 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:py-0">
               {STOPS.map((s) => (
-                <li key={s.title} className="min-w-0 rounded-card bg-surface p-5 sm:p-6">
+                <li key={s.title} className="wm-lift w-[84%] max-w-[360px] shrink-0 snap-start sm:w-auto sm:max-w-none min-w-0 rounded-card bg-surface p-5 sm:p-6">
                   <p className="text-lg font-semibold tracking-[-0.02em]">{s.title}</p>
                   <p className="mt-2 leading-relaxed text-muted">{s.body}</p>
                 </li>
               ))}
-            </ul>
+            </SwipeRow>
             <div className="mt-8 rounded-card border border-line p-5 sm:p-6">
               <SubHead>What it does not do</SubHead>
               <ul className="mt-4 grid gap-2">
@@ -141,15 +142,15 @@ export default function DocsPage() {
 
           {/* 2. How it works */}
           <DocSection id="how" title="How it *works*." lead="Four steps. The user does one tap; your app does one read.">
-            <ol className="grid gap-3 sm:grid-cols-2">
+            <SwipeRow as="ol" label="How it works" dotsClassName="sm:hidden" className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto overscroll-x-contain px-4 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:snap-none sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:py-0">
               {HOW_STEPS.map((s, i) => (
-                <li key={s.title} className="min-w-0 rounded-card bg-surface p-5 sm:p-6">
+                <li key={s.title} className="wm-lift w-[84%] max-w-[360px] shrink-0 snap-start sm:w-auto sm:max-w-none min-w-0 rounded-card bg-surface p-5 sm:p-6">
                   <span className="grid size-9 place-items-center rounded-full bg-ink text-sm font-semibold text-white">{i + 1}</span>
                   <p className="mt-4 text-lg font-semibold tracking-[-0.02em]">{s.title}</p>
                   <p className="mt-2 leading-relaxed text-muted">{s.body}</p>
                 </li>
               ))}
-            </ol>
+            </SwipeRow>
           </DocSection>
 
           {/* 3. MCP */}
