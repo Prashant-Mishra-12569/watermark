@@ -6,7 +6,8 @@ import { DRAWN_IN_CODE, FONT_CREDITS } from "./credits-data.ts";
 const layout = readFileSync(new URL("../layout.tsx", import.meta.url), "utf8");
 const publicDir = new URL("../../../public/", import.meta.url);
 
-function filesUnder(dir: URL): string[] {
+/** File URLs, not paths: url.pathname is "/C:/..." on Windows, which readFileSync can't open. */
+function filesUnder(dir: URL): URL[] {
   let names: string[];
   try {
     names = readdirSync(dir);
@@ -15,7 +16,7 @@ function filesUnder(dir: URL): string[] {
   }
   return names.flatMap((name) => {
     const url = new URL(name, dir);
-    return statSync(url).isDirectory() ? filesUnder(new URL(`${name}/`, dir)) : [url.pathname];
+    return statSync(url).isDirectory() ? filesUnder(new URL(`${name}/`, dir)) : [url];
   });
 }
 
@@ -45,14 +46,15 @@ const passFixture = (id: number) => new URL(`../../../../contracts/test/fixtures
 test("the only image files the site ships are Genesis Drop stamps, byte for byte the contract's own picture", () => {
   // So the page's "every picture is drawn in code" stays true: anything else needs a credit in credits-data.ts (and
   // a new lead on the page) first.
-  const images = filesUnder(publicDir).filter((p) => /\.(png|jpe?g|webp|gif|avif|svg)$/i.test(p));
-  for (const path of images) {
+  const images = filesUnder(publicDir).filter((u) => /\.(png|jpe?g|webp|gif|avif|svg)$/i.test(u.pathname));
+  for (const file of images) {
+    const path = file.pathname;
     // Our own logo (credited in DRAWN_IN_CODE): exactly these four files.
     if (/\/brand\/(mark(-white)?\.svg|lockup(-white)?\.png)$/u.test(path)) continue;
     const m = /\/assets\/stamps\/stamp-(\d{3})\.svg$/u.exec(path);
     assert.ok(m, `${path}: add a credit to credits-data.ts before adding an image`);
     const id = Number(m[1]);
     assert.ok(id >= 1 && id <= 100, `${path}: the drop has tokens 1 to 100`);
-    assert.equal(readFileSync(path, "utf8"), readFileSync(passFixture(id), "utf8"), `${path} is not the contract's picture`);
+    assert.equal(readFileSync(file, "utf8"), readFileSync(passFixture(id), "utf8"), `${path} is not the contract's picture`);
   }
 });
