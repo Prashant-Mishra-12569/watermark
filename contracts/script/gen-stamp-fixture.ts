@@ -96,6 +96,8 @@ const out = {
     "Regenerate with contracts/script/gen-stamp-fixture.ts after any circuit or verifier change.",
   sourceCommit,
   circuitSha256: actualSha,
+  // The bytecode alone: the same on every machine (the file also holds absolute source paths). The prover checks this.
+  circuitBytecodeSha256: createHash("sha256").update(JSON.parse(readFileSync(CIRCUIT, "utf8")).bytecode).digest("hex"),
   nargoVersion,
   bbjsVersion,
   appOwner,

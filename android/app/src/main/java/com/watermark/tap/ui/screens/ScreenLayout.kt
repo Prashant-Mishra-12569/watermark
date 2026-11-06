@@ -17,18 +17,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.watermark.tap.ui.theme.WmColors
+import com.watermark.tap.ui.theme.accented
 
 /**
  * The body under the top bar: scrolls when it doesn't fit, and is vertically centred when [centered] and it does.
- * [bottom] stays pinned under the scrolling part (the skyline, or the "tap your card" hint).
+ * [bottom] stays pinned under the scrolling part (the skyline, the "ready to tap" bar, a button).
  */
 @Composable
 internal fun ScreenBody(
     modifier: Modifier = Modifier,
     centered: Boolean = false,
+    spacing: Int = 16,
     bottom: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -40,11 +43,11 @@ internal fun ScreenBody(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .heightIn(min = minHeight)
-                    .padding(horizontal = 24.dp, vertical = 20.dp),
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
                 verticalArrangement = if (centered) {
-                    Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
+                    Arrangement.spacedBy(spacing.dp, Alignment.CenterVertically)
                 } else {
-                    Arrangement.spacedBy(16.dp)
+                    Arrangement.spacedBy(spacing.dp)
                 },
                 horizontalAlignment = if (centered) Alignment.CenterHorizontally else Alignment.Start,
                 content = content,
@@ -54,19 +57,25 @@ internal fun ScreenBody(
     }
 }
 
-/** The big screen title. Marked as a heading for TalkBack. */
+/** The big screen title. [accent] is set in the serif italic, like the website. Marked as a heading for TalkBack. */
 @Composable
-internal fun ScreenTitle(text: String, modifier: Modifier = Modifier, centered: Boolean = false) {
+internal fun ScreenTitle(
+    text: String,
+    modifier: Modifier = Modifier,
+    accent: String? = null,
+    centered: Boolean = false,
+    style: TextStyle = MaterialTheme.typography.headlineLarge,
+) {
     Text(
-        text,
+        accented(text, accent),
         modifier = modifier.fillMaxWidth().semantics { heading() },
-        style = MaterialTheme.typography.headlineMedium,
+        style = style,
         color = WmColors.Ink,
         textAlign = if (centered) TextAlign.Center else TextAlign.Start,
     )
 }
 
-/** One or two plain sentences under the title. */
+/** One plain sentence under the title. */
 @Composable
 internal fun ScreenText(text: String, modifier: Modifier = Modifier, centered: Boolean = false) {
     Text(
@@ -78,26 +87,12 @@ internal fun ScreenText(text: String, modifier: Modifier = Modifier, centered: B
     )
 }
 
-/**
- * The shared shape of a step screen: a visual, a title, a sentence, a privacy chip, then the "What this step uses"
- * line at the end.
- */
+/** Pinned bottom area for one or two buttons, above the navigation bar. */
 @Composable
-internal fun StepScreen(
-    title: String,
-    text: String?,
-    visual: @Composable () -> Unit,
-    modifier: Modifier = Modifier,
-    chip: (@Composable () -> Unit)? = null,
-    uses: (@Composable () -> Unit)? = null,
-    extra: (@Composable ColumnScope.() -> Unit)? = null,
-) {
-    ScreenBody(modifier, centered = true) {
-        visual()
-        ScreenTitle(title, Modifier.padding(top = 8.dp), centered = true)
-        if (text != null) ScreenText(text, centered = true)
-        if (chip != null) chip()
-        if (extra != null) extra()
-        if (uses != null) uses()
-    }
+internal fun BottomActions(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        content = content,
+    )
 }

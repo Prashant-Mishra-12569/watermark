@@ -1,16 +1,35 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
+const sha256 = (data: string | Buffer) => createHash("sha256").update(data).digest("hex");
+
 /**
- * The deployed verifier was generated from one exact compiled circuit. Its sha256 is recorded in the
- * contract test fixture. A prover running a different build makes proofs the chain rejects
- * (the stamp fails at the relayer with no hint why), so we check at startup instead.
+ * The deployed verifier was generated from one exact compiled circuit, recorded in the contract test fixture. A
+ * prover running a different build makes proofs the chain rejects (the stamp fails at the relayer with no hint why),
+ * so we check at startup instead.
+ *
+ * We compare the circuit's bytecode, not the whole file: nargo also writes absolute source paths into the file, so
+ * the same circuit compiled on another laptop has a different file hash. Old fixtures without the bytecode hash fall
+ * back to the whole-file hash.
  */
 export function checkCircuit(circuitPath: string, fixturePath: string): { ok: true } | { ok: false; message: string } {
-  const actual = createHash("sha256").update(readFileSync(circuitPath)).digest("hex");
-  const expected = (JSON.parse(readFileSync(fixturePath, "utf8")) as { circuitSha256?: string }).circuitSha256;
-  if (!expected) return { ok: false, message: `no circuitSha256 in ${fixturePath}` };
-  if (actual === expected.replace(/^0x/, "").toLowerCase()) return { ok: true };
+  const raw = readFileSync(circuitPath);
+  const fixture = JSON.parse(readFileSync(fixturePath, "utf8")) as { circuitSha256?: string; circuitBytecodeSha256?: string };
+  const norm = (h: string) => h.replace(/^0x/, "").toLowerCase();
+
+  let actual: string;
+  let expected: string | undefined;
+  if (fixture.circuitBytecodeSha256) {
+    const bytecode = (JSON.parse(raw.toString("utf8")) as { bytecode?: string }).bytecode;
+    if (!bytecode) return { ok: false, message: `${circuitPath} has no bytecode; run "cd circuits && nargo compile"` };
+    actual = sha256(bytecode);
+    expected = norm(fixture.circuitBytecodeSha256);
+  } else {
+    actual = sha256(raw);
+    expected = fixture.circuitSha256 ? norm(fixture.circuitSha256) : undefined;
+  }
+  if (!expected) return { ok: false, message: `no circuit hash in ${fixturePath}` };
+  if (actual === expected) return { ok: true };
   return {
     ok: false,
     message:

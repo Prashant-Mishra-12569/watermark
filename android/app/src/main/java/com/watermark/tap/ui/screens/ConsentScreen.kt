@@ -1,5 +1,10 @@
 package com.watermark.tap.ui.screens
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,122 +17,119 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.watermark.tap.TapUiState
+import com.watermark.tap.ui.components.CardTapIllustration
 import com.watermark.tap.ui.components.Caption
 import com.watermark.tap.ui.components.DetailRow
-import com.watermark.tap.ui.components.Glyph
-import com.watermark.tap.ui.components.GlyphIcon
-import com.watermark.tap.ui.components.PrivacyChip
-import com.watermark.tap.ui.components.WmCard
+import com.watermark.tap.ui.components.Expandable
+import com.watermark.tap.ui.components.PromiseRow
+import com.watermark.tap.ui.components.rememberReduceMotion
 import com.watermark.tap.ui.theme.WmColors
 import com.watermark.tap.ui.theme.WmMono
 import java.text.DateFormat
 import java.util.Date
 
 /**
- * "Check this matches the website, then tap your card." There is no button: the phone is already listening, so
- * the next screen comes when the card touches the phone. The pinned hint at the bottom says so.
+ * "Is this your wallet?" The one decision the user makes: the last four characters must match the laptop. There is
+ * no button, because the phone is already listening: touching the card is the yes. The pinned bar says so.
  */
 @Composable
 fun ConsentScreen(state: TapUiState.Consent, modifier: Modifier = Modifier) {
     val expires = remember(state.expiresAtEpochSec) {
-        if (state.expiresAtEpochSec > 0) {
-            DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(state.expiresAtEpochSec * 1000))
-        } else {
-            null
-        }
+        if (state.expiresAtEpochSec > 0) DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(state.expiresAtEpochSec * 1000)) else null
     }
-    ScreenBody(modifier, bottom = { TapHint() }) {
-        ScreenTitle("Check the wallet")
+    ScreenBody(modifier, centered = true, spacing = 18, bottom = { ReadyBar() }) {
+        Caption("Stamp request from ${state.appName}")
+        ScreenTitle("Is this your wallet?", accent = "your", centered = true, style = MaterialTheme.typography.headlineLarge)
+        WalletEnding(state.walletLast4)
+        ScreenText("It should match your laptop screen. If it doesn't, don't tap.", centered = true)
 
-        WmCard {
-            Caption("Wallet ending")
-            Text(
-                state.walletLast4,
-                modifier = Modifier.semantics { contentDescription = "Wallet ending ${state.walletLast4.toList().joinToString(" ")}" },
-                style = MaterialTheme.typography.displaySmall,
-                fontFamily = WmMono,
-                letterSpacing = 4.sp,
-                color = WmColors.Ink,
-            )
-        }
+        CardTapIllustration(Modifier.padding(vertical = 4.dp), width = 210.dp, ripples = true)
 
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Does this match your laptop screen?", style = MaterialTheme.typography.titleMedium, color = WmColors.Ink)
-            Text(
-                "If it does, hold your card to the back of the phone. If it doesn't, don't tap. Close this app.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = WmColors.Muted,
-            )
-        }
+        PromiseRow(listOf("₹0", "No PIN", "Card number never on-chain"), Modifier.fillMaxWidth())
 
-        WmCard(outlined = true) {
+        Expandable("Details") {
             DetailRow("App", state.appName)
-            DetailRow("Card filter", state.filterLabel)
-            DetailRow("Chain", state.chainName)
-            if (expires != null) DetailRow("QR valid until", expires)
+            DetailRow("Cards", state.filterLabel)
+            DetailRow("Network", state.chainName)
+            if (expires != null) DetailRow("QR works until", expires)
+            Text(state.revealsText, style = MaterialTheme.typography.bodySmall, color = WmColors.Muted)
         }
-
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Caption("What the stamp shows")
-            Text(state.revealsText, style = MaterialTheme.typography.bodyMedium, color = WmColors.Ink)
-        }
-
-        WmCard {
-            Text("What happens next", style = MaterialTheme.typography.titleMedium, color = WmColors.Ink)
-            NextRow("Reads", "Your card's chip certificates (they include the card number) and a one-time signature.")
-            NextRow("Sent", "Encrypted on this phone, only to our prover.")
-            NextRow("Kept", "Nothing. Used once to make the proof, then wiped.")
-            NextRow("On-chain", "A proof, a one-way card ID, your wallet and an expiry month. Never your card number.")
-        }
-
-        PrivacyChip("No money charged. No PIN.")
     }
 }
 
+/** "0x ·· 1 A 2 B": the four characters to compare, big, in mono tiles. */
 @Composable
-private fun NextRow(label: String, text: String) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-        Text(
-            label,
-            modifier = Modifier.width(80.dp),
-            style = MaterialTheme.typography.titleSmall,
-            color = WmColors.Ink,
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(text, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = WmColors.Ink)
+private fun WalletEnding(last4: String) {
+    Row(
+        Modifier.clearAndSetSemantics { contentDescription = "Wallet ending ${last4.toList().joinToString(" ")}" },
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("0x··", fontFamily = WmMono, fontSize = 22.sp, color = WmColors.Faint)
+        Spacer(Modifier.width(2.dp))
+        last4.forEach { ch ->
+            Box(
+                Modifier.size(width = 50.dp, height = 62.dp).background(WmColors.Surface, RoundedCornerShape(14.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(ch.uppercase(), fontFamily = WmMono, fontSize = 30.sp, color = WmColors.Ink)
+            }
+        }
     }
 }
 
-/** Pinned under the consent details: the phone is ready for the card. */
+/** Pinned at the bottom: a breathing saffron dot and the instruction. The tap itself starts the next step. */
 @Composable
-private fun TapHint() {
+private fun ReadyBar() {
+    val still = rememberReduceMotion()
+    val breathe by rememberInfiniteTransition(label = "ready").animateFloat(
+        initialValue = 0.75f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
+        label = "dot",
+    )
     Column(Modifier.fillMaxWidth()) {
         Box(Modifier.fillMaxWidth().height(1.dp).background(WmColors.Line))
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 18.dp)
+                .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(Modifier.size(10.dp).background(WmColors.Saffron, CircleShape))
-            Spacer(Modifier.width(12.dp))
-            Text(
-                "When it matches, hold your card flat on the back of the phone.",
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.bodyMedium,
-                color = WmColors.Ink,
-            )
-            Spacer(Modifier.width(12.dp))
-            GlyphIcon(Glyph.Card, Modifier.size(24.dp))
+            Box(Modifier.size(22.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(22.dp).scale(if (still) 1f else breathe).alpha(0.25f).background(WmColors.Saffron, CircleShape))
+                Box(Modifier.size(10.dp).background(WmColors.Saffron, CircleShape))
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text("Ready", style = MaterialTheme.typography.titleSmall, color = WmColors.Ink)
+                Text(
+                    "Hold your card flat on the back of your phone.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = WmColors.Muted,
+                    textAlign = TextAlign.Start,
+                )
+            }
         }
     }
 }

@@ -1,88 +1,91 @@
 package com.watermark.tap.ui.screens
 
-import androidx.compose.foundation.Image
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.watermark.tap.R
-import com.watermark.tap.ui.components.Caption
-import com.watermark.tap.ui.components.CheckLine
+import com.watermark.tap.ui.components.Glyph
+import com.watermark.tap.ui.components.GlyphIcon
+import com.watermark.tap.ui.components.PillButton
+import com.watermark.tap.ui.components.PromiseRow
 import com.watermark.tap.ui.components.Skyline
-import com.watermark.tap.ui.components.UsesNote
-import com.watermark.tap.ui.components.WmCard
 import com.watermark.tap.ui.theme.WmColors
+import com.watermark.tap.ui.theme.WmShape
 
-/** Opened without a link: a calm welcome that says where to start. */
+private const val SITE = "https://usewatermark.xyz/pass"
+
+/** Opened from the launcher, with no QR yet: what this is, the three steps, and where to start. */
 @Composable
 fun IdleScreen(modifier: Modifier = Modifier) {
-    ScreenBody(modifier, bottom = { Skyline(Modifier.padding(top = 8.dp)) }) {
-        Image(
-            painter = painterResource(R.drawable.wm_logo),
-            contentDescription = null,
-            modifier = Modifier.size(76.dp),
-        )
-        Text(
-            "Prove your card is real. Keep it private.",
-            modifier = Modifier.semantics { heading() },
-            style = MaterialTheme.typography.headlineLarge,
-            color = WmColors.Ink,
-        )
-        Text(
-            "Open usewatermark.xyz on your laptop and scan the QR with this phone's camera.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = WmColors.Muted,
-        )
+    val context = LocalContext.current
+    ScreenBody(
+        modifier,
+        spacing = 20,
+        bottom = {
+            Column {
+                Column(Modifier.padding(horizontal = 24.dp)) {
+                    PillButton(
+                        text = "Start on usewatermark.xyz",
+                        onClick = { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(SITE))) } },
+                    )
+                    Text(
+                        "Open it on a laptop, then scan the QR with this phone's camera.",
+                        Modifier.fillMaxWidth().padding(top = 10.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = WmColors.Muted,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+                Skyline(Modifier.padding(top = 12.dp))
+            }
+        },
+    ) {
+        Spacer(Modifier.height(8.dp))
+        ScreenTitle("Tap your card.\nKeep it private.", accent = "Keep", style = MaterialTheme.typography.displaySmall)
+        ScreenText("Prove your wallet is backed by a real bank card. Free, and about 10 seconds.")
 
-        Column(Modifier.padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            NumberedStep(1, "Scan the QR on usewatermark.xyz")
-            NumberedStep(2, "Hold your card to the phone")
-            NumberedStep(3, "Your wallet gets stamped")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            StepTile(1, Glyph.Phone, "Scan the QR", Modifier.weight(1f))
+            StepTile(2, Glyph.Card, "Tap your card", Modifier.weight(1f))
+            StepTile(3, Glyph.Check, "Get stamped", Modifier.weight(1f))
         }
 
-        WmCard {
-            Text("Our promise", style = MaterialTheme.typography.titleMedium, color = WmColors.Ink)
-            CheckLine("No money charged")
-            CheckLine("No PIN")
-            CheckLine("Nothing stored")
-            CheckLine("Nothing about your card on-chain")
-            Caption(
-                "To check your card, the app reads its chip certificates (they include the card number) and a " +
-                    "one-time signature. They're encrypted on this phone so only our prover can open them, used " +
-                    "once to make a private proof, then wiped.",
-            )
-        }
-
-        UsesNote("Nothing yet. The app reads no card until you scan a QR.")
+        PromiseRow(listOf("₹0", "No PIN", "Nothing stored", "Card number never on-chain"), Modifier.fillMaxWidth())
     }
 }
 
 @Composable
-private fun NumberedStep(n: Int, text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            Modifier.size(28.dp).clip(CircleShape).background(WmColors.Surface),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text("$n", style = MaterialTheme.typography.labelMedium, color = WmColors.Ink)
+private fun StepTile(n: Int, glyph: Glyph, label: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier
+            .background(WmColors.Surface, WmShape.Card)
+            .padding(horizontal = 12.dp, vertical = 16.dp)
+            .semantics(mergeDescendants = true) { contentDescription = "Step $n: $label" },
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(Modifier.size(36.dp).background(WmColors.White, CircleShape), contentAlignment = Alignment.Center) {
+            GlyphIcon(glyph, Modifier.size(18.dp), strokeWidth = 1.8.dp)
         }
-        Spacer(Modifier.width(12.dp))
-        Text(text, style = MaterialTheme.typography.bodyLarge, color = WmColors.Ink)
+        Text("$n", style = MaterialTheme.typography.labelMedium, color = WmColors.Saffron)
+        Text(label, style = MaterialTheme.typography.titleSmall, color = WmColors.Ink)
     }
 }

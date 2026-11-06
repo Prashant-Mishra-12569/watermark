@@ -28,8 +28,9 @@ const app = createApp({
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
     });
-    const json = (await res.json().catch(() => ({}))) as { txHash?: `0x${string}`; error?: string };
-    if (!res.ok || !json.txHash) throw new Error(`STAMP_${json.error ?? res.status}`);
+    // The relayer names the registry revert in `reason` (e.g. NullifierBoundToOtherWallet); keep it so the phone can say why
+    const json = (await res.json().catch(() => ({}))) as { txHash?: `0x${string}`; error?: string; reason?: string };
+    if (!res.ok || !json.txHash) throw new Error(`STAMP_${json.reason ?? json.error ?? res.status}`);
     return json.txHash;
   },
 });

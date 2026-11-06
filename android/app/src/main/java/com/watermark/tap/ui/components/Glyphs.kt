@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.watermark.tap.ui.theme.WmColors
 
 /** Small line icons, drawn by hand so the app needs no icon library. */
-enum class Glyph { Lock, Phone, Check, Card, Alert }
+enum class Glyph { Lock, Phone, Check, Card, Alert, Chevron, Shield, Spark }
 
 @Composable
 fun GlyphIcon(glyph: Glyph, modifier: Modifier = Modifier, color: Color = WmColors.Ink, strokeWidth: Dp = 1.6.dp) {
@@ -35,6 +35,9 @@ fun GlyphIcon(glyph: Glyph, modifier: Modifier = Modifier, color: Color = WmColo
             Glyph.Check -> drawCheck(color, stroke)
             Glyph.Card -> drawCardGlyph(color, stroke)
             Glyph.Alert -> drawAlert(color, stroke)
+            Glyph.Chevron -> drawChevron(color, stroke)
+            Glyph.Shield -> drawShield(color, stroke)
+            Glyph.Spark -> drawSpark(color, stroke)
         }
     }
 }
@@ -100,6 +103,53 @@ private fun DrawScope.drawAlert(color: Color, stroke: Stroke) {
     val h = size.height
     drawLine(color, Offset(w * 0.5f, h * 0.26f), Offset(w * 0.5f, h * 0.58f), stroke.width, StrokeCap.Round)
     drawCircle(color, radius = stroke.width * 0.75f, center = Offset(w * 0.5f, h * 0.74f))
+}
+
+/** A down chevron, for rows that open. */
+private fun DrawScope.drawChevron(color: Color, stroke: Stroke) {
+    val w = size.width
+    val h = size.height
+    val p = Path().apply {
+        moveTo(w * 0.22f, h * 0.38f)
+        lineTo(w * 0.5f, h * 0.64f)
+        lineTo(w * 0.78f, h * 0.38f)
+    }
+    drawPath(p, color, style = stroke)
+}
+
+/** A shield with a check: "checked on this phone". */
+private fun DrawScope.drawShield(color: Color, stroke: Stroke) {
+    val w = size.width
+    val h = size.height
+    val p = Path().apply {
+        moveTo(w * 0.5f, h * 0.10f)
+        lineTo(w * 0.84f, h * 0.24f)
+        cubicTo(w * 0.84f, h * 0.58f, w * 0.70f, h * 0.80f, w * 0.5f, h * 0.92f)
+        cubicTo(w * 0.30f, h * 0.80f, w * 0.16f, h * 0.58f, w * 0.16f, h * 0.24f)
+        close()
+    }
+    drawPath(p, color, style = stroke)
+    val c = Path().apply {
+        moveTo(w * 0.35f, h * 0.50f)
+        lineTo(w * 0.46f, h * 0.61f)
+        lineTo(w * 0.66f, h * 0.40f)
+    }
+    drawPath(c, color, style = stroke)
+}
+
+/** A four-point sparkle: "making the private proof". */
+private fun DrawScope.drawSpark(color: Color, stroke: Stroke) {
+    val w = size.width
+    val h = size.height
+    val p = Path().apply {
+        moveTo(w * 0.5f, h * 0.08f)
+        quadraticTo(w * 0.56f, h * 0.44f, w * 0.92f, h * 0.5f)
+        quadraticTo(w * 0.56f, h * 0.56f, w * 0.5f, h * 0.92f)
+        quadraticTo(w * 0.44f, h * 0.56f, w * 0.08f, h * 0.5f)
+        quadraticTo(w * 0.44f, h * 0.44f, w * 0.5f, h * 0.08f)
+        close()
+    }
+    drawPath(p, color, style = stroke)
 }
 
 enum class StatusKind { Ok, Problem }

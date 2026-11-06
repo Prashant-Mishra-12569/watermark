@@ -1,92 +1,202 @@
 package com.watermark.tap.ui.screens
 
+import android.app.Activity
 import android.content.Intent
+import android.net.Uri
 import android.provider.Settings
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import com.watermark.tap.RefusalReason
-import com.watermark.tap.ui.components.Caption
+import com.watermark.tap.ui.components.Expandable
+import com.watermark.tap.ui.components.Glyph
+import com.watermark.tap.ui.components.GlyphIcon
 import com.watermark.tap.ui.components.PillButton
-import com.watermark.tap.ui.components.PrivacyChip
-import com.watermark.tap.ui.components.StatusKind
-import com.watermark.tap.ui.components.StatusMark
-import com.watermark.tap.ui.components.WmCard
 import com.watermark.tap.ui.theme.WmColors
+import com.watermark.tap.ui.theme.WmShape
 
-/** A short title for each refusal. The full sentence is the reason's own message. */
-internal fun refusalTitle(reason: RefusalReason): String = when (reason) {
-    RefusalReason.NOT_IN_POLICY -> "This card isn't accepted here"
-    RefusalReason.EXPIRES_TOO_SOON -> "This card expires too soon"
-    RefusalReason.BAD_CARD -> "We couldn't verify this card"
-    RefusalReason.SESSION_EXPIRED -> "This session has expired"
-    RefusalReason.WRONG_SIGNER -> "This link isn't from Watermark"
-    RefusalReason.NFC_LOST -> "The card moved away"
-    RefusalReason.NFC_OFF -> "NFC is off"
-    RefusalReason.NO_SESSION -> "Scan the QR first"
-    RefusalReason.SESSION_USED -> "This QR was already used"
-}
+private const val SITE = "https://usewatermark.xyz/pass"
 
-/**
- * What to do next. A refusal on the phone keeps the session, so another card can be tapped straight away; a refusal
- * from the prover ends it, hence "if it still doesn't work, scan a new QR".
- */
-internal fun refusalNextStep(reason: RefusalReason): String = when (reason) {
-    RefusalReason.NOT_IN_POLICY ->
-        "Only RuPay debit cards from Indian banks work today, and this app may allow fewer banks. Try a different " +
-            "card. If it still doesn't work, scan a new QR on your laptop."
-    RefusalReason.EXPIRES_TOO_SOON ->
-        "Use a card with a later expiry date. If it still doesn't work, scan a new QR on your laptop."
-    RefusalReason.BAD_CARD ->
-        "Try a different bank card, held flat and still. If it still doesn't work, scan a new QR on your laptop."
-    RefusalReason.SESSION_EXPIRED -> "Refresh the page on your laptop and scan the new QR."
-    RefusalReason.WRONG_SIGNER -> "Only scan the QR on usewatermark.xyz. Refresh that page and scan again."
-    RefusalReason.NFC_LOST -> "Hold the card flat on the back of the phone and keep it still for 2 seconds."
-    RefusalReason.NFC_OFF -> "Turn on NFC in your phone's settings, then scan the QR on your laptop again."
-    RefusalReason.NO_SESSION ->
-        "Open usewatermark.xyz on your laptop, scan the QR with this phone's camera, then tap your card."
-    RefusalReason.SESSION_USED -> "Each QR works once. Refresh the page on your laptop and scan the new QR."
+/** What the user can do next, besides closing the app. */
+private enum class NextAction { TapAgain, OpenNfcSettings, OpenSite, Close }
+
+private data class Problem(val title: String, val text: String, val next: NextAction, val calm: Boolean = false)
+
+private fun problemFor(reason: RefusalReason): Problem = when (reason) {
+    RefusalReason.NOT_IN_POLICY -> Problem(
+        "This card can't be used here",
+        "Use a RuPay debit card from an Indian bank. Prepaid, gift and metro cards don't work.",
+        NextAction.TapAgain,
+    )
+    RefusalReason.EXPIRES_TOO_SOON -> Problem(
+        "This card expires too soon",
+        "Use a card that's valid for at least three more months.",
+        NextAction.TapAgain,
+    )
+    RefusalReason.BAD_CARD -> Problem(
+        "We couldn't verify this card",
+        "Hold it flat and still, then tap again. If it keeps failing, try another bank card.",
+        NextAction.TapAgain,
+    )
+    RefusalReason.NFC_LOST -> Problem(
+        "The card moved away",
+        "Hold it flat on the back of the phone for about two seconds.",
+        NextAction.TapAgain,
+        calm = true,
+    )
+    RefusalReason.SESSION_EXPIRED -> Problem(
+        "This QR has expired",
+        "Each QR lasts 10 minutes. Refresh the page on your laptop and scan the new one.",
+        NextAction.Close,
+        calm = true,
+    )
+    RefusalReason.SESSION_USED -> Problem(
+        "This QR was already used",
+        "Each QR works once. Refresh the page on your laptop and scan the new one.",
+        NextAction.Close,
+        calm = true,
+    )
+    RefusalReason.WRONG_SIGNER -> Problem(
+        "This QR isn't from Watermark",
+        "Nothing was read from your card. Only scan the QR on usewatermark.xyz.",
+        NextAction.Close,
+    )
+    RefusalReason.NFC_OFF -> Problem(
+        "Turn on NFC",
+        "Watermark reads your card over NFC. Turn it on, then scan the QR again.",
+        NextAction.OpenNfcSettings,
+        calm = true,
+    )
+    RefusalReason.NO_SESSION -> Problem(
+        "Scan the QR first",
+        "Open usewatermark.xyz on your laptop and scan its QR with this phone's camera. No card was read.",
+        NextAction.OpenSite,
+        calm = true,
+    )
+    RefusalReason.CARD_ALREADY_LINKED -> Problem(
+        "This card is already linked",
+        "One card can stamp one wallet per app, and this card already stamped another wallet. Use that wallet instead.",
+        NextAction.Close,
+    )
 }
 
 @Composable
 fun RefusedScreen(reason: RefusalReason, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    StepScreen(
-        title = refusalTitle(reason),
-        text = reason.message,
+    val p = problemFor(reason)
+    ProblemScreen(p.title, p.text, p.next, p.calm, modifier)
+}
+
+/** Something outside the card stopped us: the prover or relayer can't be reached, or took too long. */
+@Composable
+fun ErrorScreen(message: String, modifier: Modifier = Modifier) {
+    ProblemScreen("We couldn't finish", message, NextAction.Close, calm = false, modifier = modifier)
+}
+
+/** The link or session couldn't be used. No card was read. */
+@Composable
+fun InvalidSessionScreen(reason: String, modifier: Modifier = Modifier) {
+    ProblemScreen(
+        "This QR can't be used",
+        "Refresh the page on your laptop and scan the new QR. Nothing was read from your card.",
+        NextAction.Close,
+        calm = true,
         modifier = modifier,
-        visual = { StatusMark(StatusKind.Problem) },
-        chip = { PrivacyChip("No money was charged.") },
-        extra = {
-            WmCard(outlined = true) {
-                Caption("What to do")
-                Text(refusalNextStep(reason), style = MaterialTheme.typography.bodyMedium, color = WmColors.Ink)
-            }
-            if (reason == RefusalReason.NFC_OFF) {
-                PillButton(
-                    text = "Open NFC settings",
-                    onClick = { runCatching { context.startActivity(Intent(Settings.ACTION_NFC_SETTINGS)) } },
-                )
-            }
-        },
+        details = reason,
     )
 }
 
 @Composable
-fun ErrorScreen(message: String, modifier: Modifier = Modifier) {
-    StepScreen(
-        title = "Something went wrong",
-        text = "Try again: refresh the QR on your laptop and scan it with this phone.",
-        modifier = modifier,
-        visual = { StatusMark(StatusKind.Problem) },
-        chip = { PrivacyChip("No money was charged.") },
-        extra = {
-            WmCard(outlined = true) {
-                Caption("Details")
-                Text(message, style = MaterialTheme.typography.bodyMedium, color = WmColors.Ink)
+private fun ProblemScreen(
+    title: String,
+    text: String,
+    next: NextAction,
+    calm: Boolean,
+    modifier: Modifier = Modifier,
+    details: String? = null,
+) {
+    val context = LocalContext.current
+    val close = { (context as? Activity)?.finish(); Unit }
+    ScreenBody(
+        modifier,
+        centered = true,
+        bottom = {
+            Column {
+                if (next == NextAction.TapAgain) TryAgainHint()
+                BottomActions {
+                    when (next) {
+                        NextAction.OpenNfcSettings -> PillButton(
+                            "Open NFC settings",
+                            onClick = { runCatching { context.startActivity(Intent(Settings.ACTION_NFC_SETTINGS)) } },
+                        )
+                        NextAction.OpenSite -> PillButton(
+                            "Open usewatermark.xyz",
+                            onClick = { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(SITE))) } },
+                        )
+                        else -> {}
+                    }
+                    PillButton("Close", onClick = close, secondary = next != NextAction.Close)
+                }
             }
         },
-    )
+    ) {
+        Box(
+            Modifier.size(84.dp).background(if (calm) WmColors.Surface else WmColors.ErrorSoft, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            GlyphIcon(
+                if (next == NextAction.OpenNfcSettings || next == NextAction.OpenSite) Glyph.Phone else Glyph.Alert,
+                Modifier.size(40.dp),
+                color = if (calm) WmColors.Ink else WmColors.Error,
+                strokeWidth = 2.4.dp,
+            )
+        }
+        ScreenTitle(title, centered = true, style = MaterialTheme.typography.headlineMedium)
+        ScreenText(text, centered = true)
+        Text(
+            "No money was charged.",
+            Modifier.fillMaxWidth(),
+            style = MaterialTheme.typography.bodySmall,
+            color = WmColors.Muted,
+            textAlign = TextAlign.Center,
+        )
+        if (details != null) {
+            Expandable("Details") { Text(details, style = MaterialTheme.typography.bodySmall, color = WmColors.Muted) }
+        }
+    }
+}
+
+/** The reader is still on after a card problem, so another tap just works. */
+@Composable
+private fun TryAgainHint() {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 4.dp)
+            .background(WmColors.SaffronSoft, WmShape.Card)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(10.dp).background(WmColors.Saffron, CircleShape))
+        Spacer(Modifier.width(12.dp))
+        Text(
+            "Ready when you are: tap the card again.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = WmColors.Ink,
+        )
+    }
 }

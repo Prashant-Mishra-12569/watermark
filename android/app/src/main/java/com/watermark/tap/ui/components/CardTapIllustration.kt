@@ -1,6 +1,7 @@
 package com.watermark.tap.ui.components
 
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -23,10 +24,11 @@ import com.watermark.tap.ui.theme.WmColors
 
 /**
  * A bank card meeting the back of a phone, in the same tilt as the logo. The card floats a little and the three tap
- * lines pulse, unless animations are off. Decorative: the screen text says what to do.
+ * lines pulse, unless animations are off. With [ripples], saffron rings spread from the phone: "ready, tap now".
+ * Decorative: the screen text says what to do.
  */
 @Composable
-fun CardTapIllustration(modifier: Modifier = Modifier, width: Dp = 240.dp, animate: Boolean = true) {
+fun CardTapIllustration(modifier: Modifier = Modifier, width: Dp = 240.dp, animate: Boolean = true, ripples: Boolean = false) {
     val still = !animate || rememberReduceMotion()
     val transition = rememberInfiniteTransition(label = "cardTap")
     val wave by transition.animateFloat(
@@ -35,11 +37,30 @@ fun CardTapIllustration(modifier: Modifier = Modifier, width: Dp = 240.dp, anima
         animationSpec = infiniteRepeatable(tween(1300, easing = FastOutSlowInEasing), RepeatMode.Reverse),
         label = "wave",
     )
+    val phase by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(2100, easing = LinearEasing), RepeatMode.Restart),
+        label = "ripple",
+    )
     val v = if (still) 1f else wave
     Canvas(modifier.size(width = width, height = width * (200f / 240f))) {
         val w = size.width
         val h = size.height
         val line = 2.dp.toPx()
+
+        if (ripples) {
+            val centre = Offset(w * 0.66f, h * 0.5f)
+            for (i in 0..2) {
+                val t = if (still) 0.25f + i * 0.25f else (phase + i / 3f) % 1f
+                drawCircle(
+                    WmColors.Saffron.copy(alpha = (1f - t) * 0.45f),
+                    radius = w * (0.16f + 0.26f * t), // stays inside the drawing, clear of the text around it
+                    center = centre,
+                    style = Stroke(1.5.dp.toPx()),
+                )
+            }
+        }
 
         // Back of the phone, upright, with a camera block
         val phoneLeft = w * 0.46f

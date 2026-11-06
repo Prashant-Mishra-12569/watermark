@@ -62,6 +62,8 @@ export type ProveError =
   | "NOT_IN_POLICY"
   | "EXPIRES_TOO_SOON"
   | "BAD_CARD"
+  /** The chain refused the stamp: this card is already linked to another wallet in this app (one card, one wallet). */
+  | "CARD_ALREADY_LINKED"
   | "DECRYPT_FAILED"
   | "STAMP_REJECTED";
 
