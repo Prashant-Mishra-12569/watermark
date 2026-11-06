@@ -9,6 +9,7 @@ Spec sections J and L; ABI in [docs/interfaces.md](../docs/interfaces.md) F5.
 | `HonkVerifier` (generated, `src/generated/Verifier.sol`) | both | checks the ZK proof |
 | `WatermarkSponsor` | Whitechain | one per app; gasless USDT via EIP-3009, quota per stamp |
 | `WatermarkQuotaPaymaster` | devnet | EIP-8141 paymaster; stakes itself; VERIFY reads the registry |
+| `WatermarkGenesisPass` | Whitechain | 100 ERC-721 passes, one per real bank card, minted gas-free by the relayer |
 
 Toolchain: solc 0.8.30, `evm_version = prague`, optimizer 200 runs.
 
@@ -190,6 +191,71 @@ in `.env`.
 
 The devnet takes the same steps with `--rpc-url devnet` and `node script/deployment-json.ts 1337`. It has no sponsor,
 and Blockscout verification isn't available there.
+
+## Watermark Genesis Pass
+
+`WatermarkGenesisPass` (name "Watermark Genesis Pass", symbol `WGP`) is Watermark using its own service: 100 passes,
+one per real bank card, minted gas-free. A minimal ERC-721 written for this project (no OpenZeppelin): `balanceOf`,
+`ownerOf`, `approve`, `setApprovalForAll`, `transferFrom`, `safeTransferFrom` (with the `onERC721Received` check),
+`supportsInterface` (165, 721, 721 Metadata). Token ids run 1..100. `tokenURI` is fully on-chain:
+`data:application/json;base64` with an on-chain SVG (`svg(tokenId)` returns the raw SVG). No external assets. The art
+comes from `WatermarkPassRenderer`, a stateless `pure` contract whose address is fixed in the pass's constructor.
+
+- `mint(to)`: only `minter` (the relayer hot wallet, which pays the gas). Refuses `NotStamped` (no live stamp for the
+  live app in the registry), `AlreadyClaimed` (this wallet claimed before, even if it gave the pass away), `SoldOut`.
+- `status(wallet)` returns `(stamped, stampExpiresAt, tokenId, remaining)` in one call; `claimed(wallet)`,
+  `passOf(wallet)` and `remaining()` are there too. Event `PassClaimed(wallet, tokenId, stampExpiresAt)`.
+- **One card, one pass.** The registry binds a card to one wallet per app (the nullifier), so a card holder can't
+  stamp a second wallet in this app, and the one wallet they have can claim once. It is one pass per card, not per person (two
+  different cards can stamp two wallets). Passes are transferable: the scarcity applies to claiming, not to holding.
+- **Unlock task 2 (one gas-free payment) is checked by the relayer, not the contract.** A contract can't read past
+  event logs, and the sponsor keeps only today's usage. The relayer reads `PaymentRelayed` logs from
+  `WatermarkSponsor` before it calls `mint`, so that rule rests on trusting the minter.
+- `mint` doesn't call `onERC721Received` (like OpenZeppelin's `_mint`), so a stamped smart wallet without the hook can
+  still claim.
+- The artwork is an engraved Mumbai postage stamp: passes 1-20 show the Gateway of India, 21-40 the Rajabai Clock
+  Tower, 41-60 the Bandra-Worli Sea Link, 61-80 Chhatrapati Shivaji Terminus and 81-100 Marine Drive, with a "₹0",
+  a saffron "FEE PAID" postmark whose position and angle come from the token id, and the edition "#042 / 100".
+  `script/pass-art/generator.mjs` is the single source of truth: it writes `test/fixtures/pass-svg/<id>.svg` (plus
+  its own SHA-256 in `generator.sha256`) and the renderer's constants (`--sol`). `WatermarkPassRenderer.t.sol` checks
+  all 100 SVGs byte for byte and the generator's hash, so `forge test` fails when the art drifts
+  (`test/fixtures/pass-svg/README.md`).
+- Metadata: name "Watermark Genesis Pass #042", a description (one of 100, claimed with one real bank card, free to
+  mint, protected by Watermark, transferable), and the traits Landmark, Edition (number, of 100), Series "Genesis" and
+  City "Mumbai".
+- Size and gas: renderer 18,788 bytes of runtime code, pass 6,801 (EIP-170 limit 24,576). `mint` about 120,600 gas per
+  transaction (anvil fork receipt); `tokenURI` about 1.28M-1.56M gas inside `eth_call` (forge unit test; the SVG and
+  then the JSON are base64-encoded, view only); `renderer.svg` about 40,000 gas per `eth_call` (anvil fork estimate).
+
+```sh
+forge test --match-path 'test/*{GenesisPass,PassRenderer}*'   # unit + art + script config (+ fork tests below)
+forge test --match-path test/WatermarkGenesisPass.fork.t.sol --fork-url https://rpc.testnet.whitechain.io
+```
+
+The fork test deploys the pass inside a read-only fork, bound to the live registry v2 and the **current** live app
+(`liveAppId` in `deployments/whitechain.json`), and checks that the current sponsor (`sponsor`) pays for that same app.
+No real card has stamped a wallet in the current live app yet, so its mint tests fake the stamp with `vm.mockCall`
+inside the fork. The one real-card stamp is in the previous live app (before the stricter filter): one test mints to it
+with a pass bound to that app (no mocks), and another shows that stamp does not unlock the current pass.
+
+Deploy (reads `registry`, `liveAppId` and `sponsor` from `deployments/whitechain.json`; `APP_ID` is ignored on purpose
+because `.env` may hold the test app; `PASS_APP_ID` overrides; the minter is `RELAYER_ADDRESS`, checked against
+`RELAYER_PRIVATE_KEY` when set). The preflight refuses an app the file's sponsor doesn't pay for, because the relayer
+checks the payment task against that sponsor. The script sends two transactions, the renderer and then the pass (about
+4.12M and 1.54M gas on an anvil fork of Whitechain). The first command is a dry run; the second deploys and verifies
+both contracts on Blockscout:
+
+```sh
+cd contracts
+( set -a; . ../.env; set +a; forge script script/DeployGenesisPass.s.sol --rpc-url whitechain --account deployer )   # dry run
+( set -a; . ../.env; set +a; forge script script/DeployGenesisPass.s.sol --rpc-url whitechain --account deployer \
+    --broadcast --verify --verifier blockscout --verifier-url https://explorer.testnet.whitechain.io/api/ )
+```
+
+In the dry run, check the log: minter `0xf95E…a9Ba` (the sponsor's relayer, and no "minter is not the sponsor's relayer"
+warning), registry `0x9989…8Fd6`, appId `3933…630` (the current live app), sponsor `0x21B6…939a`. Then set
+`GENESIS_PASS_ADDRESS` in `.env` (relayer), `NEXT_PUBLIC_GENESIS_PASS_ADDRESS` (web), and `"genesisPass"` and
+`"genesisPassRenderer"` plus their `txHashes` entries in `deployments/whitechain.json`.
 
 ## Known limits
 
