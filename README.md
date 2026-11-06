@@ -24,7 +24,7 @@ Built at ETHGlobal Mumbai 2026 by Prashant Mishra and Samanway Baranwal.
 | Proving time | **1.4 s** on a MacBook (native `bb`), 3.0 s Windows CLI, 9.4 s Windows in-memory (bb.js WASM) |
 | Proof / public inputs | 9,536 bytes / 6 field elements |
 | On-chain verification | **2.57M gas** to verify, about 2.9M for a full stamp. Verifier contract 18,578 bytes |
-| Tests | 152 TypeScript + 28 Android unit tests + 10 Noir tests. Negative cases: replay, tamper, wrong CA, wrong network, BIN not in filter, reused nullifier, expired card, moved ciphertext |
+| Tests | 249 TypeScript + 267 Foundry + 28 Android unit tests + 10 Noir tests. Negative cases: replay, tamper, wrong CA, wrong network, BIN not in filter, prepaid ranges in the live filter, reused nullifier, expired card, moved ciphertext, stale compiled circuit |
 
 ## The problem
 A new wallet is free and takes one second to create, so bots create thousands. Gasless apps get their gas budget
