@@ -38,6 +38,27 @@
   }
 }
 
+/* Phones: the stamp rests on the feed's top-right corner, like a collectible laid on the card, instead of taking a
+   whole screen of its own above it. The feed's title sits on the left, so nothing is covered. */
+@media (max-width: 519.98px) {
+  .gate {
+    --stamp-w: clamp(104px, 30vw, 128px);
+    display: block;
+    position: relative;
+    padding-top: calc(var(--stamp-w) * 0.6);
+  }
+  .gate .feed {
+    margin-inline: auto;
+  }
+  /* .gate .prize: beats the base .prize rule further down this file. */
+  .gate .prize {
+    position: absolute;
+    top: 0;
+    right: 6px;
+    z-index: 2;
+  }
+}
+
 /* From 900px the gate is the right-hand column of the hero (hero.module.css). The feed keeps the width its longest
    line needs; the stamp is sized from the screen height, so a short (zoomed) screen gets a smaller one. */
 @media (min-width: 900px) {

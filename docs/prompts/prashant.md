@@ -570,3 +570,28 @@ Result:
   diagrams with SVG images in the brand colours (docs/assets), checked by rendering them locally.
 - The old tagline was still on main because PR #32 merged before the tagline commits; they're on this branch now.
   Nothing else in the repo still uses it, and the GitHub description already shows the new one.
+
+## 03:00
+
+**73.**
+> Make the current website friendly on phones and other devices like tablets. Keep the same UI but think as a user:
+> there's a lot of vertical scrolling, so use horizontal swiping on phones where there are cards, and optimise
+> wherever it helps on mobile and other devices. Keep the landing page in one horizontal line, without elements
+> pushed into the next section. Improve the menu and everything so it's cool, minimal and clean. Add a little
+> animation and hover effect on every device, with a professional touch, not ugly or AI slop. Go deep and take
+> your time.
+
+Result:
+- Ran the site locally and screenshotted it at 360, 390, 820 and 1280px (exact-width frames, rendered by headless
+  Edge) before and after every change.
+- Added a shared SwipeRow (scroll-snap row with the next card peeking, plus dots that follow the swipe and hide on
+  the desktop grid). Used it for: How it works (under 900px), You decide who counts (under 768px), the proof
+  receipts, the docs page's "What it stops" and "How it works", and the app page's install steps.
+- Hero on phones: both buttons in one row (a responsive button size, down to 360px), and the prize stamp rests on
+  the claims card's corner instead of taking its own screen. The phone home page went from about 9,500px to about
+  6,500px tall.
+- Sticky header with a soft blur and a hairline once the page scrolls; the menu icon turns into a cross and the
+  panel fades in; "On this page" shortcuts in the menu on the home page. Sticky side panels moved below the header.
+- Motion: cards lift on hover (mouse devices only), section heads rise in on scroll, the outline button's arrow
+  nudges on hover; all off under reduced motion.
+- 223 website tests pass, typecheck is clean, and the production build succeeds.

@@ -39,3 +39,11 @@ export const FOOTER_LINKS: readonly SiteNavItem[] = [
   { href: "/docs", label: "Docs" },
   { href: "/credits", label: "Credits" },
 ];
+
+/** The home page's sections, as shortcuts at the top of the phone and tablet menu ("On this page"). */
+export const HOME_SECTIONS: readonly SiteNavItem[] = [
+  { href: "/#how", label: "How it works" },
+  { href: "/#add", label: "Add it" },
+  { href: "/#test", label: "Bot test" },
+  { href: "/#proof", label: "Proof" },
+];

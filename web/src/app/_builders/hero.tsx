@@ -29,10 +29,10 @@ export function BuildersHero() {
             <div className={styles.ctas}>
               {/* The site's arrow rule (pill-button.tsx): a primary pill's arrow sits in a circle; ↓ because #add is
                   further down this page. */}
-              <PillButton href={HERO.add.href} size="lg" arrowDir="down">
+              <PillButton href={HERO.add.href} size="hero" arrowDir="down">
                 {HERO.add.label}
               </PillButton>
-              <PillButton href={HERO.drop.href} variant="secondary" size="lg" arrow>
+              <PillButton href={HERO.drop.href} variant="secondary" size="hero" arrow>
                 {heroDropLabel(PASS_LIVE)}
               </PillButton>
             </div>

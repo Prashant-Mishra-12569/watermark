@@ -1,4 +1,4 @@
-import { StatusChip, cx } from "@/app/_site";
+import { StatusChip, SwipeRow, cx } from "@/app/_site";
 import { isAddress, isTxHash, shortHex } from "@/lib/site.ts";
 import { PROOF_LEAD, PROOF_TITLE } from "./copy.ts";
 import { BAND, SectionHead, WRAP } from "./kit";
@@ -78,8 +78,9 @@ export function Proof() {
         {/* Phones: one row you swipe (the next receipt peeks in from the right), so five receipts are not a 1,600px
             column. From 640px: the grid. */}
         <div className="mt-12 rounded-card bg-surface sm:mt-16 sm:p-6 lg:p-8">
-          <ul
-            aria-label="Public records"
+          <SwipeRow
+            label="Public records"
+            dotsClassName="pb-4 sm:hidden"
             className={cx(
               "flex snap-x snap-mandatory scroll-px-3 gap-3 overflow-x-auto overscroll-x-contain rounded-card p-3 pb-7 [scrollbar-width:none]",
               "sm:grid sm:snap-none sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:rounded-none sm:p-0 lg:grid-cols-6 lg:gap-5",
@@ -89,7 +90,7 @@ export function Proof() {
               <li
                 key={r.id}
                 className={cx(
-                  "w-[84%] min-w-0 max-w-[340px] shrink-0 snap-start sm:w-auto sm:max-w-none",
+                  "wm-lift w-[84%] min-w-0 max-w-[340px] shrink-0 snap-start rounded-inner sm:w-auto sm:max-w-none",
                   i < 2 ? "lg:col-span-3" : "lg:col-span-2",
                   i === n - 1 && "sm:col-span-2 lg:col-span-2",
                 )}
@@ -97,7 +98,7 @@ export function Proof() {
                 <Slip r={r} index={i} total={n} />
               </li>
             ))}
-          </ul>
+          </SwipeRow>
         </div>
       </div>
     </section>

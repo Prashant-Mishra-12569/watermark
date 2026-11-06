@@ -3,13 +3,14 @@ import type { MouseEventHandler, ReactNode } from "react";
 import { cx } from "./cx";
 
 export type PillVariant = "primary" | "secondary" | "inverse";
-export type PillSize = "xs" | "sm" | "md" | "lg";
+export type PillSize = "xs" | "sm" | "md" | "lg" | "hero";
 
 export interface PillButtonProps {
   children: ReactNode;
   /** primary: black pill + white ↗ circle. secondary: white pill, 1px line border. inverse: white pill for the night card. */
   variant?: PillVariant;
-  /** xs 44px compact (phone header), sm 44px (header), md 48px (default), lg 56px (hero). */
+  /** xs 44px compact (phone header), sm 44px (header), md 48px (default), lg 56px, hero: 48px on phones (so two fit
+   * side by side on a 360px screen), 56px from 640px. */
   size?: PillSize;
   /** Renders a link. Internal paths use next/link; http(s) links open in a new tab. */
   href?: string;
@@ -40,6 +41,13 @@ const SIZE: Record<PillSize, { pill: string; withArrow: string; circle: string; 
   sm: { pill: "min-h-11 px-5 text-sm", withArrow: "min-h-11 gap-2.5 pl-5 pr-1.5 text-sm", circle: "size-8", icon: "size-3.5" },
   md: { pill: "min-h-12 px-6 text-base", withArrow: "min-h-12 gap-3 pl-6 pr-1.5 text-base", circle: "size-9", icon: "size-4" },
   lg: { pill: "min-h-14 px-7 text-lg", withArrow: "min-h-14 gap-3.5 pl-7 pr-2 text-lg", circle: "size-10", icon: "size-[18px]" },
+  hero: {
+    pill: "min-h-12 gap-2 px-[18px] text-[15px] max-[379px]:px-4 max-[379px]:text-sm sm:min-h-14 sm:gap-2.5 sm:px-7 sm:text-lg",
+    withArrow:
+      "min-h-12 gap-2.5 pl-[18px] pr-1.5 text-[15px] max-[379px]:gap-2 max-[379px]:pl-4 max-[379px]:text-sm sm:min-h-14 sm:gap-3.5 sm:pl-7 sm:pr-2 sm:text-lg",
+    circle: "size-8 max-[379px]:size-7 sm:size-10",
+    icon: "size-3.5 sm:size-[18px]",
+  },
 };
 
 const VARIANT: Record<PillVariant, { pill: string; circle: string }> = {
@@ -127,7 +135,15 @@ export function PillButton({
           <Arrow className={s.icon} />
         </span>
       )}
-      {showArrow && !circled && <Arrow className={s.icon} />}
+      {showArrow && !circled && (
+        <Arrow
+          className={cx(
+            s.icon,
+            "transition-transform duration-200",
+            arrowDir === "down" ? "motion-safe:group-hover/pill:translate-y-0.5" : "motion-safe:group-hover/pill:translate-x-0.5 motion-safe:group-hover/pill:-translate-y-0.5",
+          )}
+        />
+      )}
       {isExternal && href && <span className="sr-only"> (opens in a new tab)</span>}
     </>
   );

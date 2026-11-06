@@ -11,7 +11,7 @@ import { Headline } from "@/app/_site/headline";
 export const WRAP = "mx-auto w-full max-w-6xl px-4 sm:px-6";
 
 /** Vertical rhythm for a full section. */
-export const BAND = "scroll-mt-6 py-16 sm:py-20 lg:py-24";
+export const BAND = "scroll-mt-6 py-12 sm:py-20 lg:py-24";
 
 /** The small label over a section headline, e.g. "How it works". */
 export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
@@ -50,7 +50,7 @@ export function SectionHead({
   return (
     <div
       className={cx(
-        "grid gap-5 min-[56.25rem]:grid-cols-12 min-[56.25rem]:gap-8",
+        "wm-reveal grid gap-5 min-[56.25rem]:grid-cols-12 min-[56.25rem]:gap-8",
         action ? "min-[56.25rem]:items-start" : "min-[56.25rem]:items-end",
         className,
       )}

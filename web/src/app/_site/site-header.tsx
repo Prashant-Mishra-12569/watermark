@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { isCurrent, type FlowStep } from "@/lib/site.ts";
 import { ConnectButton } from "../_wallet/connect-button";
 import { cx } from "./cx";
 import { Logo } from "./logo";
-import { SITE_CTA, siteNav, type SiteNavItem } from "./nav";
+import { HOME_SECTIONS, SITE_CTA, siteNav, type SiteNavItem } from "./nav";
 import { PillButton } from "./pill-button";
 
 const BAR = "relative mx-auto flex min-h-[72px] max-w-6xl items-center gap-2 px-4 py-3 sm:gap-3 sm:px-6";
@@ -23,6 +23,29 @@ const BAR = "relative mx-auto flex min-h-[72px] max-w-6xl items-center gap-2 px-
  * - flow (the drop's steps: ?next=pass on /verify and /pay): logo, "Genesis Drop · Step n of 3" and Exit (back to
  *   the drop page). Nothing else is clickable.
  */
+/**
+ * The header stays at the top while the page scrolls (so the menu is always one tap away on a long phone page), on
+ * a softly blurred white. A hairline and a faint shadow appear once the page has moved, so it never looks like a
+ * box sitting on the hero.
+ */
+function useScrolled() {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const on = () => setScrolled(window.scrollY > 4);
+    on();
+    window.addEventListener("scroll", on, { passive: true });
+    return () => window.removeEventListener("scroll", on);
+  }, []);
+  return scrolled;
+}
+
+function headerClass(scrolled: boolean) {
+  return cx(
+    "sticky top-0 z-40 border-b bg-bg/80 backdrop-blur-md transition-[border-color,box-shadow] duration-300 supports-[backdrop-filter]:bg-bg/70",
+    scrolled ? "border-line shadow-[0_8px_24px_-20px_rgb(0_0_0/0.25)]" : "border-transparent",
+  );
+}
+
 export function SiteHeader({
   mode = "site",
   step,
@@ -33,9 +56,10 @@ export function SiteHeader({
   /** The current pathname, to mark the active nav link. */
   current?: string | null;
 }) {
+  const scrolled = useScrolled();
   if (mode === "flow") {
     return (
-      <header className="bg-bg">
+      <header className={headerClass(scrolled)}>
         <div className={BAR}>
           <span className="flex shrink-0 items-center">
             <Logo />
@@ -91,7 +115,7 @@ export function SiteHeader({
     siteNav().map((item) => <li key={item.href}>{link(item, itemClass)}</li>);
 
   return (
-    <header className="bg-bg">
+    <header className={headerClass(scrolled)}>
       <div className={BAR}>
         <Link href="/" aria-label="Watermark home" className="mr-auto flex min-h-11 shrink-0 items-center rounded-full">
           <Logo />
@@ -117,7 +141,22 @@ export function SiteHeader({
         </span>
 
         <MenuDetails>
-          <ul className="flex flex-col">{links("block rounded-xl px-4 py-3 text-base hover:bg-surface")}</ul>
+          {current === "/" && (
+            <>
+              <p className="px-4 pb-1 pt-2 text-xs font-medium uppercase tracking-[0.08em] text-muted">On this page</p>
+              <ul className="flex flex-col">
+                {HOME_SECTIONS.map((s) => (
+                  <li key={s.href}>
+                    <a href={s.href} className="block rounded-xl px-4 py-2.5 text-base text-ink transition-colors hover:bg-surface">
+                      {s.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+              <div aria-hidden="true" className="mx-3 my-2 border-t border-line" />
+            </>
+          )}
+          <ul className="flex flex-col">{links("block rounded-xl px-4 py-3 text-base transition-colors hover:bg-surface")}</ul>
           <div className="mt-2 border-t border-line px-1 pb-1 pt-3 min-[440px]:hidden">
             <PillButton href={SITE_CTA.href} size="sm" className="w-full">
               {SITE_CTA.label}
@@ -157,19 +196,21 @@ function MenuDetails({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <details ref={ref} className="relative shrink-0 min-[900px]:hidden">
-      <summary className="grid size-10 cursor-pointer list-none place-items-center rounded-full border border-line bg-white transition-colors hover:bg-surface min-[400px]:size-11 [&::-webkit-details-marker]:hidden">
+    <details ref={ref} className="group/menu relative shrink-0 min-[900px]:hidden">
+      <summary className="grid size-10 cursor-pointer list-none place-items-center rounded-full border border-line bg-white transition-[background-color,transform] duration-150 hover:bg-surface active:scale-95 group-open/menu:bg-surface min-[400px]:size-11 [&::-webkit-details-marker]:hidden">
         <span className="sr-only">Menu</span>
-        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false" className="block size-4">
-          <path d="M2 5.5h12M2 10.5h12" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-        </svg>
+        {/* Two lines that turn into a cross while the menu is open. */}
+        <span aria-hidden="true" className="relative block h-4 w-4">
+          <span className="absolute left-0.5 right-0.5 top-[5px] h-[1.7px] rounded-full bg-current transition-transform duration-300 ease-out group-open/menu:translate-y-[2.5px] group-open/menu:rotate-45" />
+          <span className="absolute left-0.5 right-0.5 top-[10px] h-[1.7px] rounded-full bg-current transition-transform duration-300 ease-out group-open/menu:-translate-y-[2.5px] group-open/menu:-rotate-45" />
+        </span>
       </summary>
       <nav
         aria-label="Main"
         onClick={(e) => {
           if ((e.target as Element).closest("a") && ref.current) ref.current.open = false;
         }}
-        className="absolute right-0 top-full z-30 mt-2 w-60 max-w-[calc(100vw-2rem)] rounded-inner border border-line bg-white p-2 shadow-float"
+        className="wm-pop absolute right-0 top-full z-30 mt-2 w-64 max-w-[calc(100vw-2rem)] origin-top-right rounded-inner border border-line bg-white p-2 shadow-float"
       >
         {children}
       </nav>

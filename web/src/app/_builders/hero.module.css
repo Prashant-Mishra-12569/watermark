@@ -62,7 +62,8 @@
 .ctas {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  /* Tight enough that both buttons share one row on a 360px phone (pill-button.tsx, size "hero"). */
+  gap: clamp(8px, 2.4vw, 10px);
   margin-top: clamp(2px, 0.8svh, 8px);
 }
 
