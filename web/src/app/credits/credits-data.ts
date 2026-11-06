@@ -49,11 +49,11 @@ export const FONT_CREDITS: readonly FontCredit[] = [
   },
 ];
 
-/** The pictures on the site, all drawn in code for Watermark (web/src/app/_art, _site and lib/pass-art.ts). */
+/** The pictures on the site, all our own: drawn in code (web/src/app/_art, _site, lib/pass-art.ts) or, for the logo, made for Watermark (public/brand). */
 export const DRAWN_IN_CODE: readonly string[] = [
   "The Mumbai skyline along the bottom of every page",
   "The bot farm, the wallet grid and the line icons",
   "The bank card and the saffron stamp seal",
   "The Genesis Drop NFT, the same picture its contract draws on-chain",
-  "The Watermark logo (\"One tap\"): our own drawing, generated in code (public/brand)",
+  "The Watermark logo (\"One tap\"): our own drawing, made for this project (the image files in public/brand)",
 ];

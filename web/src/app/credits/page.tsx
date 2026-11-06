@@ -4,7 +4,7 @@ import { DRAWN_IN_CODE, FONT_CREDITS } from "./credits-data.ts";
 
 export const metadata: Metadata = {
   title: "Credits · Watermark",
-  description: "The fonts this site uses, where they come from and their licences. Every picture is drawn in code.",
+  description: "The fonts this site uses, where they come from and their licences. Every picture is our own.",
 };
 
 /*
@@ -18,8 +18,8 @@ export default function CreditsPage() {
       <header className="max-w-3xl">
         <Headline as="h1">Asset *credits*.</Headline>
         <p className="mt-5 max-w-[46ch] text-lg leading-relaxed text-muted sm:text-xl">
-          The fonts this site uses, where they come from and their licences. Every picture you see is drawn in code for
-          Watermark.
+          The fonts this site uses, where they come from and their licences. Every picture is our own: drawn in code or
+          made for Watermark.
         </p>
       </header>
 
@@ -31,7 +31,7 @@ export default function CreditsPage() {
           Fetched from Google Fonts when the site is built, then served from this site. Your browser never contacts
           Google.
         </p>
-        <ul className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="mt-6 grid gap-3 min-[43.75rem]:grid-cols-3">
           {FONT_CREDITS.map((f) => (
             <li key={f.name} className="flex min-w-0 flex-col rounded-card bg-surface p-5 sm:p-6">
               <p className="text-2xl font-semibold tracking-[-0.02em]">{f.name}</p>
@@ -71,7 +71,7 @@ export default function CreditsPage() {
           Pictures
         </h2>
         <p className="mt-3 max-w-[70ch] leading-relaxed text-muted">
-          Drawn in code for this project. No stock photos, no emoji art, no images from anyone else.
+          Made for this project, most of them drawn in code. No stock photos, no emoji art, no images from anyone else.
         </p>
         <ul className="mt-6 grid max-w-3xl gap-2">
           {DRAWN_IN_CODE.map((line) => (
