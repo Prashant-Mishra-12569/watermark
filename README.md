@@ -18,10 +18,10 @@ Built at ETHGlobal Mumbai 2026 by Prashant Mishra and Samanway Baranwal.
 
 | Metric | Value |
 |---|---|
-| Circuit size | 206,473 gates (UltraHonk), all 8 constraints of spec section I |
+| Circuit size | 206,623 gates (UltraHonk), all 8 constraints of spec section I |
 | Proving time | **1.4 s** on a MacBook (native `bb`), 3.0 s Windows CLI, 9.4 s Windows in-memory (bb.js WASM) |
 | Proof / public inputs | 9,536 bytes / 6 field elements |
-| On-chain verification | **2.57M gas** to verify, about 2.9M for a full stamp. Verifier contract 18,576 bytes |
+| On-chain verification | **2.57M gas** to verify, about 2.9M for a full stamp. Verifier contract 18,578 bytes |
 | Tests | 60 TypeScript + 22 Android unit tests + 10 Noir tests. Negative cases: replay, tamper, wrong CA, wrong network, BIN not in filter, reused nullifier, expired card, moved ciphertext |
 
 ## The problem
@@ -137,6 +137,10 @@ Carte Bleue (ETHGlobal Lisbon 2026), zkEMV (ZK Hack Berlin 2025), GOAT RAMP (ETH
 
 **Public data:** the RuPay network CA public key 05 comes from the public CAPK list in
 [mmors-1/nfc10](https://github.com/mmors-1/nfc10). We checked it against its published SHA-1 checksum.
+The live filter's 6,258 Indian RuPay debit BINs come from
+[mostafa19950/bin-list-data](https://github.com/mostafa19950/bin-list-data) (a lite version of BinLookup.io data),
+licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). It's unofficial and possibly outdated, so
+every one of those leaves is marked `listed`, not `tested`.
 
 ## License
 [MIT](LICENSE)
