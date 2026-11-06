@@ -1,0 +1,18 @@
+/*
+ * The hero's skyline ("load" mode) before its script runs: drawn but hidden, so it never shows, vanishes and redraws.
+ * If the script never runs, it fades in after 2.5 s. Under prefers-reduced-motion it is never hidden.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .pending {
+    animation: wm-sky-reveal 400ms ease 2500ms both;
+  }
+}
+
+@keyframes wm-sky-reveal {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

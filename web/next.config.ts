@@ -61,11 +61,24 @@ function productionSecurityHeaders(): { key: string; value: string }[] {
 }
 
 const nextConfig: NextConfig = {
+  // The public domain reaches the dev server through the Cloudflare tunnel while the site is still being finished.
+  allowedDevOrigins: ["usewatermark.xyz", "www.usewatermark.xyz"],
+  devIndicators: false,
   // The sdk ships TypeScript source with .ts import extensions.
   transpilePackages: ["@watermark/sdk"],
   poweredByHeader: false,
   // Keep the repo lean: don't let `next dev` write an AGENTS.md into web/.
   agentRules: false,
+  /**
+   * SITE_FINAL.md: the site is two pages. The old builders page is now the home page, and the old businesses page
+   * is its "You stay in control" section. Old links keep working.
+   */
+  async redirects() {
+    return [
+      { source: "/dev", destination: "/", permanent: true },
+      { source: "/sponsor", destination: "/#control", permanent: true },
+    ];
+  },
   async headers() {
     return [
       {
