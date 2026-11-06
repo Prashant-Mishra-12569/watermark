@@ -48,6 +48,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.9.0
+      # forge-std is not committed (contracts/lib/ is gitignored: its own tests contain long digit runs the guard blocks)
       - run: forge install foundry-rs/forge-std@v1.17.0 --no-git
-      - run: forge build
-      - run: forge test --no-match-contract Fork
+      # --sizes fails the job if a contract goes over the 24,576-byte limit
+      - run: forge build --sizes
+      # Fork tests read the public Whitechain RPC; run them locally (contracts/README.md)
+      - run: forge test
+        env:
+          SKIP_FORK: "true"
