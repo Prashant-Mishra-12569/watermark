@@ -101,6 +101,11 @@ export function loadOrCreateBurner(
   return { account: privateKeyToAccount(key), persistent, created: true };
 }
 
+/** True when this browser already has a wallet for this app (read only: never creates one). */
+export function hasBurner(appId: string, storage: KeyStorage | null): boolean {
+  return !!readAll(storage)?.wallets[appId] || memoryWallets.has(appId);
+}
+
 /**
  * Forgets this app's wallet so the next load creates a new one ("same card, new wallet" demo beat).
  * The UI must confirm first: a stamped wallet can't be recovered afterwards.

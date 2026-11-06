@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { readWebConfig, type ConfigResult } from "@/lib/config.ts";
 import { readPayConfig, type PayConfig } from "@/lib/pay.ts";
+import { WalletGate } from "../_wallet/wallet-gate";
 import { PayFlow } from "./pay-flow";
 
 /** Reads the configuration on the client only, so nothing touches localStorage or window during server rendering. */
@@ -30,6 +31,9 @@ export function PayClient() {
     });
   }, []);
 
+  // Narrowed here: JSX callbacks below can't see the narrowing of config.web.
+  const web = config?.web.ok ? config.web.config : null;
+
   return (
     <main className="mx-auto max-w-2xl px-4 py-3 sm:px-6 sm:py-5">
       <header className="mb-4 flex items-center justify-between gap-4">
@@ -55,9 +59,21 @@ export function PayClient() {
           <h1 className="text-2xl font-semibold">Payments run on Whitechain Sepolia only</h1>
           <p className="mt-2">Set NEXT_PUBLIC_CHAIN_ID to 1874 (or leave it unset) to use this page.</p>
         </section>
-      ) : (
-        <PayFlow config={config.web.config} pay={config.pay} />
-      )}
+      ) : web ? (
+        <WalletGate appId={web.appId} purpose="pay">
+          {(wallet, controls) => (
+            // Keyed on the wallet: another account starts over (stamp, balance, form) and can't reuse a signature.
+            <PayFlow
+              key={`${wallet.kind}:${wallet.address}`}
+              config={web}
+              pay={config.pay}
+              wallet={wallet}
+              walletChainId={controls.chainId}
+              onWalletStale={controls.resync}
+            />
+          )}
+        </WalletGate>
+      ) : null}
     </main>
   );
 }

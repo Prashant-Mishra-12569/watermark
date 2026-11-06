@@ -4,8 +4,9 @@
 
 Next.js 16 (App Router, `src/`, `@/*` alias), React 19, Tailwind v4, `qrcode.react`, `viem` and `@watermark/sdk`.
 The app was written by hand rather than with `create-next-app`, so there is no boilerplate (no Geist/Google Fonts,
-no SVGs, no favicons). wagmi, react-query and ESLint are left out for now: the silent-wallet `/verify` doesn't need
-them. Add wagmi when the optional "Connect MetaMask" (spec N, advanced) or a later page needs it.
+no SVGs, no favicons). wagmi, RainbowKit, WalletConnect, react-query and ESLint are left out on purpose: "Use my
+wallet" talks to the browser wallet over plain EIP-1193 (`src/lib/wallet.ts`), so no extra dependency or third-party
+script is needed.
 
 ## Run
 ```sh
@@ -50,24 +51,63 @@ The relayer must list every origin the site is served from in `CORS_ORIGINS` (ex
 | Route | Job | Status |
 |---|---|---|
 | `/` | Pitch: "Bots can't hold plastic." Buttons to `/verify` and `/pay` | ✅ built |
-| `/verify` | Silent browser wallet → `POST /session` → big QR + `watermark://` link + the wallet's last 4 chars → poll `/status` → "Verified ✓" + explorer link | ✅ built; "Verified ✓" needs the deployed registry |
-| `/pay` | Same wallet as `/verify` → stamp (`/status`), USDT balance and quota (`/balance`) → optional "Get demo USDT (from the business)" (`POST /fund`) → amount + recipient, signed in the background (EIP-3009) → `POST /pay` → "Paid ✓", explorer link, "Gas paid by the relayer, not you" | ✅ built; needs the relayer's `/pay`, `/fund`, `/balance` and `SPONSOR_ADDRESS` |
+| `/verify` | Wallet choice (own wallet or browser wallet) → `POST /session` → big QR + `watermark://` link + the wallet's last 4 chars → poll `/status` → "Verified ✓" + explorer link | ✅ built; "Verified ✓" needs the deployed registry |
+| `/pay` | Same wallet as `/verify` (own wallet or browser wallet) → stamp (`/status`), USDT balance and quota (`/balance`) → optional "Get demo USDT (from the business)" (`POST /fund`) → amount + recipient, signed in the background (EIP-3009) → `POST /pay` → "Paid ✓", explorer link, "Gas paid by the relayer, not you" | ✅ built; needs the relayer's `/pay`, `/fund`, `/balance` and `SPONSOR_ADDRESS` |
 | `/attack` | "Start bot attack": live counters (requests, refused, budget left), protection toggle, "estimated" label when it's off | not built |
 | `/sponsor` | App rules, TEST/LIVE badge, rules root, what a stamp reveals, budget and quota | not built |
 | `/dev` | Integration: contract call, SDK snippet, MCP config | not built |
 
+### Use your own wallet (MetaMask, Rabby, Coinbase Wallet, Brave, ...)
+`/verify` and `/pay` first ask **"Use my wallet"** or **"Continue without a wallet"**. The second is the burner below,
+unchanged, and stays the easy path for anyone without a wallet (phones, first-time visitors). A browser that already
+has a burner for this app and never chose keeps using it without being asked, so rehearsed demo browsers don't change.
+- **Discovery:** EIP-6963 (`eip6963:requestProvider` / `announceProvider`), so several installed wallets each get a
+  button; `window.ethereum` is the fallback for wallets that don't announce themselves. Icons are shown only when they
+  are `data:image/...` URIs (the CSP's `img-src data:`); nothing is loaded from a wallet's server.
+- **Remembered per browser:** `localStorage` key `watermark.wallet.v1` (`burner`, `injected` + the wallet's rdns and
+  name, or `ask`). A convenience only: if storage is blocked the page simply asks again. On reload an external wallet is
+  reconnected silently with `eth_accounts` (no popup). If it's locked or missing, the chooser says so ("MetaMask is
+  locked or not connected to this page", "We couldn't find MetaMask in this browser"), lists that wallet first and
+  says "Continue without a wallet" is a different wallet. Phones get "open this page in your wallet app's browser"
+  instead of "install MetaMask".
+- **`/verify`:** only `eth_requestAccounts`. The session binds the address; the wallet signs nothing. "Wallet ending"
+  is the EIP-55 address's last 4, the same characters the phone shows from the session's `w`.
+- **`/pay`:** the same EIP-3009 typed data as the burner, signed with `eth_signTypedData_v4`. The page checks the
+  wallet's active account is still the one on screen, and checks again after the network switch, right before the
+  signature popup (the person can change accounts while the switch popup is open). It asks to switch to Whitechain Sepolia
+  (`wallet_switchEthereumChain`; on `4902` it adds the chain with `wallet_addEthereumChain`, values from
+  `@watermark/sdk`'s `whitechainSepolia`: chain `0x752`, WBT, `https://rpc.testnet.whitechain.io`, the Whitechain
+  explorer). The returned signature is normalized (v 27/28, low s) and must recover to the connected address before
+  `POST /pay`. It's a signature, not a transaction: **the person still pays no gas**, the relayer submits it.
+  Plain accounts only: smart-contract wallets (ERC-1271) get a clear "not supported yet" message, because the relayer
+  accepts EOA signatures only. Wallets show the permission's raw fields, so a hint under Pay explains them
+  (`value 1000000` = 1 USDT, the shop as `to`, `validBefore` = 15 minutes).
+- **Wallet events:** another account restarts the flow for it; a locked wallet or a real disconnect (4900/4901) goes
+  back to the chooser. MetaMask's recoverable "disconnected from chain, reconnecting" (code 1013), which it can emit
+  during a network switch, is ignored.
+- **"Get demo USDT"** (`POST /fund`) works the same for the connected address (stamp-gated by the relayer).
+- **Events:** `accountsChanged` to another account restarts the page's flow for that account (the flow is keyed on the
+  address, and a signature that comes back after the switch is never sent); an empty list or `disconnect` goes back to
+  the choice. `chainChanged` only updates a "your wallet is on another network" hint on `/pay`.
+- **Switch wallet / disconnect** goes back to the choice and asks MetaMask to drop this site's permission
+  (`wallet_revokePermissions`, best effort).
+- **Not tested yet with a real extension** in this build: the logic is covered by `src/lib/wallet.test.ts` with a mocked
+  EIP-1193 wallet backed by a real key. See the manual MetaMask test in `WALLET_INTEGRATION.md`.
+
 ### How `/pay` behaves
-- **Wallet:** the `/verify` burner for this appId (same `localStorage` key; `?app=` picks the same one). Whitechain only.
+- **Wallet:** the wallet chosen above. The burner is the `/verify` burner for this appId (same `localStorage` key;
+  `?app=` picks the same one). Whitechain only.
 - **Signature:** EIP-3009 `TransferWithAuthorization` on the USDT domain {"Tether USD", "1", 1874, USDT proxy}, built in
   `src/lib/usdt.ts` (kept in sync with `relayer/src/usdt.ts`; both pin the domain separator). Random bytes32 nonce,
-  `validAfter` 0, `validBefore` now + 15 min. Signing is local: no popup, no gas, no network switch.
+  `validAfter` 0, `validBefore` now + 15 min. With the burner, signing is local: no popup, no gas, no network switch.
+  With your own wallet, the wallet shows the permission and may ask once to add or switch to Whitechain Sepolia.
 - **Errors:** every `/pay` refusal reason has its own plain-language message (`payErrorCopy`). After a timeout or a
   network error the page re-reads the balance, because the payment may still have gone through.
 - **Checked against the real token:** a signature from `src/lib/pay.ts` passes `transferWithAuthorization` on a local
   fork of Whitechain Sepolia (a tampered one reverts with "invalid signature").
 
 ### How `/verify` behaves
-- **Wallet:** a local private key (viem), one per appId, kept in `localStorage` under `watermark.burner.v1`. If storage
+- **Wallet:** your own wallet (above), or a local private key (viem), one per appId, kept in `localStorage` under `watermark.burner.v1`. If storage
   is blocked it lives in memory and the page says a reload starts a new wallet. The key is never shown or logged.
   "Demo tools → Start over with a new wallet" replaces it after a confirmation (for the "same card, new wallet" beat).
 - **Session:** one `POST /session` per page load, expiry or click (React StrictMode can't double it). The response is
@@ -121,7 +161,8 @@ The Copy button only appears on secure origins (localhost), not on `http://192.1
 **Rules:**
 - No trackers or analytics. No third-party requests from the page: system fonts only, the QR is rendered locally,
   and the only network calls go to the relayer. Explorer URLs are plain links.
-- The payer never sees gas, seed phrases or a chain picker.
+- The payer never sees gas or seed phrases. With the burner there is no chain picker either; with their own wallet,
+  the wallet may ask once to add or switch to Whitechain Sepolia.
 - Import chains from `@watermark/sdk` (never viem's `whitechainTestnet`).
 - Never log request or response bodies, sessions, signatures or keys. Never import `sdk/src/dev.ts` in web.
 - On stage: 150% zoom, QR scannable from 30 cm. At 150% on a 13-inch MacBook (about 960×520 CSS px) the QR,

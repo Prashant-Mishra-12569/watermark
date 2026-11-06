@@ -1,10 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Address, Hex, PrivateKeyAccount } from "viem";
-import { browserStorage, loadOrCreateBurner } from "@/lib/burner.ts";
+import type { Address, Hex } from "viem";
 import type { WebConfig } from "@/lib/config.ts";
-import { buildIntent, randomNonce, signPayment } from "@/lib/pay.ts";
+import { buildIntent, randomNonce } from "@/lib/pay.ts";
 import {
   getBalance,
   getStatus,
@@ -15,6 +14,8 @@ import {
   type RelayerErrorCode,
 } from "@/lib/relayer.ts";
 import { parseUsdt } from "@/lib/usdt.ts";
+import { WalletError, type WalletErrorCode } from "@/lib/wallet.ts";
+import type { ActiveWallet } from "../_wallet/use-wallet";
 
 export interface PayWallet {
   address: Address;
@@ -46,7 +47,9 @@ export type PayState =
   | { kind: "signing" }
   | { kind: "sending" }
   | { kind: "paid"; receipt: PaidReceipt }
-  | { kind: "error"; code: RelayerErrorCode; txHash: Hex | null };
+  | { kind: "error"; code: RelayerErrorCode; txHash: Hex | null }
+  /** The person's own wallet didn't sign (cancelled, wrong chain, account changed...). Nothing was sent. */
+  | { kind: "wallet-error"; code: WalletErrorCode };
 
 /** After a top-up, read the balance a few times until the transfer shows (the relayer may answer before indexing). */
 const FUND_POLL_MS = 3_000;
@@ -57,19 +60,24 @@ const codeOf = (e: unknown): RelayerErrorCode => (e instanceof RelayerError ? e.
 const txHashOf = (e: unknown): Hex | null => (e instanceof RelayerError ? e.txHash : null);
 
 /**
- * The /pay flow: the same silent wallet as /verify → GET /status (stamped?) → GET /balance → optional POST /fund →
- * sign EIP-3009 in the background → POST /pay. The browser never sends a transaction and never holds gas.
+ * The /pay flow: the wallet chosen in the WalletGate (the /verify burner, or the person's own wallet) → GET /status (stamped?) → GET /balance → optional POST /fund →
+ * sign EIP-3009 (burner: in the background; own wallet: the wallet asks) → POST /pay. The browser never sends a
+ * transaction and never holds gas.
  */
-export function usePayFlow(config: WebConfig) {
+export function usePayFlow(
+  config: WebConfig,
+  active: ActiveWallet,
+  /** Called when the own wallet's account changed or went missing at Pay time (re-reads it; see WalletControls.resync). */
+  onWalletStale: () => void = () => {},
+) {
   const { relayerUrl, appId, chainId } = config;
 
-  const account = useRef<PrivateKeyAccount | null>(null);
   const alive = useRef(true);
   const payInFlight = useRef(false);
   const fundInFlight = useRef(false);
 
-  const [wallet, setWallet] = useState<PayWallet | null>(null);
-  const [walletFailed, setWalletFailed] = useState(false);
+  // The flow is keyed on the address, so `active` never changes under a mounted flow.
+  const wallet: PayWallet = active;
   const [stamp, setStamp] = useState<StampState>({ kind: "checking" });
   const [balance, setBalance] = useState<BalanceResponse | null>(null);
   const [balanceError, setBalanceError] = useState<RelayerErrorCode | null>(null);
@@ -83,17 +91,6 @@ export function usePayFlow(config: WebConfig) {
       alive.current = false;
     };
   }, []);
-
-  // 1. The same burner /verify made for this app (same storage key). A new one would simply be unstamped.
-  useEffect(() => {
-    try {
-      const b = loadOrCreateBurner(appId, browserStorage());
-      account.current = b.account;
-      setWallet({ address: b.account.address, persistent: b.persistent });
-    } catch {
-      setWalletFailed(true);
-    }
-  }, [appId]);
 
   const checkStamp = useCallback(async () => {
     if (!wallet) return;
@@ -154,16 +151,28 @@ export function usePayFlow(config: WebConfig) {
     }
   }, [wallet, relayerUrl, refreshBalance]);
 
-  // 4. Pay: sign the EIP-3009 authorization locally (no gas, no wallet popup), hand it to the relayer.
+  // 4. Pay: sign the EIP-3009 authorization (no gas: burner locally, own wallet in its popup), hand it to the relayer.
   const submitPayment = useCallback(
     async (to: Address, value: bigint, amountUsdt: string) => {
-      const acct = account.current;
-      if (!wallet || !acct || payInFlight.current) return;
+      if (payInFlight.current) return;
       payInFlight.current = true;
       setPay({ kind: "signing" });
       try {
-        const intent = buildIntent({ from: acct.address, to, value, nowMs: Date.now(), nonce: randomNonce() });
-        const body = await signPayment(acct, intent);
+        const intent = buildIntent({ from: active.address, to, value, nowMs: Date.now(), nonce: randomNonce() });
+        let body;
+        try {
+          // isCurrent: once this flow is unmounted (another account), the wallet never opens a signature popup for it.
+          body = await active.signPayment(intent, { isCurrent: () => alive.current });
+        } catch (e) {
+          // Not signed, so nothing can have been sent.
+          if (!alive.current) return;
+          const code: WalletErrorCode = e instanceof WalletError ? e.code : "FAILED";
+          setPay({ kind: "wallet-error", code });
+          // The wallet shows another account, or none: follow it, so "the page now uses your wallet's account" is true.
+          if (code === "ACCOUNT_CHANGED" || code === "NO_ACCOUNT") onWalletStale();
+          return;
+        }
+        // Unmounted (e.g. the account changed while the wallet popup was open): never send it.
         if (!alive.current) return;
         setPay({ kind: "sending" });
         const res = await postPay(relayerUrl, body);
@@ -177,14 +186,13 @@ export function usePayFlow(config: WebConfig) {
         if (alive.current) void refreshBalance();
       }
     },
-    [wallet, relayerUrl, refreshBalance],
+    [active, relayerUrl, refreshBalance, onWalletStale],
   );
 
   const resetPayment = useCallback(() => setPay({ kind: "idle" }), []);
 
   return {
     wallet,
-    walletFailed,
     stamp,
     balance,
     balanceError,

@@ -3,17 +3,34 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { WebConfig } from "@/lib/config.ts";
-import { payErrorCopy } from "@/lib/messages.ts";
-import { checkAmount, checkRecipient, DEFAULT_PAY_AMOUNT_USDT, type PayConfig } from "@/lib/pay.ts";
+import { payErrorCopy, walletErrorCopy, walletPopupHint } from "@/lib/messages.ts";
+import { checkAmount, checkRecipient, DEFAULT_PAY_AMOUNT_USDT, PAY_VALIDITY_SECONDS, type PayConfig } from "@/lib/pay.ts";
 import { formatUsdt, parseUsdt } from "@/lib/usdt.ts";
 import { explorerAddressUrl, explorerTxUrl, shortAddress, walletLast4 } from "@/lib/view.ts";
+import { USDT_CHAIN_ID } from "@/lib/usdt.ts";
+import type { ActiveWallet } from "../_wallet/use-wallet";
 import { usePayFlow } from "./use-pay-flow";
 
 const linkProps = { target: "_blank", rel: "noreferrer noopener" } as const;
 
-export function PayFlow({ config, pay: payConfig }: { config: WebConfig; pay: PayConfig }) {
-  const flow = usePayFlow(config);
+export function PayFlow({
+  config,
+  pay: payConfig,
+  wallet: active,
+  walletChainId,
+  onWalletStale,
+}: {
+  config: WebConfig;
+  pay: PayConfig;
+  wallet: ActiveWallet;
+  /** The external wallet's active chain (null for the burner or when unknown). */
+  walletChainId: number | null;
+  /** Re-reads the own wallet's account after Pay found it changed or missing. */
+  onWalletStale?: () => void;
+}) {
+  const flow = usePayFlow(config, active, onWalletStale);
   const { wallet, stamp, balance, fund, pay } = flow;
+  const own = active.kind === "injected";
 
   const [amount, setAmount] = useState(DEFAULT_PAY_AMOUNT_USDT);
   const [recipient, setRecipient] = useState(payConfig.demoShop ?? "");
@@ -22,14 +39,6 @@ export function PayFlow({ config, pay: payConfig }: { config: WebConfig; pay: Pa
   // Keep a ?app= override when sending the person to /verify, so they verify the same wallet.
   const appQuery = new URLSearchParams(window.location.search).get("app");
   const verifyHref = appQuery ? `/verify?app=${encodeURIComponent(appQuery)}` : "/verify";
-
-  if (flow.walletFailed) {
-    return (
-      <p role="alert" className="rounded-xl bg-error-bg p-5 text-error">
-        This browser couldn&apos;t open your wallet. Try another browser.
-      </p>
-    );
-  }
 
   const stamped = stamp.kind === "stamped";
   const balanceUnits = balance ? (parseUsdt(balance.usdt) ?? 0n) : null;
@@ -254,13 +263,37 @@ export function PayFlow({ config, pay: payConfig }: { config: WebConfig; pay: Pa
             disabled={!canPay}
             className="inline-flex min-h-12 items-center justify-center rounded-lg bg-accent px-6 text-lg font-semibold text-accent-text hover:opacity-90 disabled:opacity-50"
           >
-            {pay.kind === "signing" ? "Approving…" : pay.kind === "sending" ? "Paying…" : "Pay"}
+            {pay.kind === "signing"
+              ? own
+                ? `Confirm in ${active.name}…`
+                : "Approving…"
+              : pay.kind === "sending"
+                ? "Paying…"
+                : "Pay"}
           </button>
           <p className="text-xs text-muted">
-            You approve the payment in this browser. The relayer sends it and pays the gas.
+            {own
+              ? "You'll sign a payment permission. No gas, nothing is sent until you confirm. The relayer sends it and pays the gas."
+              : "You approve the payment in this browser. The relayer sends it and pays the gas."}
           </p>
+          {own && amountCheck.ok && recipientCheck?.ok && (
+            <p className="text-xs text-muted" data-testid="wallet-popup-hint">
+              {walletPopupHint({ value: amountCheck.value, to: recipientCheck.address, validitySeconds: PAY_VALIDITY_SECONDS })}
+            </p>
+          )}
+          {own && walletChainId !== null && walletChainId !== USDT_CHAIN_ID && (
+            <p className="text-xs text-muted">
+              {active.name} is on another network. It will ask to switch to Whitechain Sepolia (and add it if needed).
+            </p>
+          )}
           {balance && stamped && balance.quotaLeft === 0 && (
             <p className="text-sm text-note">No free payments left today for this wallet, so the relayer may refuse.</p>
+          )}
+          {pay.kind === "wallet-error" && (
+            <div role="alert" className="mt-2 rounded-lg bg-note-bg px-3 py-2 text-note">
+              <p className="font-semibold">{walletErrorCopy(pay.code).title}</p>
+              <p className="text-sm">{walletErrorCopy(pay.code).next}</p>
+            </div>
           )}
           {pay.kind === "error" && (
             <ErrorBox
@@ -281,7 +314,11 @@ export function PayFlow({ config, pay: payConfig }: { config: WebConfig; pay: Pa
         </ul>
       )}
 
-      <p className="text-sm text-muted">Testnet USDT only. Your wallet never needs gas, seed phrases or a network switch.</p>
+      <p className="text-sm text-muted">
+        {own
+          ? "Testnet USDT only. Your wallet never needs gas: you only sign, the relayer pays."
+          : "Testnet USDT only. Your wallet never needs gas, seed phrases or a network switch."}
+      </p>
     </div>
   );
 }

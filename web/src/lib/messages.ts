@@ -1,5 +1,8 @@
 /** Plain-language copy for relayer errors on /verify. Pure logic, no React. */
 import type { RelayerErrorCode } from "./relayer.ts";
+import { formatUsdt } from "./usdt.ts";
+import { shortAddress } from "./view.ts";
+import type { WalletErrorCode } from "./wallet.ts";
 
 export interface SessionErrorCopy {
   /** What the person in front of the screen reads. */
@@ -183,4 +186,96 @@ export function payErrorCopy(code: RelayerErrorCode, ctx: { payMaxUsdt: string }
         maybeSent: true,
       };
   }
+}
+
+export interface WalletErrorCopy {
+  title: string;
+  next: string;
+}
+
+/** Why connecting or signing with the person's own wallet didn't work. Nothing is ever sent in these cases. */
+export function walletErrorCopy(code: WalletErrorCode): WalletErrorCopy {
+  switch (code) {
+    case "USER_REJECTED":
+      return { title: "You cancelled in your wallet.", next: "Nothing was sent. Try again when you're ready." };
+    case "REQUEST_PENDING":
+      return { title: "Your wallet already has a request open.", next: "Open your wallet extension and finish or close it." };
+    case "UNAUTHORIZED":
+    case "NO_ACCOUNT":
+      return { title: "Your wallet didn't share an account.", next: "Unlock your wallet, then connect again." };
+    case "UNSUPPORTED_METHOD":
+      return {
+        title: "This wallet can't sign this kind of payment permission.",
+        next: "Try MetaMask, Rabby or another browser wallet, or continue without a wallet.",
+      };
+    case "DISCONNECTED":
+      return { title: "Your wallet disconnected.", next: "Open your wallet, then connect again." };
+    case "ACCOUNT_CHANGED":
+      return {
+        title: "The account in your wallet changed.",
+        next: "Nothing was signed. The page now uses the account your wallet shows.",
+      };
+    case "WRONG_CHAIN":
+      return {
+        title: "Your wallet isn't on Whitechain Sepolia.",
+        next: "Switch your wallet to Whitechain Sepolia (chain 1874) and try again. Nothing was sent.",
+      };
+    case "SIGNATURE_MISMATCH":
+      return {
+        title: "This wallet's signature can't be used for a gasless payment.",
+        next: "Smart-contract wallets aren't supported yet. Use a regular account, or continue without a wallet.",
+      };
+    default:
+      return { title: "Your wallet couldn't finish that.", next: "Nothing was sent. Try again, or reload the page." };
+  }
+}
+
+/** Why the wallet chooser is showing: a wallet error, or the remembered wallet is locked / not in this browser. */
+export type ChooserNote = WalletErrorCode | "LOCKED" | "NOT_FOUND";
+
+/**
+ * The note above "Choose a wallet". `walletName` is the remembered wallet ("MetaMask"), or null when unknown.
+ * LOCKED and NOT_FOUND say plainly that "Continue without a wallet" is a different wallet, so someone who verified
+ * with MetaMask isn't nudged into an unverified one.
+ */
+export function chooserNoteCopy(note: ChooserNote, walletName: string | null): WalletErrorCopy {
+  const name = walletName ?? "Your wallet";
+  const other = `"Continue without a wallet" uses a different wallet, without ${walletName ?? "your wallet"}'s card stamp.`;
+  switch (note) {
+    case "LOCKED":
+      return {
+        title: `${name} is locked or not connected to this page.`,
+        next: `Unlock it, then click Connect ${walletName ?? "your wallet"}. ${other}`,
+      };
+    case "NOT_FOUND":
+      return {
+        title: `We couldn't find ${walletName ?? "your wallet"} in this browser.`,
+        next: `Turn the extension on and reload this page, or open this page in the browser where you use it. ${other}`,
+      };
+    default:
+      return walletErrorCopy(note);
+  }
+}
+
+/**
+ * "No wallet found" under "Use my wallet". Phone browsers (Android Chrome, iOS Safari) have no extensions, so they get
+ * "open this page in your wallet app's browser" instead of "install MetaMask".
+ */
+export function noWalletFoundCopy(mobile: boolean): string {
+  return mobile
+    ? "No wallet in this browser. Continue without a wallet, or open this page in your wallet app's browser (MetaMask, Rabby, Coinbase Wallet)."
+    : "No browser wallet found. Install one (for example MetaMask), reload this page, or continue without a wallet.";
+}
+
+/**
+ * Explains the raw fields the wallet popup shows for an EIP-3009 permission (it is not a Permit, so wallets show
+ * `value` in base units and `validBefore` as a Unix time). Built from the same amount, recipient and window as the
+ * intent, so it matches the popup.
+ */
+export function walletPopupHint(args: { value: bigint; to: string; validitySeconds: number }): string {
+  const minutes = Math.round(args.validitySeconds / 60);
+  return (
+    `Your wallet shows the amount in USDT's smallest unit (1 USDT = 1000000), so ${formatUsdt(args.value)} USDT shows as ` +
+    `value ${args.value.toString()}. It goes to ${shortAddress(args.to)} ("to") and expires in ${minutes} minutes ("validBefore").`
+  );
 }

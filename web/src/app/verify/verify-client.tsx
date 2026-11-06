@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { readWebConfig, type ConfigResult } from "@/lib/config.ts";
-import { browserStorage, forgetBurner } from "@/lib/burner.ts";
+import { WalletGate } from "../_wallet/wallet-gate";
 import { VerifyFlow } from "./verify-flow";
 
 /**
@@ -12,8 +12,6 @@ import { VerifyFlow } from "./verify-flow";
  */
 export function VerifyClient() {
   const [config, setConfig] = useState<ConfigResult | null>(null);
-  // Bumped by "start over with a new wallet": remounts the flow with fresh state.
-  const [generation, setGeneration] = useState(0);
 
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
@@ -52,14 +50,17 @@ export function VerifyClient() {
           <p className="mt-3 text-sm text-muted">See web/README.md for the environment variables.</p>
         </section>
       ) : (
-        <VerifyFlow
-          key={generation}
-          config={config.config}
-          onNewWallet={() => {
-            forgetBurner(config.config.appId, browserStorage());
-            setGeneration((g) => g + 1);
-          }}
-        />
+        <WalletGate appId={config.config.appId} purpose="verify">
+          {(wallet, controls) => (
+            // Keyed on the wallet: another account (or a new burner) starts the flow over with fresh state.
+            <VerifyFlow
+              key={`${wallet.kind}:${wallet.address}`}
+              config={config.config}
+              wallet={wallet}
+              onNewWallet={wallet.kind === "burner" ? controls.newBurner : undefined}
+            />
+          )}
+        </WalletGate>
       )}
     </main>
   );

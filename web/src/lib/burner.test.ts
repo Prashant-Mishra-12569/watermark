@@ -2,7 +2,14 @@ import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { privateKeyToAccount } from "viem/accounts";
 import type { Hex } from "viem";
-import { BURNER_STORAGE_KEY, forgetBurner, loadOrCreateBurner, resetMemoryWalletsForTests, type KeyStorage } from "./burner.ts";
+import {
+  BURNER_STORAGE_KEY,
+  forgetBurner,
+  hasBurner,
+  loadOrCreateBurner,
+  resetMemoryWalletsForTests,
+  type KeyStorage,
+} from "./burner.ts";
 
 class MapStorage implements KeyStorage {
   data = new Map<string, string>();
@@ -103,4 +110,17 @@ test("the account can sign typed data (needed later by /pay) and does not expose
   });
   assert.match(sig, /^0x[0-9a-f]{130}$/);
   assert.ok(!JSON.stringify(account).includes(keyA.slice(2)));
+});
+
+test("hasBurner: true only once a wallet exists for this app, and never creates one", () => {
+  const s = new MapStorage();
+  assert.equal(hasBurner("7", s), false);
+  assert.equal(s.data.size, 0);
+  loadOrCreateBurner("7", s, fixed(keyA));
+  assert.equal(hasBurner("7", s), true);
+  assert.equal(hasBurner("8", s), false);
+  loadOrCreateBurner("9", throwing, fixed(keyB)); // blocked storage: kept in memory
+  assert.equal(hasBurner("9", throwing), true);
+  forgetBurner("7", s);
+  assert.equal(hasBurner("7", s), false);
 });
