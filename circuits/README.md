@@ -23,7 +23,7 @@ e = 3, 183 bytes of static data). This profile matches all three of our real car
    - The card signature opens with the card key (`6A 05|95 … BC`).
 3. **Issuer check:** the bank certificate's issuer ID is a prefix of the PAN.
 4. **Freshness:** the signature's SHA-1 covers this session's `un`, so replays fail.
-5. **Filter:** `Poseidon2(networkId, prefixLength, prefix)` is a leaf under `rules_root` (depth 12). The prefix is the
+5. **Filter:** `Poseidon2(networkId, prefixLength, prefix)` is a leaf under `rules_root` (depth 13, up to 8,192 prefixes). The prefix is the
    first 6 or 8 PAN digits, taken from the **signed** card certificate.
 6. **Validity:** both certificates are valid through `valid_until_month`.
 7. **Nullifier:** `Poseidon2(pack(n_C) ‖ appId)`, from the card **key** and never the card number.
@@ -34,7 +34,7 @@ e = 3, 183 bytes of static data). This profile matches all three of our real car
 ## Measured (synthetic test card, Windows laptop, WSL2, 8 threads, 2026-11-06)
 | Metric | Value |
 |---|---|
-| ACIR opcodes / circuit size | 84,476 / **206,473 gates** (UltraHonk) |
+| ACIR opcodes / circuit size | 84,476 / **206,623 gates** (UltraHonk), rules tree depth 13 |
 | `bb prove -t evm` (ZK, keccak) + vk + verify | **3.0 s**, 326 MB peak |
 | Proof size / public inputs | 9,536 bytes / 6 × 32 bytes |
 | Solidity verifier (`bb write_solidity_verifier -t evm`) | HonkVerifier runtime **18,451 bytes** (< 24,576 limit) + ZKTranscriptLib 6,089 bytes (spike build) |

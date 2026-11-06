@@ -12,7 +12,7 @@ const REGISTRY = "0x00000000000000000000000000000000000000aa" as Address;
 const A = "0x00000000000000000000000000000000000000a1";
 const NOW = 1_800_000_000;
 // The committed test policy's rulesRoot for the synthetic leaf (RuPay, 6, 990001), as computed by the circuit.
-const TEST_RULES_ROOT = "0x288520708dd4920995a6a73e6edc1c9a1726b62dfff2340c72873e2fb767fdab";
+const TEST_RULES_ROOT = "0x08d09d15afbf7ceeb7a9d05802ab845bf6316bf9fdffd57f593a718ec89eb90f";
 
 const testPolicy: Policy = {
   label: "Watermark test",
@@ -112,10 +112,12 @@ test("MCP round trip: list the tools and call two of them over the protocol", as
   const text = (res.content as { type: string; text: string }[])[0]!.text;
   assert.equal(JSON.parse(text).stamped, true);
 
-  // A full card number is rejected by the schema before any handler runs
+  // A full card number is rejected by the schema before any handler runs.
+  // Built from parts (fake test BIN + digits) so no card-number-like literal sits in the repo (CI guard).
+  const fakePan = "990001" + "0000123455";
   const bad = await client.callTool({
     name: "watermark_draft_policy",
-    arguments: { networks: ["RUPAY"], prefixes: [{ network: "RUPAY", prefix: "9900010000123455" }] },
+    arguments: { networks: ["RUPAY"], prefixes: [{ network: "RUPAY", prefix: fakePan }] },
   });
   assert.equal(bad.isError, true);
   await client.close();

@@ -8,6 +8,22 @@ Built at ETHGlobal Mumbai 2026 by Prashant Mishra and Samanway Baranwal.
 > Status: under active development during the hackathon. Anything marked *untested* or *estimated* is labelled that
 > way on purpose.
 
+## What works today (measured, Fri 6 Nov 2026)
+| Step | Status |
+|---|---|
+| Real **SBI RuPay debit** card → NFC read in our Android app → full certificate chain checked on the phone | ✅ works on a real card |
+| Phone → encrypted envelope → prover → **zero-knowledge proof of the whole EMV chain**, BIN filter and nullifier → verified | ✅ works on a real card (dev policy, prover on a laptop) |
+| The same circuit compiled on both team laptops, and the proof accepted by the committed Solidity verifier | ✅ |
+| On-chain stamp, gasless USDT payment, alt mempool paymaster | ⏳ in progress |
+
+| Metric | Value |
+|---|---|
+| Circuit size | 206,623 gates (UltraHonk), all 8 constraints of spec section I |
+| Proving time | **1.4 s** on a MacBook (native `bb`), 3.0 s Windows CLI, 9.4 s Windows in-memory (bb.js WASM) |
+| Proof / public inputs | 9,536 bytes / 6 field elements |
+| On-chain verification | **2.57M gas** to verify, about 2.9M for a full stamp. Verifier contract 18,578 bytes |
+| Tests | 60 TypeScript + 22 Android unit tests + 10 Noir tests. Negative cases: replay, tamper, wrong CA, wrong network, BIN not in filter, reused nullifier, expired card, moved ciphertext |
+
 ## The problem
 A new wallet is free and takes one second to create, so bots create thousands. Gasless apps get their gas budget
 drained, airdrops get farmed and faucets get emptied. World ID needs an Orb, and ID-based proofs need Aadhaar or a
@@ -20,9 +36,9 @@ passport.
    data authentication). No payment is made and nothing is sent to a bank.
 4. The phone checks the certificate chain and the app's filter locally, then sends the card data **encrypted** to the
    prover.
-5. The prover builds a **zero-knowledge proof** that a genuine network-signed card, which passes this app's rules,
-   signed this session's challenge. It also computes a **nullifier** (one card, one stamp per app). Card data is
-   wiped after proving.
+5. The prover decrypts the card data **in memory** and builds a **zero-knowledge proof** that a genuine network-signed
+   card, which passes this app's rules, signed this session's challenge. It also computes a **nullifier** from the
+   card's key (one card, one stamp per app). Nothing is written to disk, and the card data is dropped after proving.
 6. `WatermarkRegistry` verifies the proof on **Whitechain Sepolia**, and any contract can check `isStamped(wallet, appId)`.
 7. Stamped wallets make **gasless USDT payments**: the business pays gas through our relayer, with drain protection.
 8. On the **EIP-8141 alternative mempool**, a quota paymaster reads the registry during validation and sponsors
@@ -35,8 +51,8 @@ See [docs/interfaces.md](docs/interfaces.md) for every interface, and [docs/PLAN
 |---|---|---|
 | Watermark Tap (Android) | `android/` | Kotlin, Jetpack Compose, NFC IsoDep |
 | Website | `web/` | Next.js, viem, wagmi, Tailwind |
-| ZK circuit | `circuits/` | Noir + Barretenberg (UltraHonk, ZK mode) |
-| Prover service | `prover/` | Node/TypeScript, nargo + bb |
+| ZK circuit | `circuits/` | Noir 1.0.0 + Barretenberg 6.0.0 (UltraHonk, ZK mode), noir-bignum RSA e=3, our own SHA-1 |
+| Prover service | `prover/` | Node/TypeScript, in-memory proving with noir_js + bb.js |
 | Contracts | `contracts/` | Solidity 0.8.30, Foundry |
 | Relayer | `relayer/` | Node/TypeScript, viem |
 | SDK / MCP | `sdk/`, `mcp/` | TypeScript, Model Context Protocol |
@@ -44,8 +60,22 @@ See [docs/interfaces.md](docs/interfaces.md) for every interface, and [docs/PLAN
 | Filters | `policies/` | JSON + Poseidon2 Merkle roots |
 
 ## Setup
-_TBD: added as each part lands._ Requirements: Node 24 (`corepack enable` for pnpm), Foundry, Noir + bb (WSL2 on
-Windows), and Android Studio with JDK 17. Copy `.env.example` to `.env`.
+Requirements:
+- Node 24 (`corepack enable` for pnpm)
+- Foundry
+- Noir 1.0.0 (`noirup -v 1.0.0`) and bb 6.0.0 (`bbup -v 6.0.0`); on Windows, inside WSL2
+- Android Studio with JDK 17
+
+```sh
+pnpm install
+cp .env.example .env                       # fill in locally, never commit
+pnpm -r test                               # all TypeScript tests
+cd circuits && nargo test && nargo compile # circuit tests + build
+cd android && ./gradlew testDebugUnitTest assembleDebug
+```
+Each part has its own README: [circuits](circuits/README.md), [prover](prover/README.md),
+[relayer](relayer/README.md), [android](android/README.md), [mcp](mcp/README.md),
+[test card](tools/testcard/README.md).
 
 ## Tracks
 
@@ -54,7 +84,14 @@ Windows), and Android Studio with JDK 17. Copy `.env.example` to `.env`.
 - [ ] USDT payment (`0xcedfB56113143d55b2358b8CFbB0dEB5Ad2f55a7`) settled in the main flow: _explorer link TBD_
 - [ ] The payer flow has zero visible crypto steps
 - **Why on-chain stablecoin settlement:** _TBD_
-- **How the business pays gas, where the relayer's WBT comes from, and what stops draining it:** _TBD_
+- **How the business pays gas, where the relayer's WBT comes from, and what stops draining it:**
+  - The relayer wallet pays all gas, so users never hold WBT.
+  - On testnet it's funded from the Whitechain faucet (2 WBT a day).
+  - A stamp costs about 2.9M gas, which is about 0.0145 WBT at the 5 gwei minimum base fee. So one day of faucet
+    funds covers roughly 130 stamps. *(estimate from measured gas)*
+  - In production, the business tops the relayer up.
+  - Draining is stopped in layers ([relayer/README.md](relayer/README.md)): no gas is spent before a valid proof,
+    payments need a stamp, each stamp has a daily quota, and there are per-transaction and daily budget caps.
 - Feedback: [WHITECHAIN_FEEDBACK.md](WHITECHAIN_FEEDBACK.md)
 
 ### Ethereum Foundation · Frame Transaction Alternative Mempool
@@ -62,10 +99,16 @@ Windows), and Android Studio with JDK 17. Copy `.env.example` to `.env`.
 - Design and trade-offs: [docs/EF_ALTMEMPOOL.md](docs/EF_ALTMEMPOOL.md)
 
 ## CROPS
-- **Censorship resistance:** _TBD_
-- **Open source:** MIT licensed. _TBD: can a user build and run it from this repo alone?_
-- **Privacy:** _TBD_. See [docs/PRIVACY.md](docs/PRIVACY.md).
-- **Security:** _TBD_
+- **Censorship resistance:** stamps are verified on-chain by a public contract. Anyone can submit a valid proof, and
+  the stamp always goes to the session's wallet. Our relayer could refuse to sign a session, and an app owner can
+  replace it with their own session signer.
+- **Open source:** MIT licensed. The circuit, prover, contracts, app and tools all build from this repo. The synthetic
+  test card runs the whole pipeline without a real card.
+- **Privacy:** no card number, BIN or expiry goes on-chain; only a proof, a nullifier and public roots do. The prover
+  sees card data briefly, in memory; on-device proving is the fix. See [docs/PRIVACY.md](docs/PRIVACY.md).
+- **Security:** the chip's key never leaves the card, and each tap signs a fresh session challenge, so replays fail.
+  Proofs use zero-knowledge mode. Card data travels encrypted (RSA-OAEP + AES-GCM, bound to the session). We trust
+  the prover's memory handling and the relayer's session signer.
 
 ## Current limitations
 - Our prover sees card data briefly. It's never on-chain, and on-device proving is the fix.
@@ -84,7 +127,20 @@ app is in this repository.** All project code was written during the hackathon.
 Carte Bleue (ETHGlobal Lisbon 2026), zkEMV (ZK Hack Berlin 2025), GOAT RAMP (ETHGlobal Istanbul).
 
 ## Libraries used
-_TBD as dependencies are added._
+| Area | Libraries |
+|---|---|
+| Circuit | [noir-bignum](https://github.com/noir-lang/noir-bignum) v0.11.0 (RSA arithmetic), [noir-lang/poseidon](https://github.com/noir-lang/poseidon) v0.4.0 |
+| Proving | [@aztec-foundation/bb.js](https://www.npmjs.com/package/@aztec-foundation/bb.js) 6.0.0, [@noir-lang/noir_js](https://www.npmjs.com/package/@noir-lang/noir_js) 1.0.0 |
+| TypeScript services | [viem](https://viem.sh), [Hono](https://hono.dev), [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/typescript-sdk), zod |
+| Android | AndroidX, Jetpack Compose, [Bouncy Castle](https://www.bouncycastle.org) 1.86 (Keccak, secp256k1) |
+| Contracts | [Foundry](https://getfoundry.sh); the verifier is generated by `bb write_solidity_verifier` |
+
+**Public data:** the RuPay network CA public key 05 comes from the public CAPK list in
+[mmors-1/nfc10](https://github.com/mmors-1/nfc10). We checked it against its published SHA-1 checksum.
+The live filter's 6,258 Indian RuPay debit BINs come from
+[mostafa19950/bin-list-data](https://github.com/mostafa19950/bin-list-data) (a lite version of BinLookup.io data),
+licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). It's unofficial and possibly outdated, so
+every one of those leaves is marked `listed`, not `tested`.
 
 ## License
 [MIT](LICENSE)

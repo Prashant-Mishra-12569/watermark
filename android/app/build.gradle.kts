@@ -4,6 +4,31 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// Session signers each build trusts (interfaces F1), comma-separated addresses from gradle.properties.
+fun signers(prop: String): String {
+    val list = providers.gradleProperty(prop).get().split(",").map { it.trim() }.filter { it.isNotEmpty() }
+    require(list.isNotEmpty() && list.all { Regex("^0x[0-9a-fA-F]{40}$").matches(it) }) { "$prop must list addresses" }
+    return list.joinToString(",")
+}
+
+// The prover's PUBLIC key ships inside the app. Default: prover/keys/prover_pub.pem (the demo prover).
+// For a local dev prover: -Pwatermark.proverKeyPath=/path/to/dev_prover_pub.pem
+val proverKeyFile: File = providers.gradleProperty("watermark.proverKeyPath").orNull?.let { file(it) }
+    ?: rootProject.file("../prover/keys/prover_pub.pem")
+val proverKeyDir = layout.buildDirectory.dir("generated/proverKey")
+val copyProverKey = tasks.register<Copy>("copyProverKey") {
+    doFirst {
+        // Never pack a private key into the app by mistake
+        val text = proverKeyFile.readText()
+        require(text.trimStart().startsWith("-----BEGIN PUBLIC KEY-----") && !text.contains("PRIVATE")) {
+            "$proverKeyFile is not a PUBLIC key"
+        }
+    }
+    from(proverKeyFile)
+    rename { "prover_pub.pem" }
+    into(proverKeyDir)
+}
+
 android {
     namespace = "com.watermark.tap"
     compileSdk = 35
@@ -14,10 +39,8 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
-        // Session signer this build trusts (interfaces F1), from gradle.properties `watermark.sessionSigner`
-        val sessionSigner = providers.gradleProperty("watermark.sessionSigner").get()
-        require(Regex("^0x[0-9a-fA-F]{40}$").matches(sessionSigner)) { "watermark.sessionSigner must be an address" }
-        buildConfigField("String", "SESSION_SIGNER_ADDRESS", "\"$sessionSigner\"")
+        // Debug builds trust the public dev signer AND the real relayer signer; see buildTypes for the others
+        buildConfigField("String", "SESSION_SIGNERS", "\"${signers("watermark.sessionSigners.debug")}\"")
         // true only in the mirrored demo build: lets scrcpy show the tap screen (FLAG_SECURE off)
         buildConfigField("boolean", "DEMO_MIRROR", "false")
     }
@@ -25,11 +48,14 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            buildConfigField("String", "SESSION_SIGNERS", "\"${signers("watermark.sessionSigners.real")}\"")
         }
+        // The stage build: only the real relayer signer, and screen mirroring allowed
         create("demo") {
             initWith(getByName("debug"))
             applicationIdSuffix = ".demo"
             buildConfigField("boolean", "DEMO_MIRROR", "true")
+            buildConfigField("String", "SESSION_SIGNERS", "\"${signers("watermark.sessionSigners.real")}\"")
         }
     }
     compileOptions {
@@ -39,8 +65,8 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
-    // The prover's PUBLIC key (prover/keys/prover_pub.pem) ships inside the app as an asset.
-    sourceSets["main"].assets.srcDir("../../prover/keys")
+    // Only the copied public key, never the whole folder
+    sourceSets["main"].assets.srcDir(proverKeyDir)
 
     buildFeatures {
         compose = true
@@ -61,3 +87,5 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     testImplementation(libs.junit)
 }
+
+tasks.named("preBuild") { dependsOn(copyProverKey) }

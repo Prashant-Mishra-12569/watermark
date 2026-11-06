@@ -14,7 +14,7 @@ use emv::{bcd_month, check_issuer_prefix, pan_prefix, recover_e3, sub_bytes};
 use sha1::sha1;
 
 global CA_TREE_DEPTH: u32 = 6;
-global RULES_TREE_DEPTH: u32 = 12;
+global RULES_TREE_DEPTH: u32 = 13;
 
 // RuPay size profile (all three of our real cards).
 global CA_BYTES: u32 = 248;

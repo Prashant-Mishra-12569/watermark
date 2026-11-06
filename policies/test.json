@@ -13,7 +13,7 @@
       "status": "tested"
     }
   ],
-  "rulesRoot": "0x288520708dd4920995a6a73e6edc1c9a1726b62dfff2340c72873e2fb767fdab",
+  "rulesRoot": "0x08d09d15afbf7ceeb7a9d05802ab845bf6316bf9fdffd57f593a718ec89eb90f",
   "quotaPerDay": 20,
   "stampMonths": 3
 }

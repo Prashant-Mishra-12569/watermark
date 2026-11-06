@@ -1,6 +1,6 @@
 # Watermark interfaces
 
-**Version 1.0 · 2026-11-06.** This file is the contract between every part of Watermark.
+**Version 1.1 · 2026-11-06.** This file is the contract between every part of Watermark.
 Code against it, not against each other's code. Changes need agreement from both
 Prashant and Samanway: bump the version and add a line to the changelog at the bottom.
 
@@ -126,7 +126,7 @@ GET  /prove/:jobId
 | # | Name | Meaning |
 |---|---|---|
 | 0 | `caRoot` | Merkle root (depth 6) of allowed network CA keys. The contract stores the current root |
-| 1 | `rulesRoot` | Merkle root (depth 12) of this app's filter (F8 / spec I2) |
+| 1 | `rulesRoot` | Merkle root (depth 13, up to 8,192 leaves) of this app's filter (F8 / spec I2) |
 | 2 | `appId` | 248-bit number, fits the BN254 field |
 | 3 | `un` | the 4 UN bytes read as a big-endian integer |
 | 4 | `nullifier` | `Poseidon2(pack(n_C) ‖ appId)` |
@@ -253,7 +253,7 @@ supports both permit and EIP-3009, so Plan A is expected to work. Get it by swap
 }
 ```
 - `networkId`: 1 = RuPay, 2 = Visa, 3 = Mastercard.
-- Leaf = `Poseidon2(networkId, prefixLength, prefix)`. Tree depth is 12, and empty leaves are 0.
+- Leaf = `Poseidon2(networkId, prefixLength, prefix)`. Tree depth is 13 (up to 8,192 prefixes), and empty leaves are 0.
 - The phone fetches `GET /policy/:appId`, recomputes the root and refuses locally before sending anything.
 - `tested` means a real card passed. `listed` means the prefix comes from a list and is unproven.
 
@@ -316,6 +316,8 @@ Deployment file schema:
 ---
 
 ## Changelog
+- **1.1 (2026-11-06):** rules tree depth 12 → 13 (8,192 leaves), so the live policy can hold every public Indian
+  RuPay debit BIN (6,258). One more Poseidon2 per proof; new Verifier.sol (agreed before the first deploy).
 - **1.0 (2026-11-06):** first version, from build spec v3 section F. Changes from the spec:
   - Added F0 encoding rules and the F3 rejection codes.
   - F4 now defines the packing.

@@ -60,7 +60,12 @@ non-entity contract (STORAGE-032), with a larger verification budget.
 - Submitting code: _TBD path_
 
 ## Trade-offs
-_TBD_
+- **The proof is not verified inside VERIFY. This is measured, not assumed.** Our UltraHonk verifier costs **2.57M
+  gas** (a full stamp is about 2.9M). The staked verification budget is 1,000,000 gas in the draft rules, so the
+  spec's stretch goal (stamp and sponsor in the first frame tx) doesn't fit. The stamp is made once, by a normal
+  transaction, and the paymaster's VERIFY only **reads** the registry: stamp, expiry and quota. That read is cheap,
+  and it's exactly the access the public mempool forbids and STORAGE-032 allows for staked entities.
+- _TBD as the paymaster lands_
 
 ## Open questions for the alt mempool team
 - Is `[VERIFY sender][VERIFY paymaster][SENDER][DEFAULT]` the right shape for a paymaster that needs post-op state?

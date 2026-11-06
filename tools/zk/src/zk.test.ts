@@ -10,7 +10,7 @@ import { caLeaf, MerkleTree, nullifier, pack, RULES_TREE_DEPTH, CA_TREE_DEPTH, r
 const NOIR = {
   zero1: 0x0b63a53787021a4a962a452c2921b3663aff1ffd8d5510540f8e659e782956f1n,
   caRoot: 0x198ab4dd1b226ef292c9eba6eb4b1285e7216a51bb0ba872cf491bbe3ecbc3fen,
-  rulesRoot: 0x288520708dd4920995a6a73e6edc1c9a1726b62dfff2340c72873e2fb767fdabn,
+  rulesRoot: 0x08d09d15afbf7ceeb7a9d05802ab845bf6316bf9fdffd57f593a718ec89eb90fn, // rules tree depth 13
   nullifier: 0x23f0c97816e32b761ff5c1367ca6e57686fe46f390b969accc645a4990109259n,
 };
 
