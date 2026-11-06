@@ -16,7 +16,7 @@ data class Policy(val label: String, val environment: String, val leaves: List<P
     fun allows(networkId: Int, pan: String): Boolean =
         leaves.any { it.networkId == networkId && it.prefix.length == it.prefixLength && pan.startsWith(it.prefix) }
 
-    /** Short text for the consent screen, e.g. "RuPay debit (India) · 6,258 card ranges". */
+    /** Short text for the consent screen, e.g. "RuPay bank debit (India, no prepaid) · 4,208 card ranges". */
     val summary: String
         get() {
             val n = leaves.size
