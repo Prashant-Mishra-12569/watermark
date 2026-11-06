@@ -10,7 +10,7 @@ import styles from "./hero.module.css";
  * bottom edge, drawing itself on load (fully drawn under reduced motion), with every landmark and the sea line under
  * them on the first screen at real browser sizes (hero.module.css has the numbers).
  *
- * Phones and tablets (under 900px): copy, Mumbai, then the claim gate (hero-gate.tsx). From 900px (laptops, and
+ * Phones and tablets (under 900px): copy, the claim gate (hero-gate.tsx), then Mumbai along the bottom. From 900px (laptops, and
  * laptops zoomed to 125% or 150%): copy left, claim gate right, and Mumbai fills whatever height is left under them,
  * as large as fits. One copy of each part in the DOM, in reading order: copy, gate, skyline (the skyline is
  * decoration; the footer's is labelled). Server component; the drawing is the only client island.

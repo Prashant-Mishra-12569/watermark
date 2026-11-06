@@ -17,7 +17,7 @@ export function SwipeRow({
   dotsClassName,
   children,
 }: {
-  as?: "ul" | "ol";
+  as?: "ul" | "ol" | "dl" | "div";
   /** aria-label for the list. */
   label?: string;
   /** Classes for the list: the swipe row first, then the grid from a breakpoint. */
@@ -26,7 +26,7 @@ export function SwipeRow({
   dotsClassName?: string;
   children: ReactNode;
 }) {
-  const ref = useRef<HTMLUListElement & HTMLOListElement>(null);
+  const ref = useRef<HTMLUListElement & HTMLOListElement & HTMLDListElement & HTMLDivElement>(null);
   const [count, setCount] = useState(0);
   const [active, setActive] = useState(0);
   const [scrollable, setScrollable] = useState(false);
@@ -77,7 +77,8 @@ export function SwipeRow({
 
   return (
     <>
-      <List ref={ref} aria-label={label} className={cx("relative", className)}>
+      {/* The React types for the four tags differ only in their element type, so one cast keeps them together. */}
+      <List ref={ref as never} aria-label={label} className={cx("relative", className)}>
         {children}
       </List>
       {scrollable && count > 1 && (
