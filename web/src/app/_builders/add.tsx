@@ -145,7 +145,7 @@ const TABS: readonly AddTab[] = [
  */
 function LiveRow({ label, hint, value, extra }: { label: string; hint: string; value: string; extra?: ReactNode }) {
   return (
-    <div className="grid min-w-0 gap-2 border-t border-line py-5 first:border-t-0 sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-6 lg:grid-cols-[12rem_minmax(0,1fr)] lg:gap-8">
+    <div className="grid min-w-0 gap-1.5 border-t border-line py-4 first:border-t-0 sm:py-5 sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-6 lg:grid-cols-[12rem_minmax(0,1fr)] lg:gap-8">
       <dt className="min-w-0">
         <span className="font-semibold">{label}</span>
         <span className="block text-sm text-muted">{hint}</span>
@@ -165,7 +165,7 @@ export function Add({ liveLabel }: { liveLabel: string }) {
 
         <AddTabs tabs={TABS} label="Ways to add Watermark" className="mt-12 sm:mt-16" />
 
-        <div className="mt-12 rounded-card bg-surface p-6 sm:mt-16 sm:p-10">
+        <div className="mt-10 rounded-card bg-surface p-5 sm:mt-16 sm:p-10">
           <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
             <h3 className="flex flex-wrap items-center gap-3 text-[22px] font-semibold tracking-[-0.02em] sm:text-2xl">
               {LIVE_TITLE}
@@ -176,7 +176,7 @@ export function Add({ liveLabel }: { liveLabel: string }) {
               <ExternalLink href={DOCS.mcp}>MCP setup</ExternalLink>
             </p>
           </div>
-          <dl className="mt-6 rounded-inner bg-white px-5 ring-1 ring-black/[0.04] sm:px-7">
+          <dl className="mt-5 rounded-inner bg-white px-4 ring-1 ring-black/[0.04] sm:px-7">
             <LiveRow label="Chain ID" hint="Whitechain Sepolia" value={String(CHAIN_ID)} />
             <LiveRow
               label="Registry"
