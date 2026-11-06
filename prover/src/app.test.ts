@@ -163,3 +163,35 @@ test("GET /policy/:appId serves the public filter, and 404 for unknown apps", as
   assert.equal(body.label, "Test");
   assert.equal((await h.app.request("/policy/999")).status, 404);
 });
+
+test("a stamp refused because the card already stamped another wallet ends in CARD_ALREADY_LINKED", async () => {
+  // The harness stamp always succeeds, so this app's relayer refuses with the registry's reason instead
+  const refusing = createApp({
+    config: config(),
+    nowMs: () => NOW,
+    prove: async () => ({ proof: "0xabcd", publicInputs: ["0x01"], provingMs: 1 }),
+    stamp: async () => {
+      throw new Error("STAMP_NullifierBoundToOtherWallet");
+    },
+  });
+  const s = session();
+  const { sig } = await signSessionDev(s);
+  const r = await post(refusing, sealEnvelope(s, sig, card(), publicKey));
+  assert.equal(r.status, 202);
+  assert.equal((await waitJob(refusing, r.json.jobId!)).error, "CARD_ALREADY_LINKED");
+});
+
+test("any other refused stamp stays STAMP_REJECTED", async () => {
+  const refusing = createApp({
+    config: config(),
+    nowMs: () => NOW,
+    prove: async () => ({ proof: "0xabcd", publicInputs: ["0x01"], provingMs: 1 }),
+    stamp: async () => {
+      throw new Error("STAMP_STAMP_REVERTED");
+    },
+  });
+  const s = session();
+  const { sig } = await signSessionDev(s);
+  const r = await post(refusing, sealEnvelope(s, sig, card(), publicKey));
+  assert.equal((await waitJob(refusing, r.json.jobId!)).error, "STAMP_REJECTED");
+});

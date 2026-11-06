@@ -200,6 +200,7 @@ function errorCode(e: unknown): ProveError {
     return "BAD_CARD";
   }
   if (e instanceof OdaError) return "BAD_CARD";
+  if (e instanceof Error && e.message === "STAMP_NullifierBoundToOtherWallet") return "CARD_ALREADY_LINKED";
   if (e instanceof Error && e.message.startsWith("STAMP_")) return "STAMP_REJECTED";
   return "BAD_CARD";
 }

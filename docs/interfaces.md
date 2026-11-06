@@ -110,8 +110,10 @@ POST /prove        body: F2 envelope
 GET  /prove/:jobId
   → 200 { "status": "queued|running|done|error",
           "txHash"?: "0x…",
-          "error"?: "NOT_IN_POLICY | EXPIRES_TOO_SOON | BAD_CARD | DECRYPT_FAILED | STAMP_REJECTED" }
+          "error"?: "NOT_IN_POLICY | EXPIRES_TOO_SOON | BAD_CARD | DECRYPT_FAILED | CARD_ALREADY_LINKED | STAMP_REJECTED" }
 ```
+- `CARD_ALREADY_LINKED`: the registry reverted `NullifierBoundToOtherWallet` (this card already stamped another wallet in
+  this app).
 - The prover reads the allowed `sessionSigner` from the registry on-chain (`apps(appId)`) and caches it. There is no
   hardcoded list.
 - When a job is done, the prover calls the relayer: `POST /stamp`.
