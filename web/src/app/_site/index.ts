@@ -29,5 +29,6 @@ export { Section } from "./section";
 export { SiteFooter } from "./site-footer";
 export { SiteHeader } from "./site-header";
 export { StatusChip, statusLabel, type StatusKind } from "./status-chip";
+export { SwipeRow } from "./swipe-row";
 export { Step } from "./step";
 export { useCopy, type CopyState } from "./use-copy";
