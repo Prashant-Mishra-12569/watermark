@@ -34,6 +34,14 @@ export type RelayerErrorCode =
   | "NONCE_USED" // this exact authorization was already used
   | "PAY_REJECTED" // the chain would refuse it; nothing was sent (relayer: PAY_REJECTED, FUND_REJECTED)
   | "FUND_EMPTY" // the business wallet is out of demo USDT
+  // Genesis Pass (POST /pass, GET /pass/:wallet)
+  | "PASS_NOT_CONFIGURED" // the relayer has no GENESIS_PASS_ADDRESS
+  | "RELAYER_NOT_CONFIGURED" // the relayer has no key to send with
+  | "NO_PAYMENT" // the wallet hasn't made a gas-free payment yet
+  | "ALREADY_CLAIMED"
+  | "CLAIM_PENDING" // a mint for this wallet was sent and isn't confirmed yet
+  | "SOLD_OUT"
+  | "PASS_REJECTED" // the pass contract would refuse the mint; nothing was sent
   // client-side
   | "NETWORK" // relayer down, wrong URL, or this origin isn't in CORS_ORIGINS
   | "TIMEOUT"
@@ -64,6 +72,13 @@ const KNOWN_CODES = new Set<RelayerErrorCode>([
   "NONCE_USED",
   "PAY_REJECTED",
   "FUND_EMPTY",
+  "PASS_NOT_CONFIGURED",
+  "RELAYER_NOT_CONFIGURED",
+  "NO_PAYMENT",
+  "ALREADY_CLAIMED",
+  "CLAIM_PENDING",
+  "SOLD_OUT",
+  "PASS_REJECTED",
 ]);
 
 /** The relayer's /pay and /fund reason codes (relayer/src/pay.ts) that map onto one of the codes above. */
@@ -74,6 +89,8 @@ const RELAYER_ALIASES: Readonly<Record<string, RelayerErrorCode>> = {
   PAY_PENDING: "TX_PENDING",
   FUND_PENDING: "TX_PENDING",
   FUND_REJECTED: "PAY_REJECTED",
+  PASS_REVERTED: "TX_FAILED",
+  PASS_PENDING: "TX_PENDING",
 };
 
 export class RelayerError extends Error {
@@ -120,7 +137,7 @@ const SIG65 = /^0x[0-9a-fA-F]{130}$/;
 const DECIMAL = /^\d{1,78}$/;
 const SESSION_ID = /^[A-Za-z0-9_-]{6,64}$/;
 
-async function request(url: string, init: RequestInit, opts: RequestOptions): Promise<unknown> {
+export async function request(url: string, init: RequestInit, opts: RequestOptions): Promise<unknown> {
   const doFetch = opts.fetch ?? globalThis.fetch.bind(globalThis);
   const controller = new AbortController();
   let timedOut = false;
@@ -357,4 +374,30 @@ export async function postFund(relayerUrl: string, wallet: Address, opts: Reques
 export async function getBalance(relayerUrl: string, wallet: Address, opts: RequestOptions = {}): Promise<BalanceResponse> {
   const res = await request(`${relayerUrl}/balance/${encodeURIComponent(wallet)}`, { method: "GET" }, opts);
   return parseBalanceResponse(res);
+}
+
+// ---- GET /health ----
+
+export interface HealthResponse {
+  /** The relayer's hot wallet: it sends stamps, payments and pass mints and pays their gas. null = it has no key. */
+  relayer: Address | null;
+  /** The Sponsor contract it relays payments through. */
+  sponsor: Address | null;
+  /** The business wallet that sends demo USDT. */
+  business: Address | null;
+  /** The Genesis Pass contract, when the relayer has one. */
+  genesisPass: Address | null;
+}
+
+export function parseHealthResponse(body: unknown): HealthResponse {
+  if (!body || typeof body !== "object") throw new RelayerError("BAD_RESPONSE", 200, "not an object");
+  const b = body as Record<string, unknown>;
+  const addr = (v: unknown) => (typeof v === "string" && ADDRESS.test(v) ? (v as Address) : null);
+  return { relayer: addr(b.relayer), sponsor: addr(b.sponsor), business: addr(b.business), genesisPass: addr(b.genesisPass) };
+}
+
+/** GET /health: who the relayer is (for "RELAYER …a9Ba" in receipts). Addresses only; nothing secret. */
+export async function getHealth(relayerUrl: string, opts: RequestOptions = {}): Promise<HealthResponse> {
+  const res = await request(`${relayerUrl}/health`, { method: "GET" }, opts);
+  return parseHealthResponse(res);
 }

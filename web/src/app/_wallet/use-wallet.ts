@@ -8,6 +8,7 @@ import { signPayment, type PayRequestBody } from "@/lib/pay.ts";
 import type { PaymentIntent } from "@/lib/usdt.ts";
 import {
   DISCOVERY_WAIT_MS,
+  ensureChain,
   loadWalletChoice,
   nextAccount,
   parseChainIdValue,
@@ -22,6 +23,7 @@ import {
   watchProviders,
   type ProviderDetail,
 } from "@/lib/wallet.ts";
+import { syncStep, walletBus, type SyncCurrent, type WalletSyncMessage } from "./wallet-sync";
 
 /** The wallet a page works with: today's burner, or the person's own browser wallet. */
 export interface ActiveWallet {
@@ -85,11 +87,23 @@ function rememberedOf(detail: ProviderDetail): RememberedWallet {
   return { rdns: detail.info.rdns, name: detail.info.name };
 }
 
+/** The view, reduced to what wallet-sync's syncStep compares. */
+function syncCurrentOf(view: WalletView): SyncCurrent {
+  if (view.kind !== "ready") return { kind: view.kind };
+  const w = view.wallet;
+  return w.kind === "injected"
+    ? { kind: "ready", wallet: "injected", address: w.address, rdns: (w as InjectedWallet).detail.info.rdns }
+    : { kind: "ready", wallet: "burner", address: w.address };
+}
+
 /**
  * Wallet choice for /verify and /pay. Restores the remembered choice (a browser that already has a burner for this
  * app and never chose keeps using it), discovers browser wallets (EIP-6963, window.ethereum fallback), and follows
  * accountsChanged / chainChanged / disconnect. A changed account gives a new ActiveWallet object, so pages that key
  * their flow on the address start over for that account.
+ *
+ * Every useWallet on a page (the header's Connect button and the page's WalletGate) stays in step through
+ * ./wallet-sync: a connect, the browser wallet or a disconnect chosen in one is applied by the others.
  */
 export function useWallet(appId: string) {
   const [providers, setProviders] = useState<ProviderDetail[]>([]);
@@ -99,6 +113,13 @@ export function useWallet(appId: string) {
   const restored = useRef(false);
   /** Bumped by every connect, cancel and disconnect: a late wallet answer for an older attempt is ignored. */
   const attempt = useRef(0);
+  /** This hook's id on the page's wallet bus, and the view the bus listener compares against. */
+  const [busId] = useState(() => walletBus.nextId());
+  const viewRef = useRef(view);
+  useEffect(() => {
+    viewRef.current = view;
+  }, [view]);
+  const publish = useCallback((msg: WalletSyncMessage) => walletBus.publish(busId, msg), [busId]);
 
   // Discovery runs for the page's lifetime: an extension can announce itself late.
   useEffect(() => {
@@ -115,7 +136,13 @@ export function useWallet(appId: string) {
 
   const loadBurner = useCallback(() => {
     try {
-      setView({ kind: "ready", wallet: burnerWallet(loadOrCreateBurner(appId, browserStorage())) });
+      const burner = loadOrCreateBurner(appId, browserStorage());
+      // Already showing this browser wallet: keep the same object, so a page flow keyed on it doesn't restart.
+      setView((prev) =>
+        prev.kind === "ready" && prev.wallet.kind === "burner" && prev.wallet.address === burner.account.address
+          ? prev
+          : { kind: "ready", wallet: burnerWallet(burner) },
+      );
     } catch {
       setView({ kind: "burner-failed" });
     }
@@ -126,6 +153,22 @@ export function useWallet(appId: string) {
     saveWalletChoice(browserStorage(), { kind: "injected", rdns: detail.info.rdns, name: detail.info.name });
   }, []);
 
+  // Another useWallet on this page (header or page) chose or dropped a wallet: do the same here. The choice is
+  // already saved by the sender. It wins over this hook's own restore and over a connect it still waits for.
+  useEffect(
+    () =>
+      walletBus.subscribe(busId, (msg) => {
+        const step = syncStep(syncCurrentOf(viewRef.current), msg);
+        if (step === "keep") return;
+        restored.current = true;
+        attempt.current++;
+        if (step === "load-burner") loadBurner();
+        else if (step === "activate" && msg.kind === "injected")
+          setView({ kind: "ready", wallet: injectedWallet(msg.detail, msg.address) });
+        else setView({ kind: "choose", note: null, remembered: null });
+      }),
+    [busId, loadBurner],
+  );
 
   // Restore the remembered choice once. An external wallet is reconnected silently (eth_accounts, no popup).
   useEffect(() => {
@@ -167,12 +210,15 @@ export function useWallet(appId: string) {
       setView({ kind: "connecting", name: detail.info.name });
       try {
         const address = await requestAccount(detail.provider);
-        if (mine === attempt.current) activate(detail, address);
+        if (mine === attempt.current) {
+          activate(detail, address);
+          publish({ kind: "injected", detail, address });
+        }
       } catch (e) {
         if (mine === attempt.current) setView({ kind: "choose", note: toWalletError(e).code, remembered: rememberedOf(detail) });
       }
     },
-    [activate],
+    [activate, publish],
   );
 
   /** "Continue without a wallet": today's burner. */
@@ -180,7 +226,8 @@ export function useWallet(appId: string) {
     attempt.current++;
     saveWalletChoice(browserStorage(), { kind: "burner" });
     loadBurner();
-  }, [loadBurner]);
+    publish({ kind: "burner", fresh: false });
+  }, [loadBurner, publish]);
 
   /** "Switch wallet": back to the choice. MetaMask also forgets this site's permission (best effort). */
   const switchWallet = useCallback(() => {
@@ -191,13 +238,15 @@ export function useWallet(appId: string) {
     }
     saveWalletChoice(browserStorage(), { kind: "ask" });
     setView({ kind: "choose", note: null, remembered: null });
-  }, [view]);
+    publish({ kind: "ask" });
+  }, [view, publish]);
 
   /** Demo tools: a new burner for this app (the old one can't be recovered). */
   const newBurner = useCallback(() => {
     forgetBurner(appId, browserStorage());
     loadBurner();
-  }, [appId, loadBurner]);
+    publish({ kind: "burner", fresh: true });
+  }, [appId, loadBurner, publish]);
 
   const cancelConnect = useCallback(() => {
     attempt.current++;
@@ -220,6 +269,21 @@ export function useWallet(appId: string) {
     if (!address) setView({ kind: "choose", note: "LOCKED", remembered: rememberedOf(injected.detail) });
     else if (address !== injected.address) activate(injected.detail, address);
   }, [injected, activate]);
+
+  /**
+   * "Switch to Whitechain" (the header's account menu): the wallet's switch prompt, adding Whitechain Sepolia first
+   * when the wallet doesn't know it (lib/wallet.ts ensureChain). Throws a WalletError (USER_REJECTED, WRONG_CHAIN, ...).
+   * Nothing is signed or sent. A no-op for the burner.
+   */
+  const switchToWhitechain = useCallback(async () => {
+    if (!injected) return;
+    const { provider } = injected.detail;
+    await ensureChain(provider);
+    // Some wallets don't emit chainChanged after a switch: read it back.
+    const c = await provider.request({ method: "eth_chainId" }).catch(() => null);
+    const id = parseChainIdValue(c);
+    if (id !== null) setChainId(id);
+  }, [injected]);
   useEffect(() => {
     if (!injected) {
       setChainId(null);
@@ -271,7 +335,23 @@ export function useWallet(appId: string) {
       newBurner,
       cancelConnect,
       resync,
+      switchToWhitechain,
     }),
-    [view, sortedProviders, discoveryDone, chainId, connect, chooseBurner, switchWallet, newBurner, cancelConnect, resync],
+    [
+      view,
+      sortedProviders,
+      discoveryDone,
+      chainId,
+      connect,
+      chooseBurner,
+      switchWallet,
+      newBurner,
+      cancelConnect,
+      resync,
+      switchToWhitechain,
+    ],
   );
 }
+
+/** Everything useWallet returns (the header's Connect button and its modal take it as a prop). */
+export type WalletApi = ReturnType<typeof useWallet>;

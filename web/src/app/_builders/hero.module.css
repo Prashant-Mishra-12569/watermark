@@ -1,0 +1,129 @@
+/*
+ * Builders hero layout. Goal: on the FIRST screen (no scrolling) the copy, the two buttons and the WHOLE Mumbai
+ * drawing (every landmark and the sea line under them) are visible at real browser sizes: 1470x790 and 1280x700
+ * laptops, the same laptop zoomed to 125% (1176x632) and 150% (980x530), 412x780 / 390x664 / 360x640 phones.
+ * The header is 72px tall.
+ *
+ * The drawing is a 5:1 picture (MumbaiSkyline: the SVG is the full width of its wrapper, height from its aspect
+ * ratio). So it is always sized by its WIDTH: a narrower wrapper is a smaller, whole drawing, never a cropped one.
+ *
+ * Under 900px: copy, then Mumbai (as wide as the column, at most 17svh tall), then the claim gate.
+ * From 900px: copy left, claim gate right (the .top row), and Mumbai under them in whatever height is left on the
+ * first screen: the .sky cell grows to fill it (flex: 1, between 88px and 236px), and the drawing inside is
+ * min(100% of the cell's width, 5x the cell's height) wide (a size container, cq units). Any space left over goes
+ * above and below the .top row, so the copy stays centred and the drawing sits on the bottom edge of the screen.
+ * The headline is sized from both the width (vw) and the height (svh), so a zoomed browser gets a smaller one.
+ */
+
+.hero {
+  /* Phones and tablets: the tallest the drawing may be. */
+  --sky-max-h: clamp(64px, 17svh, 200px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "copy"
+    "sky"
+    "gate";
+  row-gap: clamp(20px, 3.2svh, 32px);
+  padding-top: clamp(16px, 3svh, 32px);
+  padding-bottom: clamp(24px, 4svh, 40px);
+}
+
+/* Under 900px the copy and the gate are cells of the hero grid itself (so Mumbai can sit between them). */
+.top {
+  display: contents;
+}
+
+.copy {
+  grid-area: copy;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: clamp(10px, 1.8svh, 16px);
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  max-width: 13ch;
+  font-size: clamp(32px, min(9vw, 6.6svh), 64px) !important;
+  line-height: 1.02 !important;
+  letter-spacing: -0.035em;
+}
+
+.sub {
+  margin: 0;
+  max-width: 46ch;
+  font-size: clamp(15px, min(4vw, 2.3svh), 18px);
+  line-height: 1.5;
+}
+
+.ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: clamp(2px, 0.8svh, 8px);
+}
+
+.gate {
+  grid-area: gate;
+  min-width: 0;
+}
+
+.sky {
+  grid-area: sky;
+  width: 100%;
+  min-width: 0;
+}
+
+.skyline {
+  display: block;
+  width: min(100%, calc(var(--sky-max-h) * 5));
+  margin-inline: auto;
+}
+
+@media (min-width: 900px) {
+  .hero {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100svh - 72px);
+    row-gap: clamp(12px, 2.6svh, 28px);
+    padding-top: clamp(12px, 2.6svh, 28px);
+    padding-bottom: clamp(12px, 2.4svh, 24px);
+  }
+
+  .top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: clamp(24px, 3.4vw, 56px);
+    /* Leftover height (tall screens) goes above and below this row, never between Mumbai and the screen's edge. */
+    margin-block: auto;
+  }
+
+  .copy,
+  .gate {
+    grid-area: auto;
+  }
+
+  .title {
+    max-width: 11.5ch;
+    font-size: clamp(34px, min(4.6vw, 7.4svh), 72px) !important;
+  }
+
+  .sky {
+    flex: 1 1 0;
+    min-height: 88px;
+    max-height: 236px;
+    container-type: size;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  .skyline {
+    /* 5:1 drawing: 5x the cell's height wide at most, so it is never taller than the cell. */
+    width: min(100cqw, 500cqh);
+    margin-inline: 0;
+  }
+}

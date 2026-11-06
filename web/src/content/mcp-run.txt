@@ -1,0 +1,5 @@
+12 tools: watermark_check_wallet, watermark_check_wallets, watermark_draft_policy, watermark_get_policy, watermark_explain_policy, watermark_integration_snippet, watermark_app_info, watermark_stamp_history, watermark_prepare_register_app, watermark_create_verify_link, watermark_list_apps, watermark_supported_cards
+registry 0x998934Efa31a6bE75945fDfAa126d3D6401F8Fd6; apps: test "Watermark test (synthetic + test cards)", live "RuPay bank debit (India, no prepaid)"
+app_info live: exists true, audit matches true (4208 published leaves)
+stamp_history live: 0 stamp(s), 0 live; latest none
+supported_cards: RUPAY live, VISA planned, MASTERCARD planned

@@ -128,3 +128,69 @@ export function readWebConfig(env: EnvInput, query: QueryInput = {}): ConfigResu
   if (problems.length > 0 || !relayerUrl || !appId || !chainId) return { ok: false, problems };
   return { ok: true, config: { relayerUrl, relayerLanUrl, appId, chainId } };
 }
+
+// ---- Page setup for /verify and /pay (SITE_SPEC.md section 3) ----
+
+/** The query string a flow page reads. Never echoed onto the page. */
+export interface PageQuery {
+  app?: string | null;
+  chain?: string | null;
+  /** "pass": the Genesis Pass walk (step 1 on /verify, step 2 on /pay). */
+  next?: string | null;
+}
+
+export interface PageSetup {
+  config: ConfigResult;
+  /** True only for ?next=pass while the pass is live: flow header, fixed app, fixed payment, step buttons. */
+  passFlow: boolean;
+}
+
+/** ?next=pass counts only while the Genesis Pass is live (PASS_LIVE); otherwise the page is the normal one. */
+export function isPassFlow(next: string | null | undefined, passLive: boolean): boolean {
+  return passLive && next === "pass";
+}
+
+/**
+ * /verify. In the Genesis Pass walk, ?app= and ?chain= are ignored: the stamp must be for the live app on Whitechain
+ * Sepolia, the only one the pass and free payments accept. Otherwise ?app= and ?chain= work as before.
+ */
+export function readVerifySetup(env: EnvInput, query: PageQuery, site: { liveAppId: string; passLive: boolean }): PageSetup {
+  const passFlow = isPassFlow(query.next, site.passLive);
+  const config = passFlow
+    ? readWebConfig(env, { app: site.liveAppId, chain: DEFAULT_CHAIN_ID })
+    : readWebConfig(env, { app: query.app ?? null, chain: query.chain ?? null });
+  return { config, passFlow };
+}
+
+/**
+ * /pay. The stamp it reads is always the Sponsor's app: NEXT_PUBLIC_APP_ID, the current live app. ?app= and ?chain=
+ * are ignored, because the relayer and the Sponsor contract refuse every other app's stamp. In the Genesis Pass walk
+ * the live app is forced, so step 2 uses the same browser wallet as step 1 (/verify?next=pass).
+ */
+export function readPaySetup(env: EnvInput, query: PageQuery, site: { liveAppId: string; passLive: boolean }): PageSetup {
+  const passFlow = isPassFlow(query.next, site.passLive);
+  const config = readWebConfig({ ...env, relayerLanUrl: undefined }, passFlow ? { app: site.liveAppId } : {});
+  return { config, passFlow };
+}
+
+/**
+ * A setup problem for /pay's list when, on Whitechain, the page's app isn't the one the Sponsor contract is bound to
+ * (`sponsorAppId` in deployments/whitechain.json). Every free payment would then be refused NOT_STAMPED.
+ */
+export function sponsorAppProblem(config: WebConfig, sponsorAppId: string): string | null {
+  if (config.chainId !== "1874" || config.appId === sponsorAppId) return null;
+  return "NEXT_PUBLIC_APP_ID is not sponsorAppId in deployments/whitechain.json, so the relayer will refuse free payments for this page's stamps.";
+}
+
+/**
+ * Apps whose stamp /pay reads only to explain a refusal ("its stamp is for another app"): for example the ?app= the
+ * visitor came with, the test app and the first live app. Never the Sponsor's own app, no duplicates, no invalid ids.
+ */
+export function otherAppIds(payAppId: string, candidates: readonly (string | null | undefined)[]): string[] {
+  const out: string[] = [];
+  for (const raw of candidates) {
+    const id = parseAppId(raw);
+    if (id && id !== payAppId && !out.includes(id)) out.push(id);
+  }
+  return out;
+}
